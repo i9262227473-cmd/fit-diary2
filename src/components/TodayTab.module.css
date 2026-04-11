@@ -1,0 +1,151 @@
+.wrap { padding: 0 0 16px; }
+
+.dateBar {
+  padding: 10px 16px;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+}
+
+.dateLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: capitalize;
+}
+
+.weightRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--header);
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.weightLabel { font-size: 12px; color: #7a9cc8; }
+.weightValue { font-size: 15px; font-weight: 700; color: #fff; }
+
+.macroGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 14px;
+}
+
+.macroCard {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  box-shadow: var(--shadow);
+}
+
+.macroLabel {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.macroValue {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.macroGoal {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 4px 0 8px;
+}
+
+.progressBar {
+  background: var(--bg);
+  border-radius: 3px;
+  height: 5px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s;
+}
+
+.macroPct {
+  font-size: 11px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.section {
+  padding: 0 14px 14px;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  margin-top: 4px;
+}
+
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.addBtn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.empty {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 16px 0;
+}
+
+.foodItem {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 7px;
+}
+
+.foodName { font-size: 14px; font-weight: 600; }
+.foodMeta { font-size: 12px; color: var(--sub); margin-top: 2px; }
+
+/* Модал */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  padding: 24px 20px;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.modalTitle {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}

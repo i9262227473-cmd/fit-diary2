@@ -1,0 +1,36 @@
+.header { margin-bottom: 20px; }
+.titleRow { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.title { font-size: 20px; font-weight: 900; letter-spacing: -0.3px; }
+.subtitle { font-size: 13px; color: var(--text3); }
+
+.scanArea {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: var(--glass); border: 2px dashed rgba(201,168,76,.35); border-radius: var(--r2);
+  padding: 38px 20px; margin-bottom: 20px; cursor: pointer; text-align: center;
+  backdrop-filter: blur(8px); transition: all .2s;
+}
+.scanArea:active { background: rgba(201,168,76,.06); border-color: var(--gold); }
+.scanIconWrap {
+  width: 80px; height: 80px; border-radius: 24px;
+  background: rgba(201,168,76,.1); border: 1px solid var(--border-gold);
+  display: flex; align-items: center; justify-content: center; margin-bottom: 14px;
+}
+.scanText { font-size: 15px; font-weight: 700; color: var(--gold); margin-bottom: 5px; }
+.scanHint { font-size: 12px; color: var(--text3); }
+
+.historyTitle { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+
+.card { background: var(--glass); border: 1px solid var(--border); border-radius: var(--r2); margin-bottom: 10px; overflow: hidden; backdrop-filter: blur(10px); }
+.cardHeader { display: flex; justify-content: space-between; align-items: center; padding: 15px 16px; cursor: pointer; transition: background .15s; }
+.cardHeader:active { background: rgba(255,255,255,.02); }
+.cardDate { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.cardPreview { font-size: 11px; color: var(--text3); max-width: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cardActions { display: flex; gap: 10px; align-items: center; }
+.toggle { font-size: 12px; color: var(--text3); }
+.deleteBtn { background: none; border: none; font-size: 18px; cursor: pointer; }
+.cardBody { padding: 16px; border-top: 1px solid var(--border); background: rgba(255,255,255,.02); }
+.analysisText { font-size: 13px; line-height: 1.75; white-space: pre-wrap; color: var(--text2); }
+
+.empty { text-align: center; padding: 50px 20px; color: var(--text3); }
+.emptyIcon { font-size: 56px; margin-bottom: 16px; }
+.emptyHint { font-size: 12px; margin-top: 8px; line-height: 1.6; }

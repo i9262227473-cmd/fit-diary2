@@ -1,0 +1,158 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  padding: 20px 16px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding-bottom: calc(30px + env(safe-area-inset-bottom, 0px));
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.close {
+  background: var(--bg);
+  border: none;
+  color: var(--sub);
+  font-size: 14px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modeTabs {
+  display: flex;
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 3px;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+}
+
+.modeTab {
+  flex: 1;
+  padding: 8px;
+  background: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.modeActive {
+  background: #fff;
+  color: var(--accent);
+  box-shadow: 0 1px 4px rgba(0,0,0,.1);
+}
+
+.search {
+  width: 100%;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  margin-bottom: 8px;
+}
+
+.search:focus {
+  border-color: var(--accent);
+}
+
+.results {
+  background: #fff;
+  border: 1.5px solid var(--accent);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.resultItem {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.resultItem:last-child {
+  border-bottom: none;
+}
+
+.resultName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.resultCal {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.weightRow {
+  margin-bottom: 12px;
+}
+
+.preview {
+  background: var(--accent-light);
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 4px;
+}
+
+.previewTitle {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.previewMacros {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sub);
+}
+
+.macroInputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}

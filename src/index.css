@@ -1,0 +1,170 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+  /* Backgrounds */
+  --bg: #0a0a0f;
+  --bg2: #111118;
+  --bg3: #16161f;
+
+  /* Glass cards */
+  --glass: rgba(255,255,255,.04);
+  --glass2: rgba(255,255,255,.07);
+  --glass3: rgba(255,255,255,.02);
+
+  /* Borders */
+  --border: rgba(255,255,255,.08);
+  --border-gold: rgba(201,168,76,.25);
+  --border-gold2: rgba(201,168,76,.5);
+
+  /* Text */
+  --text: #ffffff;
+  --text2: rgba(255,255,255,.55);
+  --text3: rgba(255,255,255,.28);
+
+  /* Gold accent */
+  --gold: #C9A84C;
+  --gold2: #E8C878;
+  --gold3: #F5D78E;
+  --gold-grad: linear-gradient(135deg, #C9A84C 0%, #E8C878 50%, #C9A84C 100%);
+  --gold-grad2: linear-gradient(135deg, #a07830 0%, #C9A84C 40%, #E8C878 70%, #C9A84C 100%);
+  --gold-glow: 0 0 20px rgba(201,168,76,.35);
+  --gold-glow2: 0 0 40px rgba(201,168,76,.25);
+
+  /* Status */
+  --green: #10d9a4;
+  --red: #ff4d6a;
+  --orange: #ff9f43;
+  --blue: #4facfe;
+
+  /* Shadows */
+  --shadow: 0 8px 32px rgba(0,0,0,.5);
+  --shadow2: 0 4px 20px rgba(201,168,76,.2);
+
+  /* Radius */
+  --r1: 24px;
+  --r2: 18px;
+  --r3: 12px;
+  --r4: 8px;
+}
+
+body {
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* fullScreen и модалы должны выходить за max-width body */
+.fullscreen-escape {
+  position: fixed;
+  inset: 0;
+  max-width: none;
+  width: 100vw;
+}
+
+button { font-family: inherit; cursor: pointer; border: none; outline: none; color: var(--text); }
+input, select, textarea { font-family: inherit; outline: none; color: var(--text); }
+::-webkit-scrollbar { display: none; }
+
+/* Glass card */
+.glass-card {
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: var(--r2);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Gold button */
+.btn-gold {
+  background: var(--gold-grad);
+  color: #000;
+  border-radius: var(--r2);
+  padding: 16px;
+  font-size: 15px;
+  font-weight: 800;
+  width: 100%;
+  letter-spacing: 0.3px;
+  box-shadow: var(--shadow2);
+  transition: opacity 0.2s, transform 0.1s;
+}
+.btn-gold:active { transform: scale(0.98); opacity: 0.9; }
+.btn-gold:disabled { opacity: 0.35; cursor: default; transform: none; }
+
+/* Secondary button */
+.btn-secondary {
+  background: var(--glass2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r2);
+  padding: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  width: 100%;
+}
+
+/* Legacy support */
+.btn-primary {
+  background: var(--gold-grad);
+  color: #000;
+  border-radius: var(--r2);
+  padding: 16px;
+  font-size: 15px;
+  font-weight: 800;
+  width: 100%;
+  box-shadow: var(--shadow2);
+  transition: opacity 0.2s, transform 0.1s;
+}
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled { opacity: 0.35; cursor: default; transform: none; }
+
+/* Form fields */
+.field { margin-bottom: 14px; }
+
+.field-label {
+  font-size: 11px;
+  color: var(--text3);
+  font-weight: 700;
+  margin-bottom: 7px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.field-input {
+  width: 100%;
+  background: var(--glass2);
+  border: 1px solid var(--border);
+  border-radius: var(--r3);
+  padding: 13px 16px;
+  color: var(--text);
+  font-size: 15px;
+  transition: border-color 0.2s;
+}
+.field-input:focus { border-color: var(--gold); }
+.field-input::placeholder { color: var(--text3); }
+select.field-input option { background: #16161f; }
+
+/* Animations */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes goldPulse {
+  0%, 100% { box-shadow: var(--gold-glow); }
+  50% { box-shadow: var(--gold-glow2); }
+}
+
+.fade-in { animation: fadeInUp 0.35s ease; }

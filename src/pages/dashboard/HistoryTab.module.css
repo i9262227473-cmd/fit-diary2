@@ -1,0 +1,18 @@
+.empty { text-align: center; padding: 60px 20px; color: var(--text3); }
+.emptyIcon { display: flex; justify-content: center; margin-bottom: 14px; }
+.emptyHint { font-size: 13px; margin-top: 6px; line-height: 1.6; }
+
+.title { font-size: 20px; font-weight: 900; margin-bottom: 16px; letter-spacing: -0.3px; }
+
+.card { background: var(--glass); border: 1px solid var(--border); border-radius: var(--r2); padding: 16px; margin-bottom: 12px; backdrop-filter: blur(10px); }
+.cardHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.date { font-size: 14px; font-weight: 700; text-transform: capitalize; }
+.weight { font-size: 12px; color: var(--gold); font-weight: 700; background: rgba(201,168,76,.1); border: 1px solid var(--border-gold); border-radius: 20px; padding: 3px 10px; }
+
+.macros { display: flex; gap: 16px; margin-bottom: 12px; }
+.macro { display: flex; flex-direction: column; align-items: center; }
+.macroVal { font-size: 18px; font-weight: 800; }
+.macroLabel { font-size: 10px; color: var(--text3); font-weight: 600; text-transform: uppercase; }
+
+.foods { display: flex; flex-wrap: wrap; gap: 6px; }
+.foodTag { background: var(--glass2); border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; font-size: 11px; color: var(--text3); }

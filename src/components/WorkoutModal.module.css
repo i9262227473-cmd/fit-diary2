@@ -1,0 +1,15 @@
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 200; display: flex; align-items: flex-end; backdrop-filter: blur(6px); }
+.modal { background: var(--bg2); border-radius: 28px 28px 0 0; padding: 22px 18px; width: 100%; max-height: 90vh; overflow-y: auto; border: 1px solid var(--border); padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px)); }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.title { font-size: 18px; font-weight: 800; }
+.close { background: var(--glass2); border: 1px solid var(--border); border-radius: 10px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text2); }
+.row { display: flex; gap: 10px; }
+
+.exList { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+.exBtn { background: var(--glass2); border: 1.5px solid var(--border); border-radius: 20px; padding: 8px 14px; font-size: 12px; font-family: inherit; cursor: pointer; color: var(--text2); transition: all .2s; }
+.exActive { background: rgba(201,168,76,.12); border-color: var(--gold); color: var(--gold); font-weight: 700; }
+
+.customExRow { display: flex; gap: 8px; margin-bottom: 8px; }
+.addExBtn { background: var(--gold-grad); color: #000; border: none; border-radius: var(--r3); padding: 0 18px; font-size: 22px; cursor: pointer; flex-shrink: 0; font-weight: 800; }
+.customExTag { display: inline-flex; align-items: center; gap: 6px; background: rgba(16,217,164,.08); border: 1px solid rgba(16,217,164,.25); border-radius: 20px; padding: 5px 12px; font-size: 12px; color: var(--green); margin: 2px; }
+.customExTag button { background: none; border: none; cursor: pointer; color: var(--green); font-size: 12px; }

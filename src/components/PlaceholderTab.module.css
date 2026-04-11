@@ -1,0 +1,48 @@
+.wrap { padding: 0 0 16px; }
+
+.title {
+  padding: 14px 16px 10px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Profile */
+.card {
+  background: var(--header);
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.avatar { font-size: 48px; margin-bottom: 8px; }
+.name { font-size: 20px; font-weight: 700; color: #fff; }
+.email { font-size: 13px; color: #7a9cc8; margin-top: 4px; }
+
+.infoCard {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin: 0 14px 14px;
+  overflow: hidden;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.infoRow:last-child { border-bottom: none; }
+
+.infoLabel { font-size: 13px; color: var(--sub); }
+.infoValue { font-size: 13px; font-weight: 600; text-align: right; max-width: 60%; }
