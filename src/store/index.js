@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 const SB_URL = 'https://ijzfzvxhkpxogpqrsnzf.supabase.co'
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqemZ6dnhoa3B4b2dwcXJzbnpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyODEyOTQsImV4cCI6MjA5MDg1NzI5NH0.2wDtmzVDDfvY9iD08Q_SmeqwFsC4yuDCN2ZAGklSolg'
+const SB_KEY = 'sb_publishable_WgFkV_af8M02ndmJ6Lvq_Q_1aHY0xt2'
 const API_URL = 'https://fit-ai-tracker-production.up.railway.app'
 
 const OWNER_EMAIL = '9262227473@mail.ru'
