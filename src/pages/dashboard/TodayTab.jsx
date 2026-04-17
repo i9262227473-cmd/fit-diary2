@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore, API_URL } from '../../store'
 import WorkoutModal from '../../components/WorkoutModal'
+import Paywall from '../../components/Paywall'
 import { Plus, Camera, X, Utensils, Dumbbell, Sparkles, Pencil, ChevronLeft, Star } from 'lucide-react'
 import { searchFood } from '../../data/foodDatabase'
 import styles from './TodayTab.module.css'
@@ -158,7 +159,7 @@ function FullScreenPanel({ children }) {
 }
 
 export default function TodayTab({ selectedDate }) {
-  const { profile, getEntry, saveEntry, aiCall } = useStore()
+  const { profile, getEntry, saveEntry, aiCall, setPaywallOpen } = useStore()
   const [showFoodPanel, setShowFoodPanel] = useState(false)
   const [showWorkoutPanel, setShowWorkoutPanel] = useState(false)
   const [workoutMode, setWorkoutMode] = useState(null)
@@ -166,6 +167,7 @@ export default function TodayTab({ selectedDate }) {
   const [activeMeal, setActiveMeal] = useState(null)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiData, setAiData] = useState(null)
+  const [paywallReason, setPaywallReason] = useState(null)
   const [foodModal, setFoodModal] = useState(false)
   const [editingFood, setEditingFood] = useState(null)
   const [query, setQuery] = useState('')
@@ -268,14 +270,19 @@ export default function TodayTab({ selectedDate }) {
         recommendations: parsed.recommendations||'Нет рекомендаций',
       })
     } catch(e) {
-      console.error('AI analysis error:', e)
-      setAiData({
-        score: 0,
-        scoreComment: 'Не удалось распознать ответ AI',
-        nutrition: 'Попробуйте снова — иногда AI отвечает не в том формате.',
-        workout: '',
-        recommendations: 'Нажмите кнопку ещё раз.',
-      })
+      if (e.code === 'PAYWALL' || e.code === 'PAYWALL_LIMIT') {
+        setPaywallReason(e.code)
+        setPaywallOpen(true)
+      } else {
+        console.error('AI analysis error:', e)
+        setAiData({
+          score: 0,
+          scoreComment: 'Не удалось распознать ответ AI',
+          nutrition: 'Попробуйте снова — иногда AI отвечает не в том формате.',
+          workout: '',
+          recommendations: 'Нажмите кнопку ещё раз.',
+        })
+      }
     } finally { setAiLoading(false) }
   }
 

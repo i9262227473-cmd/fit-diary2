@@ -2,16 +2,18 @@ import React, { useState } from 'react'
 import { useStore } from '../../store'
 import { Bot, Trash2, Send } from 'lucide-react'
 import styles from './AdvisorTab.module.css'
+import Paywall from '../../components/Paywall'
 
 const STORAGE_KEY = 'advisor-history-v1'
 const loadHistory = () => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch { return [] } }
 const saveHistory = (h) => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(h)) } catch {} }
 
 export default function AdvisorTab() {
-  const { profile, aiCall, entries } = useStore()
+  const { profile, aiCall, entries, setPaywallOpen } = useStore()
   const [messages, setMessages] = useState(loadHistory)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [paywallReason, setPaywallReason] = useState(null)
 
   const today = new Date().toISOString().split('T')[0]
   const todayEntry = entries.find(e => e.date === today)
@@ -50,11 +52,19 @@ export default function AdvisorTab() {
       const updated = [...newHistory, assistantMsg]
       setMessages(updated)
       saveHistory(updated)
-    } catch {
-      const errMsg = { role: 'assistant', content: '⚠️ Не удалось получить ответ. Попробуйте ещё раз.', time: '' }
-      const updated = [...newHistory, errMsg]
-      setMessages(updated)
-      saveHistory(updated)
+    } catch(e) {
+      if (e.code === 'PAYWALL' || e.code === 'PAYWALL_LIMIT') {
+        setPaywallReason(e.code)
+        setPaywallOpen(true)
+        // Remove the user message that triggered paywall
+        setMessages(messages)
+        saveHistory(messages)
+      } else {
+        const errMsg = { role: 'assistant', content: '⚠️ Не удалось получить ответ. Попробуйте ещё раз.', time: '' }
+        const updated = [...newHistory, errMsg]
+        setMessages(updated)
+        saveHistory(updated)
+      }
     } finally {
       setLoading(false)
     }
@@ -127,6 +137,8 @@ export default function AdvisorTab() {
           </div>
         )}
       </div>
+
+      {paywallReason && <Paywall reason={paywallReason} onClose={() => setPaywallReason(null)} />}
     </div>
   )
 }

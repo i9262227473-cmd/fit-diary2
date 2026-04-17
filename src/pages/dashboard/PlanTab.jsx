@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useStore } from '../../store'
 import { Dumbbell, ChevronLeft, ChevronRight, Clock, Plus, X, Flame, Check } from 'lucide-react'
 import styles from './PlanTab.module.css'
+import Paywall from '../../components/Paywall'
 
 const DAYS_RU = [
   { key: 'mon', label: 'Понедельник', short: 'Пн' },
@@ -23,7 +24,7 @@ const STYLES = [
 ]
 
 export default function PlanTab() {
-  const { profile, aiCall, saveProfile } = useStore()
+  const { profile, aiCall, saveProfile, setPaywallOpen } = useStore()
   const [plan, setPlan] = useState(() => {
     try { return JSON.parse(localStorage.getItem('workout-plan-v1') || 'null') } catch { return null }
   })
@@ -33,6 +34,7 @@ export default function PlanTab() {
   const [showProfileEdit, setShowProfileEdit] = useState(false)
   const [showStylePicker, setShowStylePicker] = useState(false)
   const [trainStyle, setTrainStyle] = useState(() => localStorage.getItem('train-style') || 'split')
+  const [paywallReason, setPaywallReason] = useState(null)
 
   const generatePlan = async (style) => {
     const s = style || trainStyle
@@ -92,8 +94,13 @@ export default function PlanTab() {
       setPlan(parsed)
       localStorage.setItem('workout-plan-v1', JSON.stringify(parsed))
     } catch (e) {
-      console.error(e)
-      alert('Не удалось создать план. Попробуйте ещё раз.')
+      if (e.code === 'PAYWALL' || e.code === 'PAYWALL_LIMIT') {
+        setPaywallReason(e.code)
+        setPaywallOpen(true)
+      } else {
+        console.error(e)
+        alert('Не удалось создать план. Попробуйте ещё раз.')
+      }
     } finally {
       setLoading(false)
     }
@@ -314,6 +321,8 @@ export default function PlanTab() {
           <div>Выберите стиль и нажмите кнопку<br />AI составит персональный план</div>
         </div>
       )}
+
+      {paywallReason && <Paywall reason={paywallReason} onClose={() => setPaywallReason(null)} />}
     </div>
   )
 }

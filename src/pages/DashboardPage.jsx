@@ -5,10 +5,11 @@ import PlanTab from './dashboard/PlanTab'
 import AnalysesTab from './dashboard/AnalysesTab'
 import AdvisorTab from './dashboard/AdvisorTab'
 import WaterTab from './dashboard/WaterTab'
+import Paywall from '../components/Paywall'
 import styles from './DashboardPage.module.css'
 import {
   ChevronLeft, ChevronRight, Utensils, Dumbbell,
-  FlaskConical, Bot, Droplets, RefreshCw, LogOut, Camera, X
+  FlaskConical, Bot, Droplets, RefreshCw, LogOut, Camera, X, Crown
 } from 'lucide-react'
 
 const NAV = [
@@ -64,9 +65,15 @@ function MotivCard({ aiCall }) {
       const t = reply.trim()
       setText(t)
       localStorage.setItem(key, t)
-    } catch {
-      const idx = Math.floor(Math.random() * MOTIVS.length)
-      setText(MOTIVS[idx])
+    } catch(e) {
+      if (e.code === 'PAYWALL' || e.code === 'PAYWALL_LIMIT') {
+        // Silent — don't open paywall for motivational card
+        const idx = Math.floor(Math.random() * MOTIVS.length)
+        setText(MOTIVS[idx])
+      } else {
+        const idx = Math.floor(Math.random() * MOTIVS.length)
+        setText(MOTIVS[idx])
+      }
     }
     setLoading(false)
   }
@@ -155,12 +162,17 @@ function AvatarPicker({ name }) {
 }
 
 export default function DashboardPage() {
-  const { user, profile, signOut, aiCall } = useStore()
+  const { user, profile, signOut, aiCall, paywallOpen, setPaywallOpen, isOwner, getSubscriptionStatus } = useStore()
   const [activeTab, setActiveTab] = useState('today')
   const [selectedDate, setSelectedDate] = useState(new Date())
   const name = profile?.name || user?.user_metadata?.name || 'Спортсмен'
   const dateStr = toDateStr(selectedDate)
   const isToday = dateStr === toDateStr(new Date())
+  const owner = isOwner()
+  const subStatus = getSubscriptionStatus()
+  const [paywallReason, setPaywallReason] = useState(null)
+
+  const openPaywall = (reason) => { setPaywallReason(reason); setPaywallOpen(true) }
 
   return (
     <div className={styles.page}>
@@ -171,7 +183,49 @@ export default function DashboardPage() {
           <AvatarPicker name={name} />
           <div>
             <div className={styles.headerGreet}>Добро пожаловать</div>
-            <div className={styles.headerName}>{name}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div className={styles.headerName}>{name}</div>
+              {owner && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 3,
+                  background: 'linear-gradient(135deg,#C9A84C,#E8C878)',
+                  borderRadius: 6, padding: '2px 7px',
+                  fontSize: 10, fontWeight: 800, color: '#000', letterSpacing: 0.5,
+                }}>
+                  <Crown size={10} color="#000" /> Owner
+                </div>
+              )}
+              {!owner && subStatus.type === 'trial' && (
+                <div style={{
+                  background: 'rgba(79,172,254,.15)', border: '1px solid rgba(79,172,254,.3)',
+                  borderRadius: 6, padding: '2px 7px',
+                  fontSize: 10, fontWeight: 700, color: '#4facfe',
+                  cursor: 'pointer',
+                }} onClick={() => openPaywall('trial')}>
+                  {subStatus.daysLeft}д
+                </div>
+              )}
+              {!owner && subStatus.type === 'expired' && (
+                <div style={{
+                  background: 'rgba(255,77,106,.15)', border: '1px solid rgba(255,77,106,.3)',
+                  borderRadius: 6, padding: '2px 7px',
+                  fontSize: 10, fontWeight: 700, color: '#ff4d6a',
+                  cursor: 'pointer',
+                }} onClick={() => openPaywall('expired')}>
+                  PRO
+                </div>
+              )}
+              {!owner && subStatus.type === 'subscribed' && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 3,
+                  background: 'rgba(16,217,164,.12)', border: '1px solid rgba(16,217,164,.25)',
+                  borderRadius: 6, padding: '2px 7px',
+                  fontSize: 10, fontWeight: 700, color: '#10d9a4',
+                }}>
+                  PRO
+                </div>
+              )}
+            </div>
           </div>
         </div>
         <button className={styles.signOutBtn} onClick={signOut}>
@@ -238,6 +292,10 @@ export default function DashboardPage() {
           </button>
         ))}
       </div>
+
+      {paywallOpen && (
+        <Paywall reason={paywallReason} onClose={() => setPaywallOpen(false)} />
+      )}
     </div>
   )
 }

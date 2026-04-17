@@ -5,11 +5,25 @@ const SB_URL = 'https://ijzfzvxhkpxogpqrsnzf.supabase.co'
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqemZ6dnhoa3B4b2dwcXJzbnpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyODEyOTQsImV4cCI6MjA5MDg1NzI5NH0.2wDtmzVDDfvY9iD08Q_SmeqwFsC4yuDCN2ZAGklSolg'
 const API_URL = 'https://fit-ai-tracker-production.up.railway.app'
 
+const OWNER_EMAIL = '9262227473@mail.ru'
+const TRIAL_DAYS = 3
+const DAILY_AI_LIMIT = 10
+
 const sbHeaders = (token) => ({
   'Content-Type': 'application/json',
   'apikey': SB_KEY,
   'Authorization': `Bearer ${token || SB_KEY}`
 })
+
+// AI request counter per day (localStorage)
+function getAiCounter() {
+  const key = 'ai-cnt-' + new Date().toISOString().split('T')[0]
+  return { key, count: +(localStorage.getItem(key) || 0) }
+}
+function incrementAiCounter() {
+  const { key, count } = getAiCounter()
+  localStorage.setItem(key, String(count + 1))
+}
 
 const loadProfile = async (userId, token) => {
   try {
@@ -36,6 +50,43 @@ export const useStore = create(
       weights: [],
       activeTab: 'today',
       selectedDate: new Date().toISOString().split('T')[0],
+      paywallOpen: false,
+
+      // ── Subscription ──
+      isOwner: () => get().user?.email === OWNER_EMAIL,
+
+      getSubscriptionStatus: () => {
+        const { user, profile } = get()
+        if (!user) return { type: 'none' }
+        if (user.email === OWNER_EMAIL) return { type: 'owner' }
+        if (profile?.isSubscribed) return { type: 'subscribed', end: profile.subscriptionEnd }
+
+        // Trial: use trial_started_at from profile, or user.created_at
+        const trialStart = profile?.trialStartedAt || user.created_at
+        if (trialStart) {
+          const start = new Date(trialStart)
+          const end = new Date(start.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000)
+          const now = new Date()
+          if (now <= end) {
+            const msLeft = end - now
+            const daysLeft = Math.max(1, Math.ceil(msLeft / (24 * 60 * 60 * 1000)))
+            return { type: 'trial', daysLeft, end }
+          }
+        }
+        return { type: 'expired' }
+      },
+
+      getAiRequestsLeft: () => {
+        const { user } = get()
+        if (!user || user.email === OWNER_EMAIL) return Infinity
+        const status = get().getSubscriptionStatus()
+        if (status.type === 'subscribed') return Infinity
+        if (status.type !== 'trial') return 0
+        const { count } = getAiCounter()
+        return Math.max(0, DAILY_AI_LIMIT - count)
+      },
+
+      setPaywallOpen: (v) => set({ paywallOpen: v }),
 
       // ── Auth ──
       signUp: async (email, password, name) => {
@@ -62,7 +113,6 @@ export const useStore = create(
 
           set({ user: data.user, session: data })
 
-          // Загружаем профиль из Supabase ДО снятия флага
           const profileRaw = await loadProfile(data.user.id, data.access_token)
           if (profileRaw) {
             set({ profile: {
@@ -82,6 +132,9 @@ export const useStore = create(
               carbGoal: profileRaw.carb_goal,
               bmi: profileRaw.bmi,
               completedAt: profileRaw.completed_at,
+              isSubscribed: profileRaw.is_subscribed || false,
+              subscriptionEnd: profileRaw.subscription_end || null,
+              trialStartedAt: profileRaw.trial_started_at || null,
             }})
           }
 
@@ -92,7 +145,7 @@ export const useStore = create(
       },
 
       signOut: () => {
-        set({ user: null, session: null, profile: null, entries: [], weights: [] })
+        set({ user: null, session: null, profile: null, entries: [], weights: [], paywallOpen: false })
       },
 
       // ── Profile ──
@@ -135,11 +188,34 @@ export const useStore = create(
         }
       },
 
-      // Обновить профиль (для повторного редактирования)
       resetProfile: () => set({ profile: null }),
 
       // ── AI ──
       aiCall: async (messages, maxTokens = 600) => {
+        const { user } = get()
+        const email = user?.email
+
+        // Check limits for non-owners
+        if (email !== OWNER_EMAIL) {
+          const status = get().getSubscriptionStatus()
+
+          if (status.type === 'expired') {
+            const err = new Error('Пробный период истёк')
+            err.code = 'PAYWALL'
+            throw err
+          }
+
+          if (status.type === 'trial') {
+            const { count } = getAiCounter()
+            if (count >= DAILY_AI_LIMIT) {
+              const err = new Error(`Лимит ${DAILY_AI_LIMIT} AI запросов на сегодня исчерпан`)
+              err.code = 'PAYWALL_LIMIT'
+              throw err
+            }
+            incrementAiCounter()
+          }
+        }
+
         const res = await fetch(`${API_URL}/ai`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -186,4 +262,4 @@ export const useStore = create(
   )
 )
 
-export { SB_URL, SB_KEY, API_URL }
+export { SB_URL, SB_KEY, API_URL, OWNER_EMAIL, TRIAL_DAYS, DAILY_AI_LIMIT }
