@@ -62,7 +62,6 @@ export const useStore = create(
 
           set({ user: data.user, session: data })
 
-          // Загружаем профиль из Supabase ДО снятия флага
           const profileRaw = await loadProfile(data.user.id, data.access_token)
           if (profileRaw) {
             set({ profile: {
@@ -135,7 +134,6 @@ export const useStore = create(
         }
       },
 
-      // Обновить профиль (для повторного редактирования)
       resetProfile: () => set({ profile: null }),
 
       // ── AI ──

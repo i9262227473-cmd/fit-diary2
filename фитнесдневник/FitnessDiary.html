@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ФитнесДневник</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="fitness-data.jsx"></script>
+<script type="text/babel" src="fitness-food.jsx"></script>
+<script type="text/babel" src="fitness-workout.jsx"></script>
+<script type="text/babel" src="fitness-analysis.jsx"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:           oklch(0.10 0.020 145);
+  --surface:      oklch(0.14 0.022 145);
+  --surface2:     oklch(0.18 0.022 145);
+  --border:       oklch(0.24 0.030 145);
+  --accent:       oklch(0.62 0.180 145);
+  --accent-bright:oklch(0.75 0.200 145);
+  --accent-dim:   oklch(0.30 0.090 145);
+  --teal:         oklch(0.60 0.150 185);
+  --amber:        oklch(0.72 0.150 75);
+  --red:          oklch(0.62 0.180 25);
+  --text:         oklch(0.93 0.012 145);
+  --text-muted:   oklch(0.52 0.022 145);
+  --font:         'Golos Text', sans-serif;
+  --mono:         'DM Mono', monospace;
+}
+html, body, #root { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+button { font-family: var(--font); }
+input, textarea { font-family: var(--font); }
+input[type=number]::-webkit-inner-spin-button { opacity: 0.4; }
+* { text-wrap: pretty; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useReducer, useEffect, useCallback } = React;
+
+// ── Initial State ──
+const DEFAULT_STATE = {
+  calorieGoal: 2500,
+  waterGoal: 8,
+  waterConsumed: 3,
+  foodLog: [
+    { id:1, name:'Овсянка на воде',  grams:150, meal:'breakfast', cal:132, p:5.1,  f:2.6, c:22.5, time:'08:30' },
+    { id:2, name:'Банан',            grams:120, meal:'breakfast', cal:107, p:1.3,  f:0.4, c:27.6, time:'08:32' },
+    { id:3, name:'Куриная грудь',    grams:200, meal:'lunch',     cal:330, p:62.0, f:7.2, c:0.0,  time:'13:10' },
+    { id:4, name:'Гречка варёная',   grams:180, meal:'lunch',     cal:198, p:7.2,  f:2.0, c:39.6, time:'13:12' },
+    { id:5, name:'Греческий йогурт', grams:200, meal:'snack',     cal:194, p:20.0, f:10.0,c:7.2,  time:'16:45' },
+  ],
+  workouts: [
+    {
+      id:1, name:'Грудь + трицепс', date:'28 апр',
+      duration: 3600, caloriesBurned: 320,
+      exercises:[
+        {name:'Жим штанги лёжа',   sets:[{reps:'8',weight:'80'},{reps:'8',weight:'85'},{reps:'6',weight:'90'}]},
+        {name:'Разводка гантелей', sets:[{reps:'12',weight:'20'},{reps:'12',weight:'20'},{reps:'10',weight:'22'}]},
+        {name:'Разгибания на трицепс',sets:[{reps:'12',weight:'25'},{reps:'12',weight:'25'},{reps:'10',weight:'27'}]},
+      ]
+    }
+  ],
+};
+
+function reducer(state, action) {
+  switch (action.type) {
+    case 'ADD_FOOD':
+      return { ...state, foodLog: [...state.foodLog, action.item] };
+    case 'REMOVE_FOOD':
+      return { ...state, foodLog: state.foodLog.filter(f => f.id !== action.id) };
+    case 'SET_WATER':
+      return { ...state, waterConsumed: action.val };
+    case 'ADD_WORKOUT':
+      return { ...state, workouts: [action.workout, ...state.workouts] };
+    case 'SET_CALORIE_GOAL':
+      return { ...state, calorieGoal: action.val };
+    case 'SET_WATER_GOAL':
+      return { ...state, waterGoal: action.val };
+    default:
+      return state;
+  }
+}
+
+// ── Sidebar ──
+function Sidebar({ active, setActive }) {
+  const items = [
+    { id:'dashboard', icon: IconHome,    label:'Главная' },
+    { id:'food',      icon: IconFood,    label:'Питание' },
+    { id:'analysis',  icon: IconChart,   label:'Анализ'  },
+    { id:'workout',   icon: IconDumbbell,label:'Тренировки' },
+  ];
+  return (
+    <aside style={sidebarSt.aside}>
+      <div style={sidebarSt.logo}>
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <rect width="28" height="28" rx="8" fill="var(--accent)"/>
+          <circle cx="14" cy="14" r="5" fill="none" stroke="#000" strokeWidth="2"/>
+          <path d="M14 4v4M14 20v4M4 14h4M20 14h4" stroke="#000" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+        <span style={sidebarSt.logoText}>FitДневник</span>
+      </div>
+      <nav style={sidebarSt.nav}>
+        {items.map(item => {
+          const Icon = item.icon;
+          const isActive = active === item.id;
+          return (
+            <button key={item.id} onClick={() => setActive(item.id)}
+              style={{...sidebarSt.navItem, ...(isActive ? sidebarSt.navActive : {})}}>
+              <Icon size={20} color={isActive ? '#000' : 'var(--text-muted)'} />
+              <span style={{...sidebarSt.navLabel, color: isActive ? '#000' : 'var(--text-muted)'}}>
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+      <div style={sidebarSt.bottom}>
+        <div style={sidebarSt.userCard}>
+          <div style={sidebarSt.avatar}>АС</div>
+          <div style={{flex:1}}>
+            <div style={sidebarSt.userName}>Алексей С.</div>
+            <div style={sidebarSt.userGoal}>Цель: набор массы</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+const sidebarSt = {
+  aside: {
+    width:220, flexShrink:0, background:'var(--surface)', borderRight:'1px solid var(--border)',
+    display:'flex', flexDirection:'column', height:'100vh', position:'sticky', top:0,
+  },
+  logo: { display:'flex', alignItems:'center', gap:10, padding:'24px 20px 20px', borderBottom:'1px solid var(--border)' },
+  logoText: { fontSize:16, fontWeight:700, color:'var(--text)', letterSpacing:'-0.01em' },
+  nav: { display:'flex', flexDirection:'column', gap:4, padding:'16px 12px', flex:1 },
+  navItem: {
+    display:'flex', alignItems:'center', gap:12, padding:'11px 12px',
+    borderRadius:10, border:'none', cursor:'pointer', background:'transparent',
+    transition:'all 0.15s', textAlign:'left',
+  },
+  navActive: { background:'var(--accent)' },
+  navLabel: { fontSize:14, fontWeight:500 },
+  bottom: { padding:'16px 12px', borderTop:'1px solid var(--border)' },
+  userCard: { display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:10, background:'var(--surface2)' },
+  avatar: {
+    width:32, height:32, borderRadius:10, background:'var(--accent-dim)',
+    color:'var(--accent)', fontSize:12, fontWeight:700,
+    display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+  },
+  userName: { fontSize:13, fontWeight:600, color:'var(--text)' },
+  userGoal: { fontSize:11, color:'var(--text-muted)', marginTop:1 },
+};
+
+// ── Dashboard ──
+function Dashboard({ state, dispatch, setView }) {
+  const totals = state.foodLog.reduce((a,f) => ({ cal:a.cal+f.cal, p:a.p+f.p, fat:a.fat+f.f, c:a.c+f.c }), {cal:0,p:0,fat:0,c:0});
+  const calPct = Math.min(totals.cal / state.calorieGoal, 1);
+  const r = 80, circ = 2 * Math.PI * r;
+  const dashLen = calPct * circ;
+  const totalMacros = totals.p + totals.fat + totals.c;
+
+  return (
+    <div style={dashSt.page}>
+      <div style={dashSt.greeting}>
+        <div>
+          <div style={dashSt.greetTitle}>Добрый день, Алексей</div>
+          <div style={dashSt.greetSub}>Вторник, 29 апреля 2026</div>
+        </div>
+        <button style={dashSt.quickAdd} onClick={() => setView('food')}>+ Добавить еду</button>
+      </div>
+
+      <div style={dashSt.topGrid}>
+        {/* Calorie ring */}
+        <div style={dashSt.calCard}>
+          <svg width={200} height={200} viewBox="0 0 200 200">
+            <defs>
+              <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.15"/>
+                <stop offset="100%" stopColor="transparent" stopOpacity="0"/>
+              </radialGradient>
+            </defs>
+            <circle cx={100} cy={100} r={92} fill="url(#glow)"/>
+            <circle cx={100} cy={100} r={r} fill="none" stroke="var(--surface2)" strokeWidth={14} />
+            <circle cx={100} cy={100} r={r} fill="none"
+              stroke="var(--accent)" strokeWidth={14}
+              strokeDasharray={`${dashLen} ${circ - dashLen}`}
+              strokeDashoffset={circ * 0.25}
+              strokeLinecap="round"
+              style={{transition:'stroke-dasharray 0.8s ease', transform:'rotate(-90deg)', transformOrigin:'100px 100px'}}
+            />
+            <text x={100} y={90} textAnchor="middle" style={{fill:'var(--text)',fontSize:30,fontWeight:700,fontFamily:'var(--mono)'}}>
+              {totals.cal}
+            </text>
+            <text x={100} y={112} textAnchor="middle" style={{fill:'var(--text-muted)',fontSize:13,fontFamily:'var(--font)'}}>
+              из {state.calorieGoal} ккал
+            </text>
+            <text x={100} y={132} textAnchor="middle" style={{fill:'var(--accent)',fontSize:12,fontFamily:'var(--mono)'}}>
+              {Math.round(calPct * 100)}%
+            </text>
+          </svg>
+          <div style={dashSt.calRemain}>
+            <div style={dashSt.calRemainNum}>{Math.max(0, state.calorieGoal - totals.cal)}</div>
+            <div style={dashSt.calRemainLabel}>ккал осталось</div>
+          </div>
+        </div>
+
+        {/* Macros */}
+        <div style={dashSt.macrosCard}>
+          <div style={dashSt.cardTitle}>БЖУ сегодня</div>
+          {[
+            {label:'Белки',  val:totals.p,   color:'var(--accent)', max:state.calorieGoal*0.15},
+            {label:'Жиры',   val:totals.fat, color:'var(--teal)',   max:state.calorieGoal*0.06},
+            {label:'Углев.', val:totals.c,   color:'var(--amber)',  max:state.calorieGoal*0.15},
+          ].map(m => (
+            <div key={m.label} style={dashSt.macroRow}>
+              <div style={dashSt.macroLabel}>{m.label}</div>
+              <div style={dashSt.macroBar}>
+                <div style={{...dashSt.macroFill, width:`${Math.min(m.val/m.max*100,100)}%`, background:m.color}} />
+              </div>
+              <div style={{...dashSt.macroVal, color:m.color}}>{m.val.toFixed(1)}г</div>
+            </div>
+          ))}
+          <div style={dashSt.macroTotals}>
+            <span style={dashSt.macroTotal}>Б: <b>{totals.p.toFixed(0)}г</b></span>
+            <span style={dashSt.macroTotal}>Ж: <b>{totals.fat.toFixed(0)}г</b></span>
+            <span style={dashSt.macroTotal}>У: <b>{totals.c.toFixed(0)}г</b></span>
+          </div>
+        </div>
+
+        {/* Water */}
+        <div style={dashSt.waterCard}>
+          <div style={dashSt.cardTitle}>Вода</div>
+          <div style={dashSt.glassGrid}>
+            {Array.from({length: state.waterGoal}).map((_, i) => (
+              <button key={i} style={dashSt.glassBtn}
+                onClick={() => dispatch({ type:'SET_WATER', val: i < state.waterConsumed ? i : i+1 })}>
+                <GlassIcon filled={i < state.waterConsumed} />
+              </button>
+            ))}
+          </div>
+          <div style={dashSt.waterStats}>
+            <span style={dashSt.waterNum}>{state.waterConsumed}</span>
+            <span style={dashSt.waterOf}>/ {state.waterGoal} стаканов</span>
+          </div>
+          <div style={dashSt.waterBar}>
+            <div style={{...dashSt.waterBarFill, width:`${state.waterConsumed/state.waterGoal*100}%`}} />
+          </div>
+          <div style={dashSt.waterTip}>{state.waterConsumed * 250} мл из {state.waterGoal * 250} мл</div>
+        </div>
+      </div>
+
+      {/* Recent food + workouts */}
+      <div style={dashSt.bottomGrid}>
+        <div style={dashSt.recentCard}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+            <div style={dashSt.cardTitle}>Последние приёмы пищи</div>
+            <button style={dashSt.linkBtn} onClick={()=>setView('food')}>Все →</button>
+          </div>
+          {state.foodLog.length === 0
+            ? <div style={dashSt.emptyText}>Ничего не добавлено</div>
+            : state.foodLog.slice(-4).reverse().map(f => (
+                <div key={f.id} style={dashSt.recentFoodRow}>
+                  <div style={dashSt.foodDot} />
+                  <span style={{flex:1, fontSize:14, color:'var(--text)'}}>{f.name}</span>
+                  <span style={{fontFamily:'var(--mono)', fontSize:13, color:'var(--accent)'}}>{f.cal}</span>
+                  <span style={{fontSize:11, color:'var(--text-muted)', marginLeft:4}}>ккал</span>
+                </div>
+              ))
+          }
+        </div>
+
+        <div style={dashSt.recentCard}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+            <div style={dashSt.cardTitle}>Тренировки</div>
+            <button style={dashSt.linkBtn} onClick={()=>setView('workout')}>Все →</button>
+          </div>
+          {state.workouts.length === 0
+            ? <div style={dashSt.emptyText}>Тренировок пока нет</div>
+            : state.workouts.slice(0,3).map(w => (
+                <div key={w.id} style={dashSt.workoutRow}>
+                  <div style={dashSt.workoutDot} />
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:14, color:'var(--text)'}}>{w.name}</div>
+                    <div style={{fontSize:12, color:'var(--text-muted)', fontFamily:'var(--mono)', marginTop:2}}>
+                      {w.exercises.length} упр · {w.date}
+                    </div>
+                  </div>
+                  <span style={{fontFamily:'var(--mono)', fontSize:13, color:'var(--teal)'}}>{w.caloriesBurned}</span>
+                  <span style={{fontSize:11, color:'var(--text-muted)', marginLeft:4}}>ккал</span>
+                </div>
+              ))
+          }
+          <button style={dashSt.newWorkoutBtn} onClick={()=>setView('workout')}>
+            + Новая тренировка
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const dashSt = {
+  page: { display:'flex', flexDirection:'column', gap:20 },
+  greeting: { display:'flex', alignItems:'center', justifyContent:'space-between' },
+  greetTitle: { fontSize:24, fontWeight:700, color:'var(--text)' },
+  greetSub: { fontSize:14, color:'var(--text-muted)', marginTop:4 },
+  quickAdd: {
+    padding:'11px 22px', background:'var(--accent)', color:'#000',
+    border:'none', borderRadius:10, cursor:'pointer', fontSize:14, fontWeight:600,
+  },
+  topGrid: { display:'grid', gridTemplateColumns:'auto 1fr 1fr', gap:16, alignItems:'stretch' },
+  calCard: {
+    background:'var(--surface)', border:'1px solid var(--border)',
+    borderRadius:16, padding:24, display:'flex', flexDirection:'column',
+    alignItems:'center', gap:12,
+  },
+  calRemain: { textAlign:'center' },
+  calRemainNum: { fontFamily:'var(--mono)', fontSize:22, fontWeight:600, color:'var(--text)' },
+  calRemainLabel: { fontSize:12, color:'var(--text-muted)', marginTop:2 },
+  macrosCard: {
+    background:'var(--surface)', border:'1px solid var(--border)',
+    borderRadius:16, padding:24, display:'flex', flexDirection:'column', gap:16,
+  },
+  waterCard: {
+    background:'var(--surface)', border:'1px solid var(--border)',
+    borderRadius:16, padding:24, display:'flex', flexDirection:'column', gap:12,
+  },
+  cardTitle: { fontSize:15, fontWeight:600, color:'var(--text)' },
+  macroRow: { display:'flex', alignItems:'center', gap:12 },
+  macroLabel: { fontSize:13, color:'var(--text-muted)', width:54, flexShrink:0 },
+  macroBar: { flex:1, height:6, background:'var(--surface2)', borderRadius:50, overflow:'hidden' },
+  macroFill: { height:'100%', borderRadius:50, transition:'width 0.6s ease' },
+  macroVal: { fontSize:13, fontFamily:'var(--mono)', width:44, textAlign:'right', flexShrink:0 },
+  macroTotals: { display:'flex', gap:16, paddingTop:8, borderTop:'1px solid var(--border)' },
+  macroTotal: { fontSize:13, color:'var(--text-muted)' },
+  glassGrid: { display:'flex', flexWrap:'wrap', gap:8, justifyContent:'center' },
+  glassBtn: { background:'transparent', border:'none', cursor:'pointer', padding:2, borderRadius:6, transition:'transform 0.1s' },
+  waterStats: { display:'flex', alignItems:'baseline', gap:6, justifyContent:'center' },
+  waterNum: { fontFamily:'var(--mono)', fontSize:28, fontWeight:600, color:'var(--teal)' },
+  waterOf: { fontSize:13, color:'var(--text-muted)' },
+  waterBar: { height:6, background:'var(--surface2)', borderRadius:50, overflow:'hidden' },
+  waterBarFill: { height:'100%', background:'var(--teal)', borderRadius:50, transition:'width 0.4s ease' },
+  waterTip: { fontSize:12, color:'var(--text-muted)', textAlign:'center' },
+  bottomGrid: { display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 },
+  recentCard: {
+    background:'var(--surface)', border:'1px solid var(--border)',
+    borderRadius:16, padding:20, display:'flex', flexDirection:'column', gap:12,
+  },
+  linkBtn: {
+    background:'transparent', border:'none', color:'var(--accent)',
+    cursor:'pointer', fontSize:13, fontWeight:500,
+  },
+  emptyText: { fontSize:14, color:'var(--text-muted)', padding:'8px 0' },
+  recentFoodRow: { display:'flex', alignItems:'center', gap:10 },
+  foodDot: { width:6, height:6, borderRadius:'50%', background:'var(--accent)', flexShrink:0 },
+  workoutRow: { display:'flex', alignItems:'center', gap:10 },
+  workoutDot: { width:6, height:6, borderRadius:'50%', background:'var(--teal)', flexShrink:0 },
+  newWorkoutBtn: {
+    padding:'9px', background:'var(--surface2)', border:'1px dashed var(--border)',
+    borderRadius:10, color:'var(--text-muted)', cursor:'pointer', fontSize:13, marginTop:4,
+  },
+};
+
+// ── Inline SVG icons ──
+function IconHome({ size=20, color='currentColor' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+      <path d="M3 8.5L10 3l7 5.5V17a1 1 0 01-1 1H4a1 1 0 01-1-1V8.5z" stroke={color} strokeWidth="1.5" fill="none"/>
+      <path d="M7 18v-6h6v6" stroke={color} strokeWidth="1.5"/>
+    </svg>
+  );
+}
+function IconFood({ size=20, color='currentColor' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+      <path d="M6 2v5c0 1.657 1.343 3 3 3h2c1.657 0 3-1.343 3-3V2" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M10 10v8M7 18h6" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M4 2v5" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function IconChart({ size=20, color='currentColor' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+      <rect x="3" y="11" width="3" height="6" rx="1" fill={color} opacity="0.5"/>
+      <rect x="8.5" y="7" width="3" height="10" rx="1" fill={color} opacity="0.7"/>
+      <rect x="14" y="3" width="3" height="14" rx="1" fill={color}/>
+    </svg>
+  );
+}
+function IconDumbbell({ size=20, color='currentColor' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+      <rect x="1" y="8" width="3" height="4" rx="1.5" fill={color} opacity="0.6"/>
+      <rect x="4" y="6" width="2" height="8" rx="1" fill={color}/>
+      <rect x="6" y="9" width="8" height="2" rx="1" fill={color} opacity="0.7"/>
+      <rect x="14" y="6" width="2" height="8" rx="1" fill={color}/>
+      <rect x="16" y="8" width="3" height="4" rx="1.5" fill={color} opacity="0.6"/>
+    </svg>
+  );
+}
+
+function GlassIcon({ filled }) {
+  return (
+    <svg width={28} height={36} viewBox="0 0 28 36" fill="none">
+      <path d="M5 4h18l-3 22H8L5 4z" stroke={filled ? 'var(--teal)' : 'var(--border)'} strokeWidth="1.5" fill={filled ? 'oklch(0.60 0.15 185 / 0.25)' : 'transparent'}/>
+      <path d="M8 30h12" stroke={filled ? 'var(--teal)' : 'var(--border)'} strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+// ── Tweaks ──
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "calorieGoal": 2500,
+  "waterGoal": 8,
+  "userName": "Алексей С."
+}/*EDITMODE-END*/;
+
+// ── App ──
+function App() {
+  const savedState = (() => {
+    try { return JSON.parse(localStorage.getItem('fitnessDiary_v1')); } catch { return null; }
+  })();
+
+  const [state, dispatch] = useReducer(reducer, savedState || DEFAULT_STATE);
+  const [view, setView] = useState('dashboard');
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+  useEffect(() => {
+    localStorage.setItem('fitnessDiary_v1', JSON.stringify(state));
+  }, [state]);
+
+  // Apply tweaks → state
+  useEffect(() => {
+    if (tweaks && tweaks.calorieGoal && tweaks.calorieGoal !== state.calorieGoal)
+      dispatch({ type:'SET_CALORIE_GOAL', val: tweaks.calorieGoal });
+  }, [tweaks && tweaks.calorieGoal]);
+
+  useEffect(() => {
+    if (tweaks && tweaks.waterGoal && tweaks.waterGoal !== state.waterGoal)
+      dispatch({ type:'SET_WATER_GOAL', val: tweaks.waterGoal });
+  }, [tweaks && tweaks.waterGoal]);
+
+  const titles = { dashboard:'Главная', food:'Питание', analysis:'Анализ', workout:'Тренировки' };
+
+  return (
+    <div style={{ display:'flex', height:'100vh', overflow:'hidden' }}>
+      <Sidebar active={view} setActive={setView} />
+      <main style={{ flex:1, overflowY:'auto', padding:32, display:'flex', flexDirection:'column', gap:0 }}>
+        {view === 'dashboard' && <Dashboard state={state} dispatch={dispatch} setView={setView} />}
+        {view === 'food'      && <FoodLogView state={state} dispatch={dispatch} />}
+        {view === 'analysis'  && <AnalysisView state={state} />}
+        {view === 'workout'   && <WorkoutView state={state} dispatch={dispatch} />}
+      </main>
+
+      <TweaksPanel>
+        <TweakSection title="Цели">
+          <TweakNumber label="Калорий в день" id="calorieGoal" min={1000} max={5000} step={50} />
+          <TweakNumber label="Стаканов воды"  id="waterGoal"   min={4}    max={16}   step={1}  />
+        </TweakSection>
+      </TweaksPanel>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 120 80" xmlns="http://www.w3.org/2000/svg">
+    <rect width="120" height="80" fill="#0d100d"/>
+    <circle cx="38" cy="40" r="22" fill="none" stroke="#2a5c2a" strokeWidth="5"/>
+    <circle cx="38" cy="40" r="22" fill="none" stroke="#4aaa4a" strokeWidth="5"
+      strokeDasharray="83 55" strokeDashoffset="35" strokeLinecap="round"/>
+    <text x="38" y="44" textAnchor="middle" fill="#4aaa4a" fontSize="10" fontWeight="bold">1847</text>
+    <rect x="72" y="24" width="36" height="5" rx="2" fill="#1a2a1a"/>
+    <rect x="72" y="24" width="24" height="5" rx="2" fill="#4aaa4a"/>
+    <rect x="72" y="34" width="36" height="5" rx="2" fill="#1a2a1a"/>
+    <rect x="72" y="34" width="18" height="5" rx="2" fill="#3a9a9a"/>
+    <rect x="72" y="44" width="36" height="5" rx="2" fill="#1a2a1a"/>
+    <rect x="72" y="44" width="28" height="5" rx="2" fill="#aa9a2a"/>
+  </svg>
+</template>
+</body>
+</html>

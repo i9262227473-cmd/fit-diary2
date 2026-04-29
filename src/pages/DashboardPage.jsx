@@ -1,242 +1,1010 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useStore } from '../store'
-import TodayTab from './dashboard/TodayTab'
-import PlanTab from './dashboard/PlanTab'
-import AnalysesTab from './dashboard/AnalysesTab'
-import AdvisorTab from './dashboard/AdvisorTab'
-import WaterTab from './dashboard/WaterTab'
+import { searchFood } from '../data/foodDatabase'
+import { LogOut, X, ChevronLeft, Camera, Pencil, Send, Trash2 } from 'lucide-react'
 import styles from './DashboardPage.module.css'
-import {
-  ChevronLeft, ChevronRight, Utensils, Dumbbell,
-  FlaskConical, Bot, Droplets, RefreshCw, LogOut, Camera, X
-} from 'lucide-react'
 
-const NAV = [
-  { id: 'today',    Icon: Utensils,     label: 'Дневник' },
-  { id: 'plan',     Icon: Dumbbell,     label: 'План'    },
-  { id: 'water',    Icon: Droplets,     label: 'Вода'    },
-  { id: 'analyses', Icon: FlaskConical, label: 'Анализы' },
-  { id: 'advisor',  Icon: Bot,          label: 'AI'      },
-]
-
-const MOTIVS = [
-  'Тело меняется не в зале — оно меняется на кухне и в постели. Ты контролируешь всё три.',
-  'Каждая запись в дневнике — это решение. Продолжай принимать правильные.',
-  'Дискомфорт временный. Результат — навсегда.',
-  'Слабые ищут мотивацию. Сильные строят привычку. Ты уже здесь — значит, строишь.',
-  'Твоё тело — проект на всю жизнь. Сегодня ты снова вложился в него.',
-  'Один пропущенный день — случайность. Два — выбор. Сегодня ты выбрал правильно.',
-  'Прогресс не виден в зеркале каждый день. Но данные не врут. Продолжай.',
-  'Никто не запомнит, как тебе было тяжело. Все увидят результат.',
-  'Питание — 70% результата. Ты уже ведёшь дневник. Это и есть работа.',
-  'Лучший день для начала — вчера. Второй лучший — сегодня. Ты уже начал.',
-  'Каждый грамм белка, каждый выпитый стакан воды — это инвестиция в себя.',
-  'Настоящая дисциплина — это делать правильное, когда не хочется.',
-]
-
-function toDateStr(date) {
-  return date.toISOString().split('T')[0]
+// ─── Bottom Nav Icons ─────────────────────────────────────────────────────────
+function NavHome({ color, size }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M3 9.5L12 3l9 6.5V21a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" stroke={color} strokeWidth="1.8" fill="none" /><path d="M9 22v-7h6v7" stroke={color} strokeWidth="1.8" strokeLinecap="round" /></svg>
 }
-function addDays(date, n) {
-  const d = new Date(date); d.setDate(d.getDate() + n); return d
+function NavFood({ color, size }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M8 3v5c0 2.21 1.79 4 4 4s4-1.79 4-4V3" stroke={color} strokeWidth="1.8" strokeLinecap="round" /><line x1="12" y1="12" x2="12" y2="21" stroke={color} strokeWidth="1.8" strokeLinecap="round" /><line x1="8" y1="21" x2="16" y2="21" stroke={color} strokeWidth="1.8" strokeLinecap="round" /><line x1="6" y1="3" x2="6" y2="8" stroke={color} strokeWidth="1.8" strokeLinecap="round" /></svg>
 }
-function formatDateLabel(date) {
-  return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'long' })
+function NavChart({ color, size }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><rect x="3" y="13" width="4" height="8" rx="1" fill={color} opacity="0.5" /><rect x="10" y="9" width="4" height="12" rx="1" fill={color} opacity="0.75" /><rect x="17" y="4" width="4" height="17" rx="1" fill={color} /></svg>
+}
+function NavDumbbell({ color, size }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><rect x="1" y="10" width="4" height="4" rx="2" fill={color} opacity="0.6" /><rect x="5" y="8" width="3" height="8" rx="1.5" fill={color} /><line x1="8" y1="12" x2="16" y2="12" stroke={color} strokeWidth="2" strokeLinecap="round" /><rect x="16" y="8" width="3" height="8" rx="1.5" fill={color} /><rect x="19" y="10" width="4" height="4" rx="2" fill={color} opacity="0.6" /></svg>
 }
 
-// Мотивационная карточка
-function MotivCard({ aiCall }) {
-  const key = 'motiv-' + toDateStr(new Date())
-  const [text, setText] = useState(() => {
-    const saved = localStorage.getItem(key)
-    if (saved) return saved
-    const idx = Math.floor(Math.random() * MOTIVS.length)
-    return MOTIVS[idx]
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function fmtTime(s) {
+  const m = Math.floor(s / 60), sec = s % 60
+  return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+}
+
+function getTodayKey() {
+  return 'water-' + new Date().toISOString().split('T')[0]
+}
+
+function compressImage(file, maxSize = 1024, quality = 0.85) {
+  return new Promise((res, rej) => {
+    const r = new FileReader()
+    r.onload = e => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        let w = img.width, h = img.height
+        if (w > maxSize || h > maxSize) {
+          if (w > h) { h = Math.round(h * maxSize / w); w = maxSize }
+          else { w = Math.round(w * maxSize / h); h = maxSize }
+        }
+        canvas.width = w; canvas.height = h
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+        res(canvas.toDataURL('image/jpeg', quality).split(',')[1])
+      }
+      img.onerror = rej; img.src = e.target.result
+    }
+    r.onerror = rej; r.readAsDataURL(file)
   })
-  const [loading, setLoading] = useState(false)
+}
 
-  const refresh = async () => {
-    setLoading(true)
+// ─── Day Analysis Sheet ───────────────────────────────────────────────────────
+function DayAnalysisSheet({ totals, goals, workouts, onClose, aiCall }) {
+  const [blocks, setBlocks] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  const run = async () => {
+    setLoading(true); setBlocks(null)
     try {
-      const reply = await aiCall([{ role: 'user', content:
-        'Напиши одну короткую (1-2 предложения) мотивационную фразу для человека который реально работает над собой: тренируется, следит за питанием, ведёт дневник. Строго, без банальщины, без восклицательных знаков. Только сам текст без кавычек.'
-      }], 100)
-      const t = reply.trim()
-      setText(t)
-      localStorage.setItem(key, t)
+      const foodSummary = `Калории: ${Math.round(totals.calories)} из ${goals.calories}, Белки: ${Math.round(totals.protein)}г, Жиры: ${Math.round(totals.fat)}г, Углеводы: ${Math.round(totals.carbs)}г`
+      const workSummary = workouts.length > 0 ? workouts.map(w => `${w.type}: ${w.duration} мин`).join(', ') : 'тренировок нет'
+      const reply = await aiCall([{
+        role: 'user', content: `Дай краткий анализ дня спортсмена. Питание: ${foodSummary}. Тренировки: ${workSummary}. 
+Ответь тремя блоками строго в формате JSON без markdown:
+[
+  {"emoji":"🥗","title":"Питание","lines":["фраза 1","фраза 2","фраза 3"]},
+  {"emoji":"🏋️","title":"Тренировка","lines":["фраза 1","фраза 2"]},
+  {"emoji":"💡","title":"Рекомендации","lines":["рекомендация 1","рекомендация 2","рекомендация 3"]}
+]`
+      }], 600)
+      const match = reply.replace(/```json|```/g, '').trim().match(/\[[\s\S]*\]/)
+      if (match) setBlocks(JSON.parse(match[0]))
+      else setBlocks([{ emoji: '💡', title: 'Анализ', lines: [reply.trim()] }])
     } catch {
-      const idx = Math.floor(Math.random() * MOTIVS.length)
-      setText(MOTIVS[idx])
+      setBlocks([{ emoji: '💡', title: 'Анализ', lines: ['Не удалось получить анализ. Попробуйте ещё раз.'] }])
     }
     setLoading(false)
   }
 
-  return (
-    <div className={styles.motivCard}>
-      <div className={styles.motivIcon}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-        </svg>
+  useEffect(() => { run() }, [])
+
+  const colors = { '🥗': 'var(--accent)', '🏋️': 'var(--teal)', '💡': 'var(--amber)' }
+
+  return createPortal(
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', background: 'rgba(0,0,0,0.65)' }}>
+      <div style={{ background: 'var(--surface)', borderRadius: '24px 24px 0 0', maxHeight: '88%', display: 'flex', flexDirection: 'column', animation: 'slideUp 0.35s ease' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border)' }} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 20px 14px', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 22, color: 'var(--accent)' }}>✦</span>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Анализ дня</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>AI-разбор питания и тренировки</div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--surface2)', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 20 }}>×</button>
+        </div>
+        <div style={{ overflowY: 'auto', padding: '16px 20px 36px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {loading && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '36px 0' }}>
+              <div style={{ position: 'relative', width: 56, height: 56 }}>
+                <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid var(--accent-dim)', borderTop: '3px solid var(--accent)', animation: 'spin 1s linear infinite' }} />
+                <div style={{ position: 'absolute', inset: 8, borderRadius: '50%', border: '2px solid var(--border)', borderBottom: '2px solid var(--teal)', animation: 'spin 1.5s linear infinite reverse' }} />
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: 'var(--accent)' }}>✦</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Анализирую твой день...</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Оцениваю питание, тренировку, прогресс</div>
+              </div>
+            </div>
+          )}
+          {blocks && blocks.map((block, bi) => (
+            <div key={bi} style={{ background: 'var(--surface2)', borderRadius: 18, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+                <span style={{ fontSize: 18 }}>{block.emoji}</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{block.title}</span>
+              </div>
+              {block.lines.map((line, li) => (
+                <div key={li} style={{
+                  padding: '11px 16px', fontSize: 13, color: 'var(--text)', lineHeight: 1.6,
+                  borderBottom: li < block.lines.length - 1 ? '1px solid var(--border)' : 'none',
+                  borderLeft: `3px solid ${colors[block.emoji] || 'var(--accent)'}`
+                }}>{line}</div>
+              ))}
+            </div>
+          ))}
+          {blocks && (
+            <button onClick={run} style={{ padding: '12px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 14, color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13 }}>
+              ↻ Обновить анализ
+            </button>
+          )}
+        </div>
       </div>
-      <div className={styles.motivText}>{loading ? 'Думаю...' : text}</div>
-      <button className={styles.motivRefresh} onClick={refresh} disabled={loading}>
-        <RefreshCw size={14} color={loading ? 'rgba(201,168,76,.3)' : '#C9A84C'}
-          style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
-      </button>
-    </div>
+    </div>, document.body
   )
 }
 
-// Аватарка с загрузкой фото
-function AvatarPicker({ name }) {
-  const [photo, setPhoto] = useState(() => localStorage.getItem('user-avatar') || null)
-  const [showMenu, setShowMenu] = useState(false)
-  const fileRef = React.useRef()
+// ─── HOME SCREEN ──────────────────────────────────────────────────────────────
+function HomeScreen({ state, dispatch, goTo, aiCall, name }) {
+  const [showAnalysis, setShowAnalysis] = useState(false)
+  const today = new Date().toISOString().split('T')[0]
+  const entry = state.entries.find(e => e.date === today) || { date: today, foods: [], workouts: [] }
+  const goals = { calories: state.profile?.calorieGoal || 2000, protein: state.profile?.proteinGoal || 140, fat: state.profile?.fatGoal || 70, carbs: state.profile?.carbGoal || 200 }
+  const totals = entry.foods.reduce((a, f) => ({ calories: a.calories + (f.calories || 0), protein: a.protein + (f.protein || 0), fat: a.fat + (f.fat || 0), carbs: a.carbs + (f.carbs || 0) }), { calories: 0, protein: 0, fat: 0, carbs: 0 })
 
-  const handleFile = (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      // Обрезаем в квадрат через canvas
-      const img = new Image()
-      img.onload = () => {
-        const size = Math.min(img.width, img.height)
-        const canvas = document.createElement('canvas')
-        canvas.width = 120; canvas.height = 120
-        const ctx = canvas.getContext('2d')
-        ctx.beginPath()
-        ctx.arc(60, 60, 60, 0, Math.PI * 2)
-        ctx.clip()
-        const sx = (img.width - size) / 2
-        const sy = (img.height - size) / 2
-        ctx.drawImage(img, sx, sy, size, size, 0, 0, 120, 120)
-        const data = canvas.toDataURL('image/jpeg', 0.85)
-        setPhoto(data)
-        localStorage.setItem('user-avatar', data)
-      }
-      img.src = ev.target.result
-    }
-    reader.readAsDataURL(file)
-    setShowMenu(false)
-  }
+  const calPct = Math.min(totals.calories / goals.calories, 1)
+  const r = 72, circ = 2 * Math.PI * r
+  const remain = Math.max(0, goals.calories - totals.calories)
 
-  const removePhoto = () => {
-    setPhoto(null)
-    localStorage.removeItem('user-avatar')
-    setShowMenu(false)
-  }
+  const water = state.water
+  const waterGoal = water.goal
+  const waterConsumed = water.consumed
+
+  const firstN = name.charAt(0).toUpperCase() + (name.split(' ')[1]?.charAt(0).toUpperCase() || '')
+  const dayLabel = new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })
 
   return (
-    <div className={styles.avatarWrap}>
-      <div className={styles.avatar} onClick={() => setShowMenu(v => !v)}>
-        {photo
-          ? <img src={photo} alt="avatar" className={styles.avatarImg} />
-          : <span>{name.charAt(0).toUpperCase()}</span>
-        }
-        <div className={styles.avatarEditBadge}>
-          <Camera size={10} color="#000" />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 8 }}>
+      {showAnalysis && (
+        <DayAnalysisSheet
+          totals={totals} goals={goals}
+          workouts={entry.workouts || []}
+          onClose={() => setShowAnalysis(false)}
+          aiCall={aiCall}
+        />
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+        <div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>Привет, {name.split(' ')[0]} 👋</div>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2, textTransform: 'capitalize' }}>{dayLabel}</div>
+        </div>
+        <div style={{ width: 40, height: 40, borderRadius: 14, background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'var(--accent)' }}>{firstN || '?'}</div>
+      </div>
+
+      {/* Calorie ring */}
+      <div style={{ background: 'var(--surface)', borderRadius: 22, padding: '24px 20px', display: 'flex', gap: 20, alignItems: 'center' }}>
+        <svg width={170} height={170} viewBox="0 0 170 170">
+          <defs>
+            <radialGradient id="g1" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.18" />
+              <stop offset="100%" stopColor="transparent" />
+            </radialGradient>
+          </defs>
+          <circle cx={85} cy={85} r={78} fill="url(#g1)" />
+          <circle cx={85} cy={85} r={r} fill="none" stroke="var(--surface2)" strokeWidth={12} />
+          <circle cx={85} cy={85} r={r} fill="none" stroke="var(--accent)" strokeWidth={12}
+            strokeDasharray={`${calPct * circ} ${circ - calPct * circ}`} strokeLinecap="round"
+            style={{ transform: 'rotate(-90deg)', transformOrigin: '85px 85px', transition: 'stroke-dasharray 0.8s ease' }} />
+          <text x={85} y={78} textAnchor="middle" style={{ fill: 'var(--text)', fontSize: 26, fontWeight: 700, fontFamily: 'var(--mono)' }}>{Math.round(totals.calories)}</text>
+          <text x={85} y={96} textAnchor="middle" style={{ fill: 'var(--text-muted)', fontSize: 12, fontFamily: 'var(--font)' }}>ккал</text>
+        </svg>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Осталось</div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 24, fontWeight: 600, color: 'var(--accent)' }}>{remain}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>из {goals.calories} ккал</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[{ l: 'Б', v: totals.protein, max: goals.protein, c: 'var(--accent)' }, { l: 'Ж', v: totals.fat, max: goals.fat, c: 'var(--teal)' }, { l: 'У', v: totals.carbs, max: goals.carbs, c: 'var(--amber)' }].map(m => (
+              <div key={m.l} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 12 }}>{m.l}</span>
+                <div style={{ flex: 1, height: 4, background: 'var(--surface2)', borderRadius: 99, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', background: m.c, borderRadius: 99, width: `${Math.min(m.v / m.max * 100, 100)}%`, transition: 'width 0.6s' }} />
+                </div>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: m.c, minWidth: 32, textAlign: 'right' }}>{m.v.toFixed(0)}г</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-      {showMenu && (
-        <div className={styles.avatarMenu}>
-          <button onClick={() => fileRef.current.click()}>
-            <Camera size={14} /> Загрузить фото
-          </button>
-          {photo && <button onClick={removePhoto} style={{ color: 'var(--red)' }}>
-            <X size={14} /> Удалить фото
-          </button>}
-          <input ref={fileRef} type="file" accept="image/*" capture="environment"
-            style={{ display: 'none' }} onChange={handleFile} />
+
+      {/* Water */}
+      <div style={{ background: 'var(--surface)', borderRadius: 22, padding: '16px 18px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Вода</span>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 13, color: 'var(--teal)' }}>{waterConsumed}/{waterGoal} ст.</span>
+        </div>
+        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+          {Array.from({ length: waterGoal }).map((_, i) => (
+            <button key={i} onClick={() => dispatch({ type: 'SET_WATER', val: i < waterConsumed ? i : i + 1 })}
+              style={{ width: 36, height: 44, borderRadius: 10, border: 'none', cursor: 'pointer', transition: 'all 0.15s', background: i < waterConsumed ? 'oklch(0.60 0.15 185 / 0.25)' : 'var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width={14} height={20} viewBox="0 0 14 20" fill="none">
+                <path d="M7 1C7 1 1 8 1 12a6 6 0 0012 0C13 8 7 1 7 1z" fill={i < waterConsumed ? 'var(--teal)' : 'var(--border)'} />
+              </svg>
+            </button>
+          ))}
+        </div>
+        <div style={{ marginTop: 10, height: 4, background: 'var(--surface2)', borderRadius: 99, overflow: 'hidden' }}>
+          <div style={{ height: '100%', background: 'var(--teal)', borderRadius: 99, width: `${waterConsumed / waterGoal * 100}%`, transition: 'width 0.4s' }} />
+        </div>
+        <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>{waterConsumed * 250} мл из {waterGoal * 250} мл</div>
+      </div>
+
+      {/* Quick actions */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <button onClick={() => goTo('food')}
+          style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 16, padding: '16px', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <span style={{ fontSize: 18 }}>+</span> Добавить еду
+        </button>
+        <button onClick={() => setShowAnalysis(true)}
+          style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 16, padding: '16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <span style={{ color: 'var(--accent)' }}>✦</span> Анализ дня
+        </button>
+      </div>
+
+      {entry.foods.length > 0 && (
+        <div style={{ background: 'var(--surface)', borderRadius: 22, padding: '16px 18px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Сегодня</span>
+            <button onClick={() => goTo('food')} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 13, cursor: 'pointer' }}>Все →</button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {entry.foods.slice(-4).reverse().map(f => (
+              <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
+                <span style={{ flex: 1, fontSize: 14, color: 'var(--text)' }}>{f.name}</span>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 13, color: 'var(--accent)' }}>{Math.round(f.calories)} ккал</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {(entry.workouts || []).length > 0 && (
+        <div style={{ background: 'var(--surface)', borderRadius: 22, padding: '16px 18px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Тренировки</span>
+            <button onClick={() => goTo('workout')} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 13, cursor: 'pointer' }}>Все →</button>
+          </div>
+          {(entry.workouts || []).slice(0, 2).map(w => (
+            <div key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--surface2)', borderRadius: 14 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{w.type || w.name}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, fontFamily: 'var(--mono)' }}>{w.duration} мин · {w.date || 'сегодня'}</div>
+              </div>
+              {w.caloriesBurned && (
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 16, fontWeight: 600, color: 'var(--teal)' }}>{w.caloriesBurned}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>ккал</div>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>
   )
 }
 
+// ─── FOOD SCREEN ──────────────────────────────────────────────────────────────
+const MEALS_MAP = { breakfast: 'Завтрак', lunch: 'Обед', dinner: 'Ужин', snack: 'Перекус' }
+const MEAL_COLORS = { breakfast: 'var(--amber)', lunch: 'var(--accent)', dinner: 'var(--teal)', snack: 'var(--red)' }
+
+function FoodScreen({ state, dispatch, aiCall }) {
+  const [tab, setTab] = useState('log')
+  const [meal, setMeal] = useState('breakfast')
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState([])
+  const [selectedFood, setSelectedFood] = useState(null)
+  const [grams, setGrams] = useState('100')
+  const [manualMode, setManualMode] = useState(false)
+  const [manual, setManual] = useState({ name: '', cal: '', p: '', f: '', c: '', grams: '100' })
+  const [aiText, setAiText] = useState('')
+  const [aiResults, setAiResults] = useState(null)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [scanLoading, setScanLoading] = useState(false)
+  const [toast, setToast] = useState(null)
+  const [editingFood, setEditingFood] = useState(null)
+
+  const today = new Date().toISOString().split('T')[0]
+  const entry = state.entries.find(e => e.date === today) || { date: today, foods: [], workouts: [] }
+  const totals = entry.foods.reduce((a, f) => ({ cal: a.cal + (f.calories || 0), p: a.p + (f.protein || 0), fat: a.fat + (f.fat || 0), c: a.c + (f.carbs || 0) }), { cal: 0, p: 0, fat: 0, c: 0 })
+
+  const showToast = msg => { setToast(msg); setTimeout(() => setToast(null), 2200) }
+
+  const handleSearch = q => {
+    setQuery(q); setSelectedFood(null)
+    if (q.length > 1) setResults(searchFood(q).slice(0, 8))
+    else setResults([])
+  }
+
+  const addFoodItem = (food, g, mealKey) => {
+    const w = parseFloat(g) || 100
+    dispatch({
+      type: 'SAVE_ENTRY', entry: {
+        ...entry, foods: [...entry.foods, {
+          id: Date.now(), name: food.name, weight: w, meal: mealKey || meal,
+          calories: food.cal100 * w / 100, protein: food.prot100 * w / 100,
+          fat: food.fat100 * w / 100, carbs: food.carbs100 * w / 100,
+          time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })
+        }]
+      }
+    })
+    showToast(food.name + ' добавлено')
+    setSelectedFood(null); setQuery(''); setResults([]); setGrams('100')
+    setTab('log')
+  }
+
+  const addManual = () => {
+    if (!manual.name || !manual.cal) return
+    const g = parseFloat(manual.grams) || 100
+    dispatch({
+      type: 'SAVE_ENTRY', entry: {
+        ...entry, foods: [...entry.foods, {
+          id: Date.now(), name: manual.name, weight: g, meal,
+          calories: parseFloat(manual.cal) * g / 100,
+          protein: parseFloat(manual.p || 0) * g / 100,
+          fat: parseFloat(manual.f || 0) * g / 100,
+          carbs: parseFloat(manual.c || 0) * g / 100,
+          time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })
+        }]
+      }
+    })
+    showToast(manual.name + ' добавлено')
+    setManual({ name: '', cal: '', p: '', f: '', c: '', grams: '100' })
+    setTab('log')
+  }
+
+  const removeFood = id => dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, foods: entry.foods.filter(f => f.id !== id) } })
+
+  const handleScan = async file => {
+    setScanLoading(true)
+    try {
+      const b64 = await compressImage(file)
+      const res = await fetch('https://fit-ai-tracker-production.up.railway.app/ai-vision', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ b64 }) })
+      const d = await res.json()
+      if (d.name) {
+        setSelectedFood({ name: d.name, cal100: d.calories, prot100: d.protein, fat100: d.fat, carbs100: d.carbs })
+        setQuery(d.name); setManualMode(false)
+      }
+    } catch { alert('Не удалось прочитать этикетку') } finally { setScanLoading(false) }
+  }
+
+  const runAI = async () => {
+    if (!aiText.trim()) return
+    setAiLoading(true); setAiResults(null)
+    try {
+      const reply = await aiCall([{
+        role: 'user', content: `Распознай продукты из описания и верни ТОЛЬКО JSON-массив без markdown:
+[{"name":"Название","cal100":ккал_на_100г,"prot100":белки_100г,"fat100":жиры_100г,"carbs100":углеводы_100г,"grams":предполагаемый_вес_в_граммах}]
+Описание: "${aiText}"`
+      }], 500)
+      const match = reply.replace(/```json|```/g, '').trim().match(/\[[\s\S]*\]/)
+      if (match) {
+        const items = JSON.parse(match[0])
+        setAiResults(items.map(item => ({ food: { name: item.name, cal100: item.cal100, prot100: item.prot100, fat100: item.fat100, carbs100: item.carbs100 }, grams: item.grams || 100 })))
+      } else setAiResults([])
+    } catch { setAiResults([]) }
+    setAiLoading(false)
+  }
+
+  const inp = { width: '100%', padding: '12px 14px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12, color: 'var(--text)', fontSize: 15, outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font)' }
+  const bigBtn = { padding: '14px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 14, cursor: 'pointer', fontSize: 15, fontWeight: 700, width: '100%', fontFamily: 'var(--font)' }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+      {toast && <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', background: 'var(--accent)', color: '#000', padding: '10px 22px', borderRadius: 50, fontSize: 13, fontWeight: 600, zIndex: 999, whiteSpace: 'nowrap' }}>{toast}</div>}
+
+      {/* Totals strip */}
+      <div style={{ display: 'flex', background: 'var(--surface)', borderRadius: 18, marginBottom: 14, overflow: 'hidden' }}>
+        {[{ l: 'Ккал', v: Math.round(totals.cal), c: 'var(--text)' }, { l: 'Белки', v: totals.p.toFixed(0) + 'г', c: 'var(--accent)' }, { l: 'Жиры', v: totals.fat.toFixed(0) + 'г', c: 'var(--teal)' }, { l: 'Углев', v: totals.c.toFixed(0) + 'г', c: 'var(--amber)' }].map((m, i, arr) => (
+          <div key={m.l} style={{ flex: 1, padding: '12px 8px', textAlign: 'center', borderRight: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 16, fontWeight: 600, color: m.c }}>{m.v}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{m.l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', background: 'var(--surface)', borderRadius: 16, padding: 4, gap: 4, marginBottom: 14 }}>
+        {[['log', 'Дневник'], ['add', 'Добавить'], ['ai', '✦ AI']].map(([k, v]) => (
+          <button key={k} onClick={() => setTab(k)}
+            style={{ flex: 1, padding: '9px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.15s', background: tab === k ? 'var(--accent)' : 'transparent', color: tab === k ? '#000' : 'var(--text-muted)', fontFamily: 'var(--font)' }}>
+            {v}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'log' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {entry.foods.length === 0 && <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 14 }}>Ничего не добавлено.<br />Нажми «Добавить».</div>}
+          {Object.entries(MEALS_MAP).map(([mealKey, mealName]) => {
+            const items = entry.foods.filter(f => f.meal === mealKey)
+            if (!items.length) return null
+            const mCal = items.reduce((a, f) => a + (f.calories || 0), 0)
+            return (
+              <div key={mealKey} style={{ background: 'var(--surface)', borderRadius: 18, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: MEAL_COLORS[mealKey] }} />
+                  <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{mealName}</span>
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 13, color: 'var(--text-muted)' }}>{Math.round(mCal)} ккал</span>
+                </div>
+                {items.map(item => (
+                  <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, color: 'var(--text)' }}>{item.name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, fontFamily: 'var(--mono)' }}>
+                        {item.weight}г · <span style={{ color: 'var(--accent)' }}>Б{Math.round(item.protein)}</span> <span style={{ color: 'var(--teal)' }}>Ж{Math.round(item.fat)}</span> <span style={{ color: 'var(--amber)' }}>У{Math.round(item.carbs)}</span>
+                      </div>
+                    </div>
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 15, fontWeight: 500, color: 'var(--text)' }}>{Math.round(item.calories)}</span>
+                    <button onClick={() => removeFood(item.id)} style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--surface2)', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 16 }}>×</button>
+                  </div>
+                ))}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {tab === 'add' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Meal selector */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {Object.entries(MEALS_MAP).map(([k, v]) => (
+              <button key={k} onClick={() => setMeal(k)}
+                style={{ padding: '8px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.15s', background: meal === k ? MEAL_COLORS[k] : 'var(--surface)', color: meal === k ? '#000' : 'var(--text-muted)', fontFamily: 'var(--font)' }}>
+                {v}
+              </button>
+            ))}
+          </div>
+          {/* Search / Manual tabs */}
+          <div style={{ display: 'flex', background: 'var(--surface)', borderRadius: 12, padding: 3, gap: 3 }}>
+            {[['search', 'Поиск'], ['manual', 'Вручную'], ['barcode', 'Фото']].map(([k, v]) => (
+              <button key={k} onClick={() => setManualMode(k === 'manual')}
+                style={{ flex: 1, padding: '8px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, transition: 'all 0.15s', background: (k === 'manual' ? manualMode : k === 'search' ? !manualMode : false) ? 'var(--surface2)' : 'transparent', color: (k === 'manual' ? manualMode : k === 'search' ? !manualMode : false) ? 'var(--text)' : 'var(--text-muted)', fontFamily: 'var(--font)' }}>
+                {v}
+              </button>
+            ))}
+          </div>
+
+          {!manualMode && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input style={{ ...inp, flex: 1 }} placeholder="Найти продукт..." value={query} onChange={e => handleSearch(e.target.value)} autoFocus />
+                <label style={{ width: 46, height: 46, background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                  {scanLoading ? '⏳' : <Camera size={18} color="var(--text-muted)" />}
+                  <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => e.target.files[0] && handleScan(e.target.files[0])} />
+                </label>
+              </div>
+              {results.length > 0 && !selectedFood && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {results.map((food, i) => (
+                    <button key={i} onClick={() => { setSelectedFood(food); setResults([]) }}
+                      style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: '12px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, cursor: 'pointer', textAlign: 'left' }}>
+                      <span style={{ fontSize: 14, color: 'var(--text)' }}>{food.name}</span>
+                      <span style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--mono)' }}>{food.cal100} ккал · Б{food.prot100} Ж{food.fat100} У{food.carbs100} /100г</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {selectedFood && (
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--accent)', borderRadius: 18, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--accent)' }}>{selectedFood.name}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <label style={{ fontSize: 13, color: 'var(--text-muted)' }}>Порция:</label>
+                    <input style={{ ...inp, width: 80, textAlign: 'center', fontFamily: 'var(--mono)', fontSize: 16 }} type="number" value={grams} onChange={e => setGrams(e.target.value)} />
+                    <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>г</span>
+                  </div>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 13, color: 'var(--text-muted)' }}>
+                    {Math.round(selectedFood.cal100 * (parseFloat(grams) || 100) / 100)} ккал
+                  </div>
+                  <button style={bigBtn} onClick={() => addFoodItem(selectedFood, grams)}>Добавить</button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {manualMode && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {[['Название', 'name', 'text', 'Борщ домашний'], ['Порция (г)', 'grams', 'number', '100'], ['Ккал / 100г', 'cal', 'number', '200'], ['Белки / 100г', 'p', 'number', '0'], ['Жиры / 100г', 'f', 'number', '0'], ['Углеводы / 100г', 'c', 'number', '0']].map(([label, key, type, ph]) => (
+                <div key={key}>
+                  <label style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 5, display: 'block' }}>{label}</label>
+                  <input style={inp} type={type} placeholder={ph} value={manual[key]} onChange={e => setManual({ ...manual, [key]: e.target.value })} />
+                </div>
+              ))}
+              <button style={{ ...bigBtn, opacity: !manual.name || !manual.cal ? 0.5 : 1 }} onClick={addManual} disabled={!manual.name || !manual.cal}>Добавить продукт</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'ai' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 18, padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 22, color: 'var(--accent)' }}>✦</span>
+              <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>AI-распознавание</span>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>Опиши что съел — AI определит состав и калории</p>
+            <textarea style={{ ...inp, resize: 'none', minHeight: 80, lineHeight: 1.5 }}
+              placeholder={'«съел 200г куриной грудки с гречкой и стакан кефира»'}
+              value={aiText} onChange={e => setAiText(e.target.value)} rows={3} />
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {Object.entries(MEALS_MAP).map(([k, v]) => (
+                <button key={k} onClick={() => setMeal(k)}
+                  style={{ flex: 1, padding: '8px 4px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 500, background: meal === k ? MEAL_COLORS[k] : 'var(--surface2)', color: meal === k ? '#000' : 'var(--text-muted)', fontFamily: 'var(--font)' }}>
+                  {v}
+                </button>
+              ))}
+            </div>
+            <button style={{ ...bigBtn, opacity: !aiText.trim() || aiLoading ? 0.5 : 1 }} onClick={runAI} disabled={!aiText.trim() || aiLoading}>
+              {aiLoading ? '⏳ Анализирую...' : '✦ Распознать блюдо'}
+            </button>
+          </div>
+          {aiResults !== null && !aiLoading && (
+            <div style={{ background: 'var(--surface)', borderRadius: 18, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {aiResults.length === 0
+                ? <p style={{ color: 'var(--text-muted)', fontSize: 14, textAlign: 'center', padding: '12px 0' }}>Не удалось распознать. Опиши подробнее.</p>
+                : <>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Распознано {aiResults.length} продукта:</div>
+                  {aiResults.map((item, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--surface2)', borderRadius: 14 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{item.food.name}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--mono)', marginTop: 2 }}>
+                          {item.grams}г · {Math.round(item.food.cal100 * item.grams / 100)} ккал
+                        </div>
+                      </div>
+                      <button onClick={() => addFoodItem(item.food, item.grams)} style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--accent)', border: 'none', color: '#000', cursor: 'pointer', fontSize: 20, fontWeight: 700 }}>+</button>
+                    </div>
+                  ))}
+                  <button style={bigBtn} onClick={() => { aiResults.forEach(item => addFoodItem(item.food, item.grams)); setAiText(''); setAiResults(null); setTab('log') }}>Добавить всё</button>
+                </>
+              }
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── ANALYSIS SCREEN ──────────────────────────────────────────────────────────
+function AnalysisScreen({ state, aiCall }) {
+  const [aiText, setAiText] = useState(null)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [selDay, setSelDay] = useState('today')
+
+  const today = new Date().toISOString().split('T')[0]
+  const todayEntry = state.entries.find(e => e.date === today) || { foods: [] }
+  const todayTotals = todayEntry.foods.reduce((a, f) => ({ cal: a.cal + (f.calories || 0), p: a.p + (f.protein || 0), fat: a.fat + (f.fat || 0), c: a.c + (f.carbs || 0) }), { cal: 0, p: 0, fat: 0, c: 0 })
+  const goals = { calories: state.profile?.calorieGoal || 2000 }
+
+  // Build week data from entries
+  const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
+  const weekData = weekDays.map((day, i) => {
+    const d = new Date(); d.setDate(d.getDate() - (6 - i))
+    const dateStr = d.toISOString().split('T')[0]
+    const e = state.entries.find(en => en.date === dateStr) || { foods: [] }
+    const cal = e.foods.reduce((a, f) => a + (f.calories || 0), 0)
+    return { day, cal, isToday: false }
+  })
+  weekData.push({ day: 'Сг', cal: todayTotals.cal, isToday: true })
+
+  const display = todayTotals
+  const calPct = Math.min(display.cal / goals.calories, 1)
+  const tm = display.p + display.fat + display.c
+  const pPct = tm > 0 ? Math.round(display.p / tm * 100) : 33
+  const fPct = tm > 0 ? Math.round(display.fat / tm * 100) : 33
+  const cPct = tm > 0 ? 100 - pPct - fPct : 34
+  const r = 60, circ = 2 * Math.PI * r
+  const maxCal = Math.max(...weekData.map(d => d.cal), goals.calories, 1)
+
+  const runAI = async () => {
+    setAiLoading(true); setAiText(null)
+    try {
+      const reply = await aiCall([{
+        role: 'user', content: `Оцени питание за день: ${Math.round(display.cal)} ккал из ${goals.calories}, Б:${display.p.toFixed(0)}г, Ж:${display.fat.toFixed(0)}г, У:${display.c.toFixed(0)}г. 
+Дай 3 коротких совета по оптимизации питания. Каждый совет с новой строки.`
+      }], 400)
+      setAiText(reply.trim())
+    } catch { setAiText('Не удалось получить анализ. Попробуйте ещё раз.') }
+    setAiLoading(false)
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>Анализ питания</div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 12 }}>
+        <div style={{ background: 'var(--surface)', borderRadius: 20, padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+          <svg width={140} height={140} viewBox="0 0 140 140">
+            <circle cx={70} cy={70} r={r} fill="none" stroke="var(--surface2)" strokeWidth={10} />
+            <circle cx={70} cy={70} r={r} fill="none" stroke="var(--accent)" strokeWidth={10}
+              strokeDasharray={`${calPct * circ} ${circ * (1 - calPct)}`} strokeLinecap="round"
+              style={{ transform: 'rotate(-90deg)', transformOrigin: '70px 70px', transition: 'stroke-dasharray 0.6s ease' }} />
+            <text x={70} y={64} textAnchor="middle" style={{ fill: 'var(--text)', fontSize: 20, fontWeight: 700, fontFamily: 'var(--mono)' }}>{Math.round(display.cal)}</text>
+            <text x={70} y={80} textAnchor="middle" style={{ fill: 'var(--text-muted)', fontSize: 11, fontFamily: 'var(--font)' }}>ккал</text>
+            <text x={70} y={96} textAnchor="middle" style={{ fill: 'var(--accent)', fontSize: 11, fontFamily: 'var(--mono)' }}>{Math.round(calPct * 100)}%</text>
+          </svg>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>из {goals.calories}</div>
+        </div>
+        <div style={{ background: 'var(--surface)', borderRadius: 20, padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 12, justifyContent: 'center' }}>
+          {[{ l: 'Белки', v: display.p, pct: pPct, c: 'var(--accent)' }, { l: 'Жиры', v: display.fat, pct: fPct, c: 'var(--teal)' }, { l: 'Углев.', v: display.c, pct: cPct, c: 'var(--amber)' }].map(m => (
+            <div key={m.l} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.c, flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>{m.l}</div>
+                <div style={{ height: 5, background: 'var(--surface2)', borderRadius: 99, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', background: m.c, borderRadius: 99, width: `${m.pct}%`, transition: 'width 0.6s' }} />
+                </div>
+              </div>
+              <div style={{ textAlign: 'right', minWidth: 48 }}>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 13, color: m.c, fontWeight: 500 }}>{m.v.toFixed(0)}г</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{m.pct}%</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Week chart */}
+      <div style={{ background: 'var(--surface)', borderRadius: 20, padding: '16px 14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Неделя</span>
+          <span style={{ fontSize: 12, padding: '3px 10px', background: 'oklch(0.72 0.15 75 / 0.12)', border: '1px solid oklch(0.72 0.15 75 / 0.3)', borderRadius: 50, color: 'oklch(0.72 0.15 75)' }}>Цель {goals.calories}</span>
+        </div>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 120 }}>
+          {weekData.map((d, i) => (
+            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: '100%', justifyContent: 'flex-end' }}>
+              <div style={{ width: '100%', position: 'relative', display: 'flex', alignItems: 'flex-end', flex: 1 }}>
+                <div style={{ position: 'absolute', bottom: `${(goals.calories / maxCal) * 100}%`, left: '-2px', right: '-2px', height: 1, borderTop: '1px dashed oklch(0.72 0.15 75 / 0.5)' }} />
+                <div style={{ width: '100%', borderRadius: '5px 5px 0 0', height: `${(d.cal / maxCal) * 100}%`, minHeight: 4, background: d.isToday ? 'var(--accent)' : 'oklch(0.62 0.18 145 / 0.4)', transition: 'height 0.6s' }} />
+              </div>
+              <div style={{ fontSize: 11, color: d.isToday ? 'var(--accent)' : 'var(--text-muted)', fontWeight: d.isToday ? 600 : 400 }}>{d.day}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* AI analysis */}
+      <div style={{ background: 'var(--surface)', borderRadius: 20, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 18, color: 'var(--accent)' }}>✦</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>AI-анализ</span>
+          </div>
+          <button onClick={runAI} disabled={aiLoading}
+            style={{ padding: '8px 16px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)' }}>
+            {aiLoading ? '...' : 'Анализ'}
+          </button>
+        </div>
+        {!aiText && !aiLoading && <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>Нажми «Анализ» — AI оценит рацион и даст рекомендации.</p>}
+        {aiLoading && <div style={{ height: 2, background: 'var(--accent-dim)', borderRadius: 99, overflow: 'hidden' }}><div style={{ height: '100%', background: 'linear-gradient(90deg,transparent,var(--accent),transparent)', animation: 'scan 1.5s ease-in-out infinite' }} /></div>}
+        {aiText && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {aiText.split('\n').filter(l => l.trim()).map((line, i) => (
+              <div key={i} style={{ padding: '11px 14px', background: 'var(--surface2)', borderRadius: 12, fontSize: 13, color: 'var(--text)', lineHeight: 1.6, borderLeft: '3px solid var(--accent-dim)' }}>{line}</div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Analyses history */}
+      <AnalysesHistory aiCall={aiCall} />
+    </div>
+  )
+}
+
+function AnalysesHistory({ aiCall }) {
+  const STORAGE_KEY = 'analyses-v1'
+  const [analyses, setAnalyses] = useState(() => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch { return [] } })
+  const [scanning, setScanning] = useState(false)
+  const [expandedId, setExpandedId] = useState(null)
+
+  const handlePhoto = async (file) => {
+    setScanning(true)
+    try {
+      const b64 = await compressImage(file, 1600, 0.9)
+      const res = await fetch('https://fit-ai-tracker-production.up.railway.app/ai-vision', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ b64, type: 'document' }) })
+      const visionData = await res.json()
+      const analysis = await aiCall([{ role: 'user', content: `Расшифруй лабораторные анализы:\n${visionData.text || 'не удалось извлечь текст'}\n\nДай краткую расшифровку по каждому показателю.` }], 1000)
+      const item = { id: Date.now(), date: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }), preview: (visionData.text || '').slice(0, 100), analysis }
+      const updated = [item, ...analyses]
+      setAnalyses(updated); localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+      setExpandedId(item.id)
+    } catch { alert('Ошибка обработки') } finally { setScanning(false) }
+  }
+
+  return (
+    <div style={{ background: 'var(--surface)', borderRadius: 20, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Анализы документов</div>
+      <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '20px', background: 'var(--surface2)', border: '1px dashed var(--border)', borderRadius: 16, cursor: 'pointer' }}>
+        <span style={{ fontSize: 28 }}>🔬</span>
+        <span style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center' }}>{scanning ? 'Анализирую...' : 'Сфотографировать анализы\nAI расшифрует как врач'}</span>
+        <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => e.target.files[0] && handlePhoto(e.target.files[0])} disabled={scanning} />
+      </label>
+      {analyses.map(a => (
+        <div key={a.id} style={{ background: 'var(--surface2)', borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', cursor: 'pointer' }} onClick={() => setExpandedId(expandedId === a.id ? null : a.id)}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{a.date}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{a.preview}</div>
+            </div>
+            <span style={{ color: 'var(--text-muted)', fontSize: 16 }}>{expandedId === a.id ? '▲' : '▼'}</span>
+            <button onClick={e => { e.stopPropagation(); const u = analyses.filter(x => x.id !== a.id); setAnalyses(u); localStorage.setItem(STORAGE_KEY, JSON.stringify(u)) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', fontSize: 16 }}>×</button>
+          </div>
+          {expandedId === a.id && <div style={{ padding: '0 14px 14px', fontSize: 13, color: 'var(--text)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{a.analysis}</div>}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── WORKOUT SCREEN ───────────────────────────────────────────────────────────
+const EXERCISE_DB = [
+  { id: 1, name: 'Жим штанги лёжа', muscle: 'Грудь' }, { id: 2, name: 'Разводка гантелей', muscle: 'Грудь' },
+  { id: 3, name: 'Отжимания', muscle: 'Грудь' }, { id: 4, name: 'Приседания со штангой', muscle: 'Ноги' },
+  { id: 5, name: 'Жим ногами', muscle: 'Ноги' }, { id: 6, name: 'Выпады', muscle: 'Ноги' },
+  { id: 7, name: 'Тяга штанги в наклоне', muscle: 'Спина' }, { id: 8, name: 'Подтягивания', muscle: 'Спина' },
+  { id: 9, name: 'Тяга верхнего блока', muscle: 'Спина' }, { id: 10, name: 'Жим гантелей сидя', muscle: 'Плечи' },
+  { id: 11, name: 'Разводка в стороны', muscle: 'Плечи' }, { id: 12, name: 'Разгибания трицепс', muscle: 'Трицепс' },
+  { id: 13, name: 'Жим узким хватом', muscle: 'Трицепс' }, { id: 14, name: 'Сгибание бицепс', muscle: 'Бицепс' },
+  { id: 15, name: 'Молотки', muscle: 'Бицепс' }, { id: 16, name: 'Планка', muscle: 'Кор' },
+  { id: 17, name: 'Скручивания', muscle: 'Кор' }, { id: 18, name: 'Бег', muscle: 'Кардио' },
+]
+const M_COLORS = { Грудь: '#2d5c3d', Ноги: '#1e4a5a', Спина: '#3a3a6e', Плечи: '#5a4a1e', Трицепс: '#5a1e4a', Бицепс: '#5a2e1e', Кор: '#1e5a5a', Кардио: '#5a1e1e' }
+
+function WorkoutScreen({ state, dispatch }) {
+  const [view, setView] = useState('list')
+  const [wk, setWk] = useState({ name: '', exercises: [] })
+  const [exSearch, setExSearch] = useState('')
+  const [timer, setTimer] = useState(0)
+  const [running, setRunning] = useState(false)
+  const timerRef = useRef(null)
+
+  useEffect(() => {
+    if (running) timerRef.current = setInterval(() => setTimer(t => t + 1), 1000)
+    else clearInterval(timerRef.current)
+    return () => clearInterval(timerRef.current)
+  }, [running])
+
+  const today = new Date().toISOString().split('T')[0]
+  const entry = state.entries.find(e => e.date === today) || { date: today, foods: [], workouts: [] }
+
+  const filteredEx = EXERCISE_DB.filter(e => e.name.toLowerCase().includes(exSearch.toLowerCase()) || e.muscle.toLowerCase().includes(exSearch.toLowerCase()))
+  const addEx = ex => setWk(w => ({ ...w, exercises: [...w.exercises, { exerciseId: ex.id, name: ex.name, muscle: ex.muscle, sets: [{ reps: '10', weight: '0', done: false }] }] }))
+  const updateSet = (eI, sI, field, val) => setWk(w => { const exs = [...w.exercises]; exs[eI] = { ...exs[eI], sets: exs[eI].sets.map((s, i) => i === sI ? { ...s, [field]: val } : s) }; return { ...w, exercises: exs } })
+  const addSet = eI => setWk(w => { const exs = [...w.exercises]; const prev = exs[eI].sets[exs[eI].sets.length - 1]; exs[eI] = { ...exs[eI], sets: [...exs[eI].sets, { ...prev, done: false }] }; return { ...w, exercises: exs } })
+  const removeEx = eI => setWk(w => ({ ...w, exercises: w.exercises.filter((_, i) => i !== eI) }))
+  const toggleSet = (eI, sI) => setWk(w => { const exs = [...w.exercises]; exs[eI] = { ...exs[eI], sets: exs[eI].sets.map((s, i) => i === sI ? { ...s, done: !s.done } : s) }; return { ...w, exercises: exs } })
+
+  const completeWorkout = () => {
+    setRunning(false)
+    const calBurned = Math.round(timer / 60 * 7.5)
+    const newWorkout = { id: Date.now(), name: wk.name || 'Тренировка', type: wk.name || 'Тренировка', exercises: wk.exercises.map(e => e.name), duration: Math.round(timer / 60), caloriesBurned: calBurned, date: new Date().toLocaleDateString('ru', { day: 'numeric', month: 'short' }) }
+    dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, workouts: [...(entry.workouts || []), newWorkout] } })
+    setWk({ name: '', exercises: [] }); setTimer(0); setView('list')
+  }
+
+  const inp = { width: '100%', padding: '12px 14px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12, color: 'var(--text)', fontSize: 15, outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font)' }
+  const bigBtn = { padding: '14px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 14, cursor: 'pointer', fontSize: 15, fontWeight: 700, width: '100%', fontFamily: 'var(--font)' }
+
+  const allWorkouts = state.entries.flatMap(e => (e.workouts || []).map(w => ({ ...w, entryDate: e.date }))).sort((a, b) => b.entryDate.localeCompare(a.entryDate))
+
+  if (view === 'list') return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>Тренировки</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <button onClick={() => setView('builder')}
+          style={{ padding: '14px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 14, cursor: 'pointer', fontSize: 14, fontWeight: 700, display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start', fontFamily: 'var(--font)' }}>
+          <span style={{ fontSize: 22 }}>💪</span><span>Новая<br />тренировка</span>
+        </button>
+        <button onClick={() => {/* plan */}}
+          style={{ padding: '14px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 14, cursor: 'pointer', fontSize: 14, fontWeight: 600, display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start', fontFamily: 'var(--font)' }}>
+          <span style={{ fontSize: 22, color: 'var(--accent)' }}>✦</span><span>Мой план<br />тренировок</span>
+        </button>
+      </div>
+      {allWorkouts.length === 0
+        ? <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 14 }}>Тренировок пока нет.<br />Создай первую!</div>
+        : allWorkouts.map(w => (
+          <div key={w.id} style={{ background: 'var(--surface)', borderRadius: 18, padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{w.name || w.type}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--mono)', marginTop: 4 }}>{w.duration} мин · {w.date || w.entryDate}</div>
+              {w.exercises?.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
+                  {(Array.isArray(w.exercises) ? w.exercises : []).slice(0, 3).map((e, i) => (
+                    <span key={i} style={{ padding: '2px 9px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 50, fontSize: 11, color: 'var(--text-muted)' }}>
+                      {typeof e === 'string' ? e : e.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            {w.caloriesBurned && (
+              <div style={{ textAlign: 'center', minWidth: 56 }}>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--teal)' }}>{w.caloriesBurned}</div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>ккал</div>
+              </div>
+            )}
+          </div>
+        ))
+      }
+    </div>
+  )
+
+  if (view === 'builder') return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button onClick={() => setView('list')} style={{ padding: '8px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font)' }}>← Назад</button>
+        <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Конструктор</span>
+      </div>
+      <input style={{ width: '100%', padding: '12px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, color: 'var(--text)', fontSize: 16, fontWeight: 600, outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font)' }}
+        placeholder="Название тренировки" value={wk.name} onChange={e => setWk(w => ({ ...w, name: e.target.value }))} />
+      <div style={{ background: 'var(--surface)', borderRadius: 18, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Добавить упражнение</div>
+        <input style={inp} placeholder="Поиск упражнений..." value={exSearch} onChange={e => setExSearch(e.target.value)} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
+          {filteredEx.slice(0, 8).map(ex => (
+            <button key={ex.id} onClick={() => addEx(ex)}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12, cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}>
+              <span style={{ padding: '2px 8px', borderRadius: 50, fontSize: 11, color: 'var(--text-muted)', background: M_COLORS[ex.muscle] || 'var(--surface)', flexShrink: 0 }}>{ex.muscle}</span>
+              <span style={{ fontSize: 14, color: 'var(--text)', flex: 1 }}>{ex.name}</span>
+              <span style={{ color: 'var(--accent)', fontSize: 20, lineHeight: 1 }}>+</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      {wk.exercises.map((ex, eI) => (
+        <div key={eI} style={{ background: 'var(--surface)', borderRadius: 18, padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ padding: '3px 10px', borderRadius: 50, fontSize: 11, background: M_COLORS[ex.muscle] || 'var(--surface2)', color: 'var(--text-muted)' }}>{ex.muscle}</span>
+            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', flex: 1 }}>{ex.name}</span>
+            <button onClick={() => removeEx(eI)} style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--surface2)', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 18 }}>×</button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1fr', gap: 6 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>№</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>Повторы</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>Вес (кг)</div>
+            {ex.sets.map((set, sI) => (
+              <React.Fragment key={sI}>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{sI + 1}</div>
+                <input style={{ padding: '8px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text)', fontSize: 14, fontFamily: 'var(--mono)', outline: 'none', textAlign: 'center' }}
+                  value={set.reps} onChange={e => updateSet(eI, sI, 'reps', e.target.value)} placeholder="10" />
+                <input style={{ padding: '8px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text)', fontSize: 14, fontFamily: 'var(--mono)', outline: 'none', textAlign: 'center' }}
+                  value={set.weight} onChange={e => updateSet(eI, sI, 'weight', e.target.value)} placeholder="0" />
+              </React.Fragment>
+            ))}
+          </div>
+          <button onClick={() => addSet(eI)} style={{ padding: '8px', background: 'transparent', border: '1px dashed var(--border)', borderRadius: 10, color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font)' }}>+ Добавить подход</button>
+        </div>
+      ))}
+      {wk.exercises.length > 0 && <button style={bigBtn} onClick={() => { setTimer(0); setRunning(true); setView('active') }}>Начать тренировку →</button>}
+    </div>
+  )
+
+  if (view === 'active') return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ background: 'var(--surface)', borderRadius: 22, padding: '20px', display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 48, fontWeight: 500, color: 'var(--accent)', letterSpacing: '0.02em' }}>{fmtTime(timer)}</div>
+        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{wk.name || 'Тренировка'}</div>
+        <div style={{ display: 'flex', gap: 10, width: '100%' }}>
+          <button onClick={() => setRunning(r => !r)} style={{ flex: 1, padding: '12px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 14, color: 'var(--text)', cursor: 'pointer', fontSize: 14, fontWeight: 500, fontFamily: 'var(--font)' }}>
+            {running ? '⏸ Пауза' : '▶ Продолжить'}
+          </button>
+          <button onClick={completeWorkout} style={{ flex: 1, padding: '12px', background: 'var(--accent)', border: 'none', borderRadius: 14, color: '#000', cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)' }}>Завершить ✓</button>
+        </div>
+      </div>
+      {wk.exercises.map((ex, eI) => (
+        <div key={eI} style={{ background: 'var(--surface)', borderRadius: 18, padding: 16 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 12 }}>{ex.name}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {ex.sets.map((set, sI) => (
+              <button key={sI} onClick={() => toggleSet(eI, sI)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: set.done ? 'oklch(0.28 0.09 145)' : 'var(--surface2)', border: `2px solid ${set.done ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 14, cursor: 'pointer', transition: 'all 0.15s', minWidth: 100, fontFamily: 'var(--font)' }}>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)', minWidth: 16 }}>{sI + 1}</span>
+                <span style={{ fontSize: 14, color: 'var(--text)', flex: 1 }}>{set.reps}×{set.weight > 0 ? set.weight + 'кг' : '—'}</span>
+                {set.done && <span style={{ color: 'var(--accent)', fontSize: 14 }}>✓</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── MAIN DASHBOARD ───────────────────────────────────────────────────────────
 export default function DashboardPage() {
-  const { user, profile, signOut, aiCall } = useStore()
-  const [activeTab, setActiveTab] = useState('today')
-  const [selectedDate, setSelectedDate] = useState(new Date())
+  const { user, profile, signOut, aiCall, entries, saveEntry } = useStore()
+  const [tab, setTab] = useState('home')
   const name = profile?.name || user?.user_metadata?.name || 'Спортсмен'
-  const dateStr = toDateStr(selectedDate)
-  const isToday = dateStr === toDateStr(new Date())
+
+  // Water state
+  const [water, setWater] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('water-state-v2') || '{}')
+      const todayKey = new Date().toISOString().split('T')[0]
+      const weight = profile?.weight || 80
+      const goalMl = Math.min(Math.max(Math.round(weight * 30 / 100) * 100, 1500), 4000)
+      const waterGoal = Math.round(goalMl / 250)
+      return { goal: saved.goal || waterGoal, consumed: saved.date === todayKey ? (saved.consumed || 0) : 0, date: todayKey }
+    } catch { return { goal: 8, consumed: 0, date: new Date().toISOString().split('T')[0] } }
+  })
+
+  useEffect(() => { localStorage.setItem('water-state-v2', JSON.stringify(water)) }, [water])
+
+  // Unified state for child components
+  const state = {
+    entries: entries || [],
+    profile,
+    water,
+  }
+
+  const dispatch = (action) => {
+    switch (action.type) {
+      case 'SAVE_ENTRY':
+        saveEntry(action.entry)
+        break
+      case 'SET_WATER':
+        setWater(w => ({ ...w, consumed: action.val }))
+        break
+    }
+  }
+
+  const tabs = [
+    { id: 'home', label: 'Главная', Icon: NavHome },
+    { id: 'food', label: 'Питание', Icon: NavFood },
+    { id: 'analysis', label: 'Анализ', Icon: NavChart },
+    { id: 'workout', label: 'Тренинг', Icon: NavDumbbell },
+  ]
 
   return (
     <div className={styles.page}>
-
-      {/* ── Header ── */}
+      {/* Header */}
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <AvatarPicker name={name} />
+          <div className={styles.avatar}>
+            {name.charAt(0).toUpperCase()}
+          </div>
           <div>
             <div className={styles.headerGreet}>Добро пожаловать</div>
             <div className={styles.headerName}>{name}</div>
           </div>
         </div>
         <button className={styles.signOutBtn} onClick={signOut}>
-          <LogOut size={16} color="var(--text3)" />
+          <LogOut size={16} color="var(--text-muted)" />
         </button>
       </div>
 
-      {/* ── Мотивационная фраза — только на вкладке Дневник ── */}
-      {activeTab === 'today' && (
-        <MotivCard aiCall={aiCall} />
-      )}
-
-      {/* ── Date navigator — только на вкладке Дневник ── */}
-      {activeTab === 'today' && (
-        <div className={styles.dateNav}>
-          <button className={styles.dateNavBtn} onClick={() => setSelectedDate(d => addDays(d, -1))}>
-            <ChevronLeft size={20} color="var(--text2)" />
-          </button>
-          <div className={styles.dateNavCenter}>
-            <div className={styles.dateLabel}>{formatDateLabel(selectedDate)}</div>
-            {!isToday && (
-              <button className={styles.todayBtn} onClick={() => setSelectedDate(new Date())}>
-                к сегодня
-              </button>
-            )}
-          </div>
-          <button className={styles.dateNavBtn} onClick={() => setSelectedDate(d => addDays(d, 1))}>
-            <ChevronRight size={20} color="var(--text2)" />
-          </button>
-        </div>
-      )}
-
-      {/* ── Content ── */}
+      {/* Content */}
       <div className={styles.content}>
-        {activeTab === 'today'    && <TodayTab selectedDate={dateStr} />}
-        {activeTab === 'plan'     && <PlanTab />}
-        {activeTab === 'water'    && <WaterTab />}
-        {activeTab === 'analyses' && <AnalysesTab />}
-        {activeTab === 'advisor'  && <AdvisorTab />}
+        {tab === 'home' && <HomeScreen state={state} dispatch={dispatch} goTo={setTab} aiCall={aiCall} name={name} />}
+        {tab === 'food' && <FoodScreen state={state} dispatch={dispatch} aiCall={aiCall} />}
+        {tab === 'analysis' && <AnalysisScreen state={state} aiCall={aiCall} />}
+        {tab === 'workout' && <WorkoutScreen state={state} dispatch={dispatch} />}
       </div>
 
-      {/* ── Bottom Navigation ── */}
+      {/* Bottom Nav */}
       <div className={styles.bottomNav}>
-        {NAV.map(({ id, Icon, label }) => (
-          <button key={id}
-            className={`${styles.navBtn} ${activeTab === id ? styles.navBtnActive : ''}`}
-            onClick={() => setActiveTab(id)}>
-            <div className={styles.navIcon}>
-              <Icon size={20} strokeWidth={activeTab === id ? 2 : 1.5}
-                color={activeTab === id
-                  ? id === 'water' ? '#4facfe' : 'var(--gold)'
-                  : 'var(--text3)'} />
-              {activeTab === id && (
-                <div className={styles.navDot}
-                  style={{ background: id === 'water' ? '#4facfe' : 'var(--gold)' }} />
-              )}
-            </div>
-            <span className={styles.navLabel}
-              style={{ color: activeTab === id
-                ? id === 'water' ? '#4facfe' : 'var(--gold)'
-                : 'var(--text3)' }}>
-              {label}
-            </span>
-          </button>
-        ))}
+        {tabs.map(({ id, label, Icon }) => {
+          const isActive = tab === id
+          return (
+            <button key={id} onClick={() => setTab(id)} className={styles.navBtn}>
+              <Icon color={isActive ? 'var(--accent)' : 'var(--text-muted)'} size={22} />
+              <span style={{ fontSize: 10, color: isActive ? 'var(--accent)' : 'var(--text-muted)', fontWeight: isActive ? 600 : 400, marginTop: 3 }}>{label}</span>
+              {isActive && <div className={styles.navDot} />}
+            </button>
+          )
+        })}
       </div>
     </div>
   )
