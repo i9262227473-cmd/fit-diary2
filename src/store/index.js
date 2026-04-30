@@ -25,6 +25,45 @@ const loadProfile = async (userId, token) => {
   }
 }
 
+// Загрузить дневник с Supabase
+const loadEntries = async (userId, token) => {
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/diary_entries?user_id=eq.${userId}&select=*&order=date.desc`,
+      { headers: sbHeaders(token) }
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    return data.map(row => ({
+      date: row.date,
+      foods: row.foods || [],
+      workouts: row.workouts || [],
+    }))
+  } catch (e) {
+    console.warn('Entries load error:', e)
+    return null
+  }
+}
+
+// Сохранить запись дневника в Supabase
+const syncEntry = async (userId, token, entry) => {
+  try {
+    await fetch(`${SB_URL}/rest/v1/diary_entries`, {
+      method: 'POST',
+      headers: { ...sbHeaders(token), 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify({
+        user_id: userId,
+        date: entry.date,
+        foods: entry.foods,
+        workouts: entry.workouts,
+        updated_at: new Date().toISOString()
+      })
+    })
+  } catch (e) {
+    console.warn('Entry sync error:', e)
+  }
+}
+
 export const useStore = create(
   persist(
     (set, get) => ({
@@ -34,8 +73,6 @@ export const useStore = create(
       isLoggingIn: false,
       entries: [],
       weights: [],
-      activeTab: 'today',
-      selectedDate: new Date().toISOString().split('T')[0],
 
       // ── Auth ──
       signUp: async (email, password, name) => {
@@ -62,26 +99,36 @@ export const useStore = create(
 
           set({ user: data.user, session: data })
 
+          // Загружаем профиль
           const profileRaw = await loadProfile(data.user.id, data.access_token)
           if (profileRaw) {
-            set({ profile: {
-              role: profileRaw.role,
-              level: profileRaw.level,
-              goals: profileRaw.goals,
-              hasLimitations: profileRaw.has_limitations,
-              limitationsText: profileRaw.limitations_text,
-              age: profileRaw.age,
-              weight: profileRaw.weight,
-              height: profileRaw.height,
-              gender: profileRaw.gender,
-              activity: profileRaw.activity,
-              calorieGoal: profileRaw.calorie_goal,
-              proteinGoal: profileRaw.protein_goal,
-              fatGoal: profileRaw.fat_goal,
-              carbGoal: profileRaw.carb_goal,
-              bmi: profileRaw.bmi,
-              completedAt: profileRaw.completed_at,
-            }})
+            set({
+              profile: {
+                name: profileRaw.name || data.user.user_metadata?.name,
+                role: profileRaw.role,
+                level: profileRaw.level,
+                goals: profileRaw.goals,
+                hasLimitations: profileRaw.has_limitations,
+                limitationsText: profileRaw.limitations_text,
+                age: profileRaw.age,
+                weight: profileRaw.weight,
+                height: profileRaw.height,
+                gender: profileRaw.gender,
+                activity: profileRaw.activity,
+                calorieGoal: profileRaw.calorie_goal,
+                proteinGoal: profileRaw.protein_goal,
+                fatGoal: profileRaw.fat_goal,
+                carbGoal: profileRaw.carb_goal,
+                bmi: profileRaw.bmi,
+                completedAt: profileRaw.completed_at,
+              }
+            })
+          }
+
+          // Загружаем дневник с Supabase (перезаписывает localStorage)
+          const remoteEntries = await loadEntries(data.user.id, data.access_token)
+          if (remoteEntries && remoteEntries.length > 0) {
+            set({ entries: remoteEntries })
           }
 
           return data
@@ -98,18 +145,14 @@ export const useStore = create(
       saveProfile: async (profileData) => {
         const { session } = get()
         set({ profile: profileData })
-
         if (!session) return
-
         try {
           await fetch(`${SB_URL}/rest/v1/user_profiles`, {
             method: 'POST',
-            headers: {
-              ...sbHeaders(session.access_token),
-              'Prefer': 'resolution=merge-duplicates'
-            },
+            headers: { ...sbHeaders(session.access_token), 'Prefer': 'resolution=merge-duplicates' },
             body: JSON.stringify({
               user_id: session.user.id,
+              name: profileData.name,
               role: profileData.role,
               level: profileData.level,
               goals: profileData.goals,
@@ -150,10 +193,7 @@ export const useStore = create(
       // ── Diary ──
       getEntry: (date) => {
         const { entries } = get()
-        return entries.find(e => e.date === date) || {
-          date, foods: [], workouts: [],
-          totalCalories: 0, totalProtein: 0, totalFat: 0, totalCarbs: 0
-        }
+        return entries.find(e => e.date === date) || { date, foods: [], workouts: [] }
       },
 
       saveEntry: (entry) => {
@@ -161,6 +201,11 @@ export const useStore = create(
           const entries = state.entries.filter(e => e.date !== entry.date)
           return { entries: [entry, ...entries].sort((a, b) => b.date.localeCompare(a.date)) }
         })
+        // Синхронизируем с Supabase
+        const { session } = get()
+        if (session?.user?.id) {
+          syncEntry(session.user.id, session.access_token, entry)
+        }
       },
 
       // ── Weights ──
