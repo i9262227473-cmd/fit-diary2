@@ -83,7 +83,7 @@ function SwipeRow({ children, onDelete }) {
 
   return (
     <div style={{ position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: ACTION_W, background: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 0, borderRadius: '0 0 0 0' }}>
+      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: ACTION_W, background: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 0 }}>
         <button onClick={() => { onDelete(); setOffset(0) }}
           style={{ width: '100%', height: '100%', background: 'none', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
           <svg width={18} height={18} viewBox="0 0 24 24" fill="none"><polyline points="3,6 5,6 21,6" stroke="#fff" strokeWidth="2" strokeLinecap="round" /><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" stroke="#fff" strokeWidth="2" strokeLinecap="round" /><path d="M10 11v6M14 11v6" stroke="#fff" strokeWidth="2" strokeLinecap="round" /><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" stroke="#fff" strokeWidth="2" /></svg>
@@ -158,7 +158,7 @@ const GOAL_LABELS  = { weight_loss: 'Похудение ⚖️', muscle_gain: '�
 const ACTIVITY_LABELS = { sedentary: 'Сидячий', light: 'Лёгкая', moderate: 'Умеренная', active: 'Высокая', very_active: 'Очень высокая' }
 
 function ProfileScreen({ profile, saveProfile }) {
-  const [section, setSection] = useState('info') // 'info' | 'body' | 'kbju'
+  const [section, setSection] = useState('info')
   const [form, setForm] = useState({
     age: profile?.age || '',
     weight: profile?.weight || '',
@@ -199,15 +199,11 @@ function ProfileScreen({ profile, saveProfile }) {
   const chipActive = { padding: '8px 14px', borderRadius: 10, border: '2px solid var(--accent)', background: 'var(--accent-dim)', color: 'var(--accent)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)' }
   const chip = { padding: '8px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font)' }
 
-  const tabs = [['info', 'Данные'], ['body', 'Тело'], ['kbju', 'КБЖУ']]
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>Мой профиль</div>
-
-      {/* Tabs */}
       <div style={{ display: 'flex', background: 'var(--surface)', borderRadius: 14, padding: 4, gap: 4 }}>
-        {tabs.map(([k, v]) => (
+        {[['info', 'Данные'], ['body', 'Тело'], ['kbju', 'КБЖУ']].map(([k, v]) => (
           <button key={k} onClick={() => setSection(k)}
             style={{ flex: 1, padding: '9px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, background: section === k ? 'var(--accent)' : 'transparent', color: section === k ? '#000' : 'var(--text-muted)', fontFamily: 'var(--font)', transition: 'all 0.15s' }}>
             {v}
@@ -215,7 +211,6 @@ function ProfileScreen({ profile, saveProfile }) {
         ))}
       </div>
 
-      {/* Данные из онбординга */}
       {section === 'info' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ background: 'var(--surface)', borderRadius: 18, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -226,7 +221,6 @@ function ProfileScreen({ profile, saveProfile }) {
               ))}
             </div>
           </div>
-
           <div style={{ background: 'var(--surface)', borderRadius: 18, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Уровень подготовки</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -235,7 +229,6 @@ function ProfileScreen({ profile, saveProfile }) {
               ))}
             </div>
           </div>
-
           <div style={{ background: 'var(--surface)', borderRadius: 18, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Цели</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -247,7 +240,6 @@ function ProfileScreen({ profile, saveProfile }) {
         </div>
       )}
 
-      {/* Тело */}
       {section === 'body' && (
         <div style={{ background: 'var(--surface)', borderRadius: 18, padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -280,7 +272,6 @@ function ProfileScreen({ profile, saveProfile }) {
         </div>
       )}
 
-      {/* КБЖУ */}
       {section === 'kbju' && (
         <div style={{ background: 'var(--surface)', borderRadius: 18, padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -291,7 +282,7 @@ function ProfileScreen({ profile, saveProfile }) {
               </div>
             ))}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>Сохрани параметры тела на вкладке «Тело» — КБЖУ пересчитается автоматически</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>Сохрани параметры тела — КБЖУ пересчитается автоматически</div>
         </div>
       )}
 
@@ -318,13 +309,10 @@ function HomeScreen({ state, dispatch, goTo, aiCall, name }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 8 }}>
       {showAnalysis && <DayAnalysisSheet totals={totals} goals={goals} workouts={entry.workouts || []} onClose={() => setShowAnalysis(false)} aiCall={aiCall} />}
-
       <div style={{ marginBottom: 4 }}>
         <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>Привет, {name.split(' ')[0]} 👋</div>
         <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2, textTransform: 'capitalize' }}>{dayLabel}</div>
       </div>
-
-      {/* Calorie ring */}
       <div style={{ background: 'var(--surface)', borderRadius: 22, padding: '24px 20px', display: 'flex', gap: 20, alignItems: 'center' }}>
         <svg width={170} height={170} viewBox="0 0 170 170">
           <defs><radialGradient id="g1" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="var(--accent)" stopOpacity="0.18" /><stop offset="100%" stopColor="transparent" /></radialGradient></defs>
@@ -355,8 +343,6 @@ function HomeScreen({ state, dispatch, goTo, aiCall, name }) {
           </div>
         </div>
       </div>
-
-      {/* Water */}
       <div style={{ background: 'var(--surface)', borderRadius: 22, padding: '16px 18px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Вода</span>
@@ -375,19 +361,12 @@ function HomeScreen({ state, dispatch, goTo, aiCall, name }) {
         </div>
         <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>{water.consumed * 250} мл из {water.goal * 250} мл</div>
       </div>
-
-      {/* Quick actions */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <button onClick={() => goTo('food')}
-          style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 16, padding: '16px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
-          Питание
-        </button>
-        <button onClick={() => setShowAnalysis(true)}
-          style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 16, padding: '16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+        <button onClick={() => goTo('food')} style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 16, padding: '16px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>Питание</button>
+        <button onClick={() => setShowAnalysis(true)} style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 16, padding: '16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           <span style={{ color: 'var(--accent)' }}>✦</span> Анализ дня
         </button>
       </div>
-
       {entry.foods.length > 0 && (
         <div style={{ background: 'var(--surface)', borderRadius: 22, padding: '16px 18px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -496,7 +475,6 @@ function FoodScreen({ state, dispatch, aiCall }) {
     } catch { alert('Не удалось прочитать этикетку') } finally { setScanLoading(false) }
   }
 
-  // ✅ Улучшенный промт — строгое требование числовых БЖУ
   const runAI = async () => {
     if (!aiText.trim()) return
     setAiLoading(true); setAiResults(null)
@@ -532,8 +510,6 @@ function FoodScreen({ state, dispatch, aiCall }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
       {toast && <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', background: 'var(--accent)', color: '#000', padding: '10px 22px', borderRadius: 50, fontSize: 13, fontWeight: 600, zIndex: 999, whiteSpace: 'nowrap' }}>{toast}</div>}
-
-      {/* Итого */}
       <div style={{ display: 'flex', background: 'var(--surface)', borderRadius: 18, marginBottom: 14, overflow: 'hidden' }}>
         {[{ l: 'Ккал', v: Math.round(totals.cal), c: 'var(--text)' }, { l: 'Белки', v: totals.p.toFixed(0) + 'г', c: 'var(--accent)' }, { l: 'Жиры', v: totals.fat.toFixed(0) + 'г', c: 'var(--teal)' }, { l: 'Углев', v: totals.c.toFixed(0) + 'г', c: 'var(--amber)' }].map((m, i, arr) => (
           <div key={m.l} style={{ flex: 1, padding: '12px 8px', textAlign: 'center', borderRight: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
@@ -542,25 +518,15 @@ function FoodScreen({ state, dispatch, aiCall }) {
           </div>
         ))}
       </div>
-
-      {/* Вкладки */}
       <div style={{ display: 'flex', background: 'var(--surface)', borderRadius: 16, padding: 4, gap: 4, marginBottom: 14 }}>
         {[['log', 'Дневник'], ['add', 'Добавить'], ['ai', '✦ AI']].map(([k, v]) => (
-          <button key={k} onClick={() => setTab(k)}
-            style={{ flex: 1, padding: '9px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.15s', background: tab === k ? 'var(--accent)' : 'transparent', color: tab === k ? '#000' : 'var(--text-muted)', fontFamily: 'var(--font)' }}>
-            {v}
-          </button>
+          <button key={k} onClick={() => setTab(k)} style={{ flex: 1, padding: '9px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.15s', background: tab === k ? 'var(--accent)' : 'transparent', color: tab === k ? '#000' : 'var(--text-muted)', fontFamily: 'var(--font)' }}>{v}</button>
         ))}
       </div>
 
-      {/* Дневник */}
       {tab === 'log' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {entry.foods.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 14 }}>
-              Ничего не добавлено.<br />Нажми «Добавить» или «AI».
-            </div>
-          )}
+          {entry.foods.length === 0 && <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 14 }}>Ничего не добавлено.<br />Нажми «Добавить» или «AI».</div>}
           {Object.entries(MEALS_MAP).map(([mealKey, mealName]) => {
             const items = entry.foods.filter(f => f.meal === mealKey)
             if (!items.length) return null
@@ -591,26 +557,18 @@ function FoodScreen({ state, dispatch, aiCall }) {
         </div>
       )}
 
-      {/* Добавить */}
       {tab === 'add' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {Object.entries(MEALS_MAP).map(([k, v]) => (
-              <button key={k} onClick={() => setMeal(k)}
-                style={{ padding: '8px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, background: meal === k ? MEAL_COLORS[k] : 'var(--surface)', color: meal === k ? '#000' : 'var(--text-muted)', fontFamily: 'var(--font)' }}>
-                {v}
-              </button>
+              <button key={k} onClick={() => setMeal(k)} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, background: meal === k ? MEAL_COLORS[k] : 'var(--surface)', color: meal === k ? '#000' : 'var(--text-muted)', fontFamily: 'var(--font)' }}>{v}</button>
             ))}
           </div>
           <div style={{ display: 'flex', background: 'var(--surface)', borderRadius: 12, padding: 3, gap: 3 }}>
             {[['search', 'Поиск'], ['manual', 'Вручную']].map(([k, v]) => (
-              <button key={k} onClick={() => setManualMode(k === 'manual')}
-                style={{ flex: 1, padding: '8px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, background: (k === 'manual' ? manualMode : !manualMode) ? 'var(--surface2)' : 'transparent', color: (k === 'manual' ? manualMode : !manualMode) ? 'var(--text)' : 'var(--text-muted)', fontFamily: 'var(--font)' }}>
-                {v}
-              </button>
+              <button key={k} onClick={() => setManualMode(k === 'manual')} style={{ flex: 1, padding: '8px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, background: (k === 'manual' ? manualMode : !manualMode) ? 'var(--surface2)' : 'transparent', color: (k === 'manual' ? manualMode : !manualMode) ? 'var(--text)' : 'var(--text-muted)', fontFamily: 'var(--font)' }}>{v}</button>
             ))}
           </div>
-
           {!manualMode && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', gap: 8 }}>
@@ -623,8 +581,7 @@ function FoodScreen({ state, dispatch, aiCall }) {
               {results.length > 0 && !selectedFood && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {results.map((food, i) => (
-                    <button key={i} onClick={() => { setSelectedFood(food); setResults([]) }}
-                      style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: '12px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, cursor: 'pointer', textAlign: 'left' }}>
+                    <button key={i} onClick={() => { setSelectedFood(food); setResults([]) }} style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: '12px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, cursor: 'pointer', textAlign: 'left' }}>
                       <span style={{ fontSize: 14, color: 'var(--text)' }}>{food.name}</span>
                       <span style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--mono)' }}>
                         {food.cal100} ккал · <span style={{ color: 'var(--accent)' }}>Б{food.prot100}</span> <span style={{ color: 'var(--teal)' }}>Ж{food.fat100}</span> <span style={{ color: 'var(--amber)' }}>У{food.carbs100}</span> /100г
@@ -652,7 +609,6 @@ function FoodScreen({ state, dispatch, aiCall }) {
               )}
             </div>
           )}
-
           {manualMode && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {[['Название', 'name', 'text', 'Борщ домашний'], ['Порция (г)', 'grams', 'number', '100'], ['Ккал / 100г', 'cal', 'number', '200'], ['Белки / 100г', 'p', 'number', '0'], ['Жиры / 100г', 'f', 'number', '0'], ['Углеводы / 100г', 'c', 'number', '0']].map(([label, key, type, ph]) => (
@@ -667,7 +623,6 @@ function FoodScreen({ state, dispatch, aiCall }) {
         </div>
       )}
 
-      {/* AI */}
       {tab === 'ai' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ background: 'var(--surface)', borderRadius: 18, padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -681,17 +636,13 @@ function FoodScreen({ state, dispatch, aiCall }) {
               value={aiText} onChange={e => setAiText(e.target.value)} rows={3} />
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {Object.entries(MEALS_MAP).map(([k, v]) => (
-                <button key={k} onClick={() => setMeal(k)}
-                  style={{ flex: 1, padding: '8px 4px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 500, background: meal === k ? MEAL_COLORS[k] : 'var(--surface2)', color: meal === k ? '#000' : 'var(--text-muted)', fontFamily: 'var(--font)' }}>
-                  {v}
-                </button>
+                <button key={k} onClick={() => setMeal(k)} style={{ flex: 1, padding: '8px 4px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 500, background: meal === k ? MEAL_COLORS[k] : 'var(--surface2)', color: meal === k ? '#000' : 'var(--text-muted)', fontFamily: 'var(--font)' }}>{v}</button>
               ))}
             </div>
             <button style={{ ...bigBtn, opacity: !aiText.trim() || aiLoading ? 0.5 : 1 }} onClick={runAI} disabled={!aiText.trim() || aiLoading}>
               {aiLoading ? '⏳ Анализирую...' : '✦ Распознать'}
             </button>
           </div>
-
           {aiResults !== null && !aiLoading && (
             <div style={{ background: 'var(--surface)', borderRadius: 18, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
               {aiResults.length === 0
@@ -706,15 +657,10 @@ function FoodScreen({ state, dispatch, aiCall }) {
                           {item.grams}г · {Math.round((item.food.cal100 || 0) * item.grams / 100)} ккал · <span style={{ color: 'var(--accent)' }}>Б{Math.round((item.food.prot100 || 0) * item.grams / 100)}г</span> <span style={{ color: 'var(--teal)' }}>Ж{Math.round((item.food.fat100 || 0) * item.grams / 100)}г</span> <span style={{ color: 'var(--amber)' }}>У{Math.round((item.food.carbs100 || 0) * item.grams / 100)}г</span>
                         </div>
                       </div>
-                      <button onClick={() => addFoodItem(item.food, item.grams)}
-                        style={{ padding: '8px 14px', borderRadius: 10, background: 'var(--accent)', border: 'none', color: '#000', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)' }}>
-                        Добавить
-                      </button>
+                      <button onClick={() => addFoodItem(item.food, item.grams)} style={{ padding: '8px 14px', borderRadius: 10, background: 'var(--accent)', border: 'none', color: '#000', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)' }}>Добавить</button>
                     </div>
                   ))}
-                  <button style={bigBtn} onClick={() => { aiResults.forEach(item => addFoodItem(item.food, item.grams)); setAiText(''); setAiResults(null); setTab('log') }}>
-                    Добавить всё
-                  </button>
+                  <button style={bigBtn} onClick={() => { aiResults.forEach(item => addFoodItem(item.food, item.grams)); setAiText(''); setAiResults(null); setTab('log') }}>Добавить всё</button>
                 </>
               }
             </div>
@@ -784,9 +730,7 @@ function AnalysisScreen({ state, aiCall }) {
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.c, flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>{m.l}</div>
-                <div style={{ height: 5, background: 'var(--surface2)', borderRadius: 99, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', background: m.c, borderRadius: 99, width: `${m.pct}%`, transition: 'width 0.6s' }} />
-                </div>
+                <div style={{ height: 5, background: 'var(--surface2)', borderRadius: 99, overflow: 'hidden' }}><div style={{ height: '100%', background: m.c, borderRadius: 99, width: `${m.pct}%`, transition: 'width 0.6s' }} /></div>
               </div>
               <div style={{ textAlign: 'right', minWidth: 48 }}>
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 13, color: m.c, fontWeight: 500 }}>{m.v.toFixed(0)}г</div>
@@ -819,10 +763,7 @@ function AnalysisScreen({ state, aiCall }) {
             <span style={{ fontSize: 18, color: 'var(--accent)' }}>✦</span>
             <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>AI-анализ</span>
           </div>
-          <button onClick={runAI} disabled={aiLoading}
-            style={{ padding: '8px 16px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)' }}>
-            {aiLoading ? '...' : 'Анализ'}
-          </button>
+          <button onClick={runAI} disabled={aiLoading} style={{ padding: '8px 16px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)' }}>{aiLoading ? '...' : 'Анализ'}</button>
         </div>
         {!aiText && !aiLoading && <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>Нажми «Анализ» — AI оценит рацион.</p>}
         {aiLoading && <div style={{ height: 2, background: 'var(--accent-dim)', borderRadius: 99, overflow: 'hidden' }}><div style={{ height: '100%', background: 'linear-gradient(90deg,transparent,var(--accent),transparent)', animation: 'scan 1.5s ease-in-out infinite' }} /></div>}
@@ -936,30 +877,63 @@ const M_COLORS = { Грудь: '#2d5c3d', Ноги: '#1e4a5a', Спина: '#3a3
 // ─── PLAN SCREEN ─────────────────────────────────────────────────────────────
 const PLAN_KEY = 'workout-plan-v1'
 const LEVEL_RU = { beginner: 'новичок', amateur: 'любитель', advanced: 'продвинутый', professional: 'профессионал' }
-const GOAL_RU = { weight_loss: 'похудение', muscle_gain: 'набор массы', maintenance: 'поддержание', endurance: 'выносливость', strength: 'сила', health: 'здоровье' }
+const GOAL_RU  = { weight_loss: 'похудение', muscle_gain: 'набор массы', maintenance: 'поддержание', endurance: 'выносливость', strength: 'сила', health: 'здоровье' }
 
 function PlanScreen({ onBack, aiCall, profile }) {
   const [plan, setPlan] = useState(() => { try { return JSON.parse(localStorage.getItem(PLAN_KEY) || 'null') } catch { return null } })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const level = LEVEL_RU[profile?.level] || 'любитель'
-  const goals = Array.isArray(profile?.goals) && profile.goals.length > 0
-    ? profile.goals.map(g => GOAL_RU[g] || g).join(', ')
-    : 'поддержание формы'
+  const level    = LEVEL_RU[profile?.level] || 'любитель'
+  const goals    = Array.isArray(profile?.goals) && profile.goals.length > 0 ? profile.goals.map(g => GOAL_RU[g] || g).join(', ') : 'поддержание формы'
   const limitations = profile?.hasLimitations && profile.limitationsText ? profile.limitationsText : 'нет'
-  const weight = profile?.weight || 80
+  const weight   = profile?.weight  || 80
+  const age      = profile?.age     || 25
+  const height   = profile?.height  || 175
+  const gender   = profile?.gender === 'female' ? 'женщина' : 'мужчина'
+  const activity = profile?.activity || 'moderate'
 
-  // ✅ Упрощённый промт — меньше токенов, быстрее ответ
+  // Параметры по уровню
+  const levelParams = {
+    beginner:     { split: 'full body (всё тело)',         sets: '2-3', reps: '10-15', rest: '60-90 сек',   exPerDay: '4-6'  },
+    amateur:      { split: 'upper/lower (верх/низ)',       sets: '3-4', reps: '8-12',  rest: '60-120 сек',  exPerDay: '5-8'  },
+    advanced:     { split: 'push/pull/legs',               sets: '3-5', reps: '6-12',  rest: '90-180 сек',  exPerDay: '6-10' },
+    professional: { split: 'кастомный сплит по целям',    sets: '4-6', reps: '4-12',  rest: '120-240 сек', exPerDay: '8-12' },
+  }
+  const lp = levelParams[profile?.level] || levelParams.amateur
+
   const generatePlan = async () => {
     setLoading(true); setError(null)
     try {
-      const prompt = `Составь недельный план тренировок для спортсмена.
-Данные: уровень=${level}, вес=${weight}кг, цели=${goals}, ограничения=${limitations}.
-Верни ТОЛЬКО JSON без markdown, строго 7 дней:
-[{"day":"Пн","focus":"Грудь+Трицепс","exercises":["Жим штанги лёжа 4x10","Разводка гантелей 3x12","Французский жим 3x12"],"duration":60},{"day":"Вт","focus":"Отдых","exercises":[],"duration":0}]`
+      const prompt = `Ты профессиональный фитнес-тренер. Составь персональный недельный план тренировок.
 
-      const reply = await aiCall([{ role: 'user', content: prompt }], 1500)
+ДАННЫЕ ПОЛЬЗОВАТЕЛЯ:
+- Уровень подготовки: ${level}
+- Цели: ${goals}
+- Возраст: ${age} лет, Пол: ${gender}, Вес: ${weight}кг, Рост: ${height}см
+- Активность в жизни: ${activity}
+- Ограничения/травмы: ${limitations}
+- Оборудование: тренажёрный зал (полное оснащение)
+
+ПАРАМЕТРЫ ПРОГРАММЫ ДЛЯ УРОВНЯ "${level}":
+- Тип сплита: ${lp.split}
+- Упражнений за тренировку: ${lp.exPerDay}
+- Подходы на упражнение: ${lp.sets}
+- Повторения: ${lp.reps}
+- Отдых между подходами: ${lp.rest}
+
+ПРАВИЛА СОСТАВЛЕНИЯ:
+1. Строго соблюдай тип сплита для уровня
+2. На каждую мышечную группу: 1-2 базовых (compound) + 1 изолирующее
+3. Не более 10 упражнений за тренировку
+4. Обязательные дни отдыха (минимум 1-2 в неделю)
+5. Учитывай ограничения — исключи опасные движения
+6. Прогрессия: если выполнил все подходы → +2.5-5% к весу на следующей неделе
+
+Верни ТОЛЬКО JSON без markdown, строго 7 дней:
+[{"day":"Пн","focus":"Грудь + Трицепс","exercises":["Жим штанги лёжа 4x10 (отдых 90с)","Разводка гантелей 3x12 (отдых 60с)","Французский жим 3x12 (отдых 60с)"],"duration":60,"tips":"Акцент на технику в базовых"},{"day":"Вт","focus":"Отдых","exercises":[],"duration":0,"tips":"Лёгкая растяжка или прогулка"}]`
+
+      const reply = await aiCall([{ role: 'user', content: prompt }], 2000)
       const match = reply.replace(/```json|```/g, '').trim().match(/\[[\s\S]*\]/)
       if (match) {
         const p = JSON.parse(match[0])
@@ -982,23 +956,25 @@ function PlanScreen({ onBack, aiCall, profile }) {
         <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>План тренировок</span>
       </div>
 
-      {/* Инфо о профиле */}
-      <div style={{ background: 'var(--surface)', borderRadius: 16, padding: '12px 16px', display: 'flex', gap: 16 }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>Уровень</div>
-          <div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600, textTransform: 'capitalize' }}>{level}</div>
-        </div>
-        <div style={{ flex: 2 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>Цели</div>
-          <div style={{ fontSize: 13, color: 'var(--text)', textTransform: 'capitalize' }}>{goals}</div>
-        </div>
+      {/* Карточка профиля */}
+      <div style={{ background: 'var(--surface)', borderRadius: 16, padding: '12px 16px', display: 'flex', gap: 0, flexWrap: 'wrap' }}>
+        {[
+          { label: 'Уровень', value: level, color: 'var(--accent)' },
+          { label: 'Сплит', value: lp.split, color: 'var(--text)' },
+          { label: 'Цели', value: goals, color: 'var(--teal)' },
+        ].map((item, i) => (
+          <div key={i} style={{ flex: 1, minWidth: 80, padding: '4px 8px', borderRight: i < 2 ? '1px solid var(--border)' : 'none' }}>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.label}</div>
+            <div style={{ fontSize: 12, color: item.color, fontWeight: 600, textTransform: 'capitalize' }}>{item.value}</div>
+          </div>
+        ))}
       </div>
 
       {!plan && !loading && (
         <div style={{ background: 'var(--surface)', borderRadius: 20, padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, textAlign: 'center' }}>
           <span style={{ fontSize: 48 }}>✦</span>
           <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>AI составит план под тебя</div>
-          <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>Учитывает уровень подготовки, цели и ограничения здоровья</div>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>Учитывает уровень, цели, сплит, ограничения здоровья и параметры тела</div>
           {error && <div style={{ fontSize: 13, color: 'var(--red)', background: 'oklch(0.62 0.200 15 / 0.1)', padding: '10px 16px', borderRadius: 10, width: '100%' }}>{error}</div>}
           <button onClick={generatePlan} style={{ padding: '14px 28px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 14, cursor: 'pointer', fontSize: 15, fontWeight: 700, fontFamily: 'var(--font)' }}>Создать план</button>
         </div>
@@ -1007,27 +983,35 @@ function PlanScreen({ onBack, aiCall, profile }) {
       {loading && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '48px 0' }}>
           <div style={{ width: 48, height: 48, borderRadius: '50%', border: '3px solid var(--accent-dim)', borderTop: '3px solid var(--accent)', animation: 'spin 1s linear infinite' }} />
-          <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>AI составляет план...</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Составляю план...</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Это может занять 10-15 секунд</div>
         </div>
       )}
 
       {plan && plan.map((day, i) => (
         <div key={i} style={{ background: 'var(--surface)', borderRadius: 18, overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderBottom: day.exercises.length > 0 ? '1px solid var(--border)' : 'none' }}>
-            <div style={{ width: 10, height: 10, borderRadius: '50%', background: DAY_COLORS[i], flexShrink: 0 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderBottom: day.exercises?.length > 0 ? '1px solid var(--border)' : 'none' }}>
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: DAY_COLORS[i % 7], flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{day.day}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{day.focus}{day.duration > 0 ? ` · ${day.duration} мин` : ''}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                {day.focus}{day.duration > 0 ? ` · ${day.duration} мин` : ''}
+              </div>
             </div>
           </div>
-          {day.exercises.length > 0 && (
+          {day.exercises?.length > 0 && (
             <div style={{ padding: '10px 16px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
               {day.exercises.map((ex, j) => (
-                <div key={j} style={{ fontSize: 13, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent-dim)', flexShrink: 0 }} />
-                  {ex}
+                <div key={j} style={{ fontSize: 13, color: 'var(--text)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                  <div style={{ width: 4, height: 4, borderRadius: '50%', background: DAY_COLORS[i % 7], flexShrink: 0, marginTop: 6 }} />
+                  <span>{ex}</span>
                 </div>
               ))}
+              {day.tips && (
+                <div style={{ marginTop: 6, padding: '8px 12px', background: 'var(--accent-dim)', borderRadius: 10, fontSize: 12, color: 'var(--accent)', borderLeft: '2px solid var(--accent)' }}>
+                  💡 {day.tips}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1143,7 +1127,7 @@ function WorkoutScreen({ state, dispatch, aiCall }) {
             <button key={ex.id} onClick={() => addEx(ex)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12, cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}>
               <span style={{ padding: '2px 8px', borderRadius: 50, fontSize: 11, color: 'var(--text-muted)', background: M_COLORS[ex.muscle] || 'var(--surface)', flexShrink: 0 }}>{ex.muscle}</span>
               <span style={{ fontSize: 14, color: 'var(--text)', flex: 1 }}>{ex.name}</span>
-              <span style={{ color: 'var(--accent)', fontSize: 16, fontWeight: 600 }}>Добавить</span>
+              <span style={{ color: 'var(--accent)', fontSize: 14, fontWeight: 600 }}>Добавить</span>
             </button>
           ))}
         </div>
@@ -1259,7 +1243,6 @@ export default function DashboardPage() {
           <LogOut size={16} color="var(--text-muted)" />
         </button>
       </div>
-
       <div className={styles.content}>
         {tab === 'home'     && <HomeScreen     state={state} dispatch={dispatch} goTo={setTab} aiCall={aiCall} name={name} />}
         {tab === 'food'     && <FoodScreen     state={state} dispatch={dispatch} aiCall={aiCall} />}
@@ -1267,7 +1250,6 @@ export default function DashboardPage() {
         {tab === 'workout'  && <WorkoutScreen  state={state} dispatch={dispatch} aiCall={aiCall} />}
         {tab === 'profile'  && <ProfileScreen  profile={profile} saveProfile={saveProfile} />}
       </div>
-
       <div className={styles.bottomNav}>
         {tabs.map(({ id, label, Icon }) => {
           const isActive = tab === id
