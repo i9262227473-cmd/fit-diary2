@@ -683,18 +683,94 @@ const EXERCISE_DB = [
 ]
 const M_COLORS = { Грудь: '#2d5c3d', Ноги: '#1e4a5a', Спина: '#3a3a6e', Плечи: '#5a4a1e', Трицепс: '#5a1e4a', Бицепс: '#5a2e1e', Кор: '#1e5a5a', Кардио: '#5a1e1e' }
 
-// ─── PLAN SCREEN — новый промт по схеме JSON-in / JSON-out ───────────────────
-const PLAN_KEY = 'workout-plan-v2'
+// ─── PLAN SCREEN ─────────────────────────────────────────────────────────────
+const PLAN_KEY = 'workout-plan-v3-ru'
 const LEVEL_RU = { beginner: 'новичок', amateur: 'любитель', advanced: 'продвинутый', professional: 'профессионал' }
 const GOAL_RU  = { weight_loss: 'fat_loss', muscle_gain: 'muscle_gain', maintenance: 'maintenance', endurance: 'maintenance', strength: 'strength', health: 'maintenance' }
-
-// Цвета для мышечных групп в плане
-const MUSCLE_COLORS = {
-  'chest': 'var(--accent)', 'back': 'var(--teal)', 'legs': 'var(--amber)',
-  'shoulders': 'var(--accent)', 'triceps': 'var(--teal)', 'biceps': 'var(--amber)',
-  'core': 'var(--text-muted)', 'cardio': 'var(--text-muted)', 'rest': 'var(--border)',
-}
 const DAY_COLORS = ['var(--accent)', 'var(--teal)', 'var(--amber)', 'var(--accent)', 'var(--teal)', 'var(--text-muted)', 'var(--text-muted)']
+
+// ─── Маппинг EN→RU для принудительного перевода ответа AI ────────────────────
+const EN_TO_RU = {
+  // Дни недели
+  'Monday': 'Понедельник', 'Tuesday': 'Вторник', 'Wednesday': 'Среда',
+  'Thursday': 'Четверг', 'Friday': 'Пятница', 'Saturday': 'Суббота', 'Sunday': 'Воскресенье',
+  'Mon': 'Пн', 'Tue': 'Вт', 'Wed': 'Ср', 'Thu': 'Чт', 'Fri': 'Пт', 'Sat': 'Сб', 'Sun': 'Вс',
+  'Rest': 'Отдых', 'Rest Day': 'День отдыха', 'Recovery': 'Восстановление',
+  // Мышцы
+  'chest': 'Грудь', 'back': 'Спина', 'legs': 'Ноги', 'shoulders': 'Плечи',
+  'triceps': 'Трицепс', 'biceps': 'Бицепс', 'core': 'Кор', 'abs': 'Пресс',
+  'cardio': 'Кардио', 'glutes': 'Ягодицы', 'hamstrings': 'Бицепс бедра',
+  'quadriceps': 'Квадрицепс', 'calves': 'Икры', 'forearms': 'Предплечья',
+  'obliques': 'Косые мышцы', 'traps': 'Трапеция', 'lats': 'Широчайшие',
+  'arms': 'Руки', 'upper body': 'Верх тела', 'lower body': 'Низ тела',
+  'full body': 'Всё тело', 'push': 'Толкающие', 'pull': 'Тянущие',
+  // Упражнения
+  'Bench Press': 'Жим штанги лёжа', 'Incline Bench Press': 'Жим штанги на наклонной',
+  'Dumbbell Bench Press': 'Жим гантелей лёжа', 'Dumbbell Flyes': 'Разводка гантелей лёжа',
+  'Cable Crossover': 'Кроссовер в блоке', 'Push-ups': 'Отжимания от пола',
+  'Dips': 'Отжимания на брусьях', 'Pull-ups': 'Подтягивания', 'Chin-ups': 'Подтягивания обратным хватом',
+  'Lat Pulldown': 'Тяга верхнего блока', 'Cable Row': 'Тяга горизонтального блока',
+  'Barbell Row': 'Тяга штанги в наклоне', 'Dumbbell Row': 'Тяга гантели одной рукой',
+  'T-Bar Row': 'Тяга Т-грифа', 'Hyperextension': 'Гиперэкстензия',
+  'Squat': 'Приседания со штангой', 'Barbell Squat': 'Приседания со штангой',
+  'Leg Press': 'Жим ногами в тренажёре', 'Leg Extension': 'Разгибание ног в тренажёре',
+  'Leg Curl': 'Сгибание ног в тренажёре', 'Hamstring Curl': 'Сгибание ног в тренажёре',
+  'Lunges': 'Выпады с гантелями', 'Romanian Deadlift': 'Румынская тяга',
+  'Calf Raise': 'Подъём на икры стоя', 'Standing Calf Raise': 'Подъём на икры стоя',
+  'Overhead Press': 'Жим штанги сидя', 'Military Press': 'Жим штанги сидя',
+  'Dumbbell Shoulder Press': 'Жим гантелей сидя', 'Lateral Raise': 'Махи гантелями в стороны',
+  'Front Raise': 'Подъём гантелей перед собой', 'Rear Delt Fly': 'Махи в наклоне (задние)',
+  'Upright Row': 'Тяга к подбородку', 'Tricep Pushdown': 'Разгибания на блоке',
+  'Skull Crusher': 'Французский жим лёжа', 'French Press': 'Французский жим лёжа',
+  'Close Grip Bench Press': 'Жим узким хватом', 'Overhead Tricep Extension': 'Разгибания с гантелью',
+  'Barbell Curl': 'Подъём штанги на бицепс', 'Dumbbell Curl': 'Подъём гантелей на бицепс',
+  'Hammer Curl': 'Молотки с гантелями', 'Cable Curl': 'Подъём на бицепс в блоке',
+  'Concentration Curl': 'Концентрированный подъём', 'Plank': 'Планка',
+  'Crunches': 'Скручивания', 'Leg Raise': 'Подъём ног лёжа',
+  'Side Plank': 'Боковая планка', 'Bicycle Crunch': 'Велосипед',
+  'Running': 'Бег', 'Treadmill': 'Бег на дорожке', 'Elliptical': 'Эллипс',
+  'Stationary Bike': 'Велотренажёр', 'Jump Rope': 'Прыжки со скакалкой',
+  'Rowing Machine': 'Гребной тренажёр', 'Deadlift': 'Становая тяга',
+  'Pullover': 'Пуловер с гантелью',
+  // Сплиты
+  'full_body': 'Фулбоди', 'upper_lower': 'Верх/Низ', 'push_pull_legs': 'Жим/Тяга/Ноги',
+  'push/pull/legs': 'Жим/Тяга/Ноги', 'upper/lower': 'Верх/Низ',
+}
+
+function translateStr(str) {
+  if (!str || typeof str !== 'string') return str
+  // Точное совпадение (case-insensitive)
+  const exact = Object.keys(EN_TO_RU).find(k => k.toLowerCase() === str.toLowerCase())
+  if (exact) return EN_TO_RU[exact]
+  // Замена слов внутри строки
+  let result = str
+  Object.entries(EN_TO_RU).forEach(([en, ru]) => {
+    const regex = new RegExp(`\\b${en}\\b`, 'gi')
+    result = result.replace(regex, ru)
+  })
+  return result
+}
+
+function translatePlan(parsed) {
+  if (!parsed?.plan?.days) return parsed
+  return {
+    ...parsed,
+    plan: {
+      ...parsed.plan,
+      split: translateStr(parsed.plan.split),
+      days: parsed.plan.days.map(day => ({
+        ...day,
+        name: translateStr(day.name),
+        muscles: (day.muscles || []).map(translateStr),
+        exercises: (day.exercises || []).map(ex => ({
+          ...ex,
+          name: translateStr(ex.name),
+          muscle: translateStr(ex.muscle),
+        }))
+      }))
+    }
+  }
+}
 
 function PlanScreen({ onBack, aiCall, profile }) {
   const [plan, setPlan] = useState(() => { try { return JSON.parse(localStorage.getItem(PLAN_KEY) || 'null') } catch { return null } })
@@ -710,7 +786,6 @@ function PlanScreen({ onBack, aiCall, profile }) {
   const generatePlan = async () => {
     setLoading(true); setError(null)
     try {
-      // Формируем JSON входных данных по схеме промта
       const userInput = {
         user: {
           level: levelKey === 'professional' ? 'expert' : levelKey,
@@ -722,68 +797,33 @@ function PlanScreen({ onBack, aiCall, profile }) {
           experience_years: levelKey === 'beginner' ? 0 : levelKey === 'amateur' ? 1 : levelKey === 'advanced' ? 3 : 5,
           subjective_load: 'medium',
         },
-        constraints: {
-          injuries: injuries,
-          equipment: 'gym',
-        },
+        constraints: { injuries, equipment: 'gym' },
         schedule: {
           days_per_week: levelKey === 'beginner' ? 3 : levelKey === 'amateur' ? 4 : 5,
           session_duration_min: levelKey === 'beginner' ? 45 : 60,
         }
       }
 
-      const systemPrompt = `Ты — алгоритм генерации персонализированных тренировочных программ.
-Твоя задача — на основе входных данных пользователя сгенерировать тренировочный план И СТРОГО вернуть его в формате JSON.
-ВАЖНО: Не пиши текст, комментарии или объяснения. Не используй markdown. Верни ТОЛЬКО валидный JSON.
+      const prompt = `Ты — алгоритм генерации тренировочных программ. Верни ТОЛЬКО валидный JSON без markdown и комментариев.
+Все текстовые поля (name, muscles, split) — ТОЛЬКО на русском языке.
+Пример: name="Понедельник", muscles=["Грудь","Трицепс"], split="Фулбоди", exercises[].name="Жим штанги лёжа", exercises[].muscle="Грудь"
 
-Формат вывода:
-{
-  "plan": {
-    "split": string,
-    "days": [
-      {
-        "day_index": number,
-        "name": string,
-        "muscles": [string],
-        "exercises": [
-          {
-            "id": string,
-            "name": string,
-            "muscle": string,
-            "type": "compound | isolation",
-            "sets": number,
-            "reps": { "min": number, "max": number },
-            "rest_sec": number
-          }
-        ]
-      }
-    ]
-  },
-  "progression": {
-    "type": "linear",
-    "rules": { "success": "increase_weight", "failure": "reduce_or_repeat" },
-    "increment_percent": { "min": 2.5, "max": 5 },
-    "rpe": { "low": "<7 increase", "optimal": "7-9 keep", "high": ">9 decrease" }
-  },
-  "adaptation": {
-    "too_easy": "increase_volume_or_weight",
-    "too_hard": "reduce_volume_or_weight",
-    "skipping": "reduce_frequency",
-    "pain": "replace_exercise"
-  }
-}`
+Формат:
+{"plan":{"split":"string","days":[{"day_index":0,"name":"string","muscles":["string"],"exercises":[{"id":"string","name":"string","muscle":"string","type":"compound","sets":3,"reps":{"min":8,"max":12},"rest_sec":90}]}]},"progression":{"type":"linear","rules":{"success":"increase_weight","failure":"reduce_or_repeat"},"increment_percent":{"min":2.5,"max":5},"rpe":{"low":"<7 increase","optimal":"7-9 keep","high":">9 decrease"}},"adaptation":{"too_easy":"increase_volume_or_weight","too_hard":"reduce_volume_or_weight","skipping":"reduce_frequency","pain":"replace_exercise"}}
 
-      const reply = await aiCall([
-        { role: 'user', content: `${systemPrompt}\n\nВходные данные:\n${JSON.stringify(userInput, null, 2)}` }
-      ], 2500)
+Входные данные:
+${JSON.stringify(userInput, null, 2)}`
 
+      const reply = await aiCall([{ role: 'user', content: prompt }], 2500)
       const clean = reply.replace(/```json|```/g, '').trim()
       const match = clean.match(/\{[\s\S]*\}/)
       if (match) {
         const parsed = JSON.parse(match[0])
         if (parsed.plan?.days) {
-          setPlan(parsed)
-          localStorage.setItem(PLAN_KEY, JSON.stringify(parsed))
+          // Принудительно переводим всё EN→RU на уровне кода
+          const translated = translatePlan(parsed)
+          setPlan(translated)
+          localStorage.setItem(PLAN_KEY, JSON.stringify(translated))
           setExpandedDay(0)
         } else {
           setError('AI вернул некорректную структуру. Попробуй ещё раз.')
@@ -797,7 +837,6 @@ function PlanScreen({ onBack, aiCall, profile }) {
     setLoading(false)
   }
 
-  // Лейблы для типов
   const typeLabel = t => t === 'compound' ? 'Базовое' : 'Изоляция'
   const typeColor = t => t === 'compound' ? 'var(--accent)' : 'var(--teal)'
 
@@ -807,8 +846,6 @@ function PlanScreen({ onBack, aiCall, profile }) {
         <button onClick={onBack} style={{ padding: '8px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font)' }}>← Назад</button>
         <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>План тренировок</span>
       </div>
-
-      {/* Карточка профиля */}
       <div style={{ background: 'var(--surface)', borderRadius: 16, padding: '12px 16px', display: 'flex', flexWrap: 'wrap', gap: 0 }}>
         {[
           { label: 'Уровень', value: levelLabel, color: 'var(--accent)' },
@@ -826,10 +863,7 @@ function PlanScreen({ onBack, aiCall, profile }) {
         <div style={{ background: 'var(--surface)', borderRadius: 20, padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, textAlign: 'center' }}>
           <span style={{ fontSize: 48 }}>✦</span>
           <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>AI составит план под тебя</div>
-          <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-            Учитывает уровень, цель, сплит, ограничения здоровья и параметры тела.<br />
-            Каждое упражнение — с подходами, повторениями и временем отдыха.
-          </div>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>Учитывает уровень, цель, сплит и ограничения здоровья.<br />Каждое упражнение — с подходами, повторениями и отдыхом.</div>
           {error && <div style={{ fontSize: 13, color: 'var(--red)', background: 'oklch(0.62 0.200 15 / 0.1)', padding: '10px 16px', borderRadius: 10, width: '100%' }}>{error}</div>}
           <button onClick={generatePlan} style={{ padding: '14px 28px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 14, cursor: 'pointer', fontSize: 15, fontWeight: 700, fontFamily: 'var(--font)' }}>Создать план</button>
         </div>
@@ -843,30 +877,24 @@ function PlanScreen({ onBack, aiCall, profile }) {
         </div>
       )}
 
-      {/* Сплит + дни */}
       {plan && (
         <>
-          {/* Заголовок сплита */}
           <div style={{ background: 'var(--surface)', borderRadius: 14, padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Сплит</span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)', textTransform: 'capitalize' }}>{plan.plan.split}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>{plan.plan.split}</span>
           </div>
 
-          {/* Карточки дней */}
           {plan.plan.days.map((day, i) => {
             const isRest = !day.exercises || day.exercises.length === 0
             const isOpen = expandedDay === i
             return (
               <div key={i} style={{ background: 'var(--surface)', borderRadius: 18, overflow: 'hidden' }}>
-                {/* Хедер дня */}
                 <div onClick={() => setExpandedDay(isOpen ? null : i)}
                   style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', cursor: 'pointer', borderBottom: isOpen && !isRest ? '1px solid var(--border)' : 'none' }}>
                   <div style={{ width: 10, height: 10, borderRadius: '50%', background: isRest ? 'var(--border)' : DAY_COLORS[i % 7], flexShrink: 0 }} />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{day.name}</div>
-                    {!isRest && day.muscles?.length > 0 && (
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{day.muscles.join(' + ')}</div>
-                    )}
+                    {!isRest && day.muscles?.length > 0 && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{day.muscles.join(' + ')}</div>}
                     {isRest && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Отдых и восстановление</div>}
                   </div>
                   {!isRest && (
@@ -876,8 +904,6 @@ function PlanScreen({ onBack, aiCall, profile }) {
                     </div>
                   )}
                 </div>
-
-                {/* Упражнения */}
                 {isOpen && !isRest && (
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     {day.exercises.map((ex, j) => (
@@ -901,7 +927,6 @@ function PlanScreen({ onBack, aiCall, profile }) {
             )
           })}
 
-          {/* Прогрессия */}
           {plan.progression && (
             <div style={{ background: 'var(--surface)', borderRadius: 18, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Прогрессия нагрузки</div>
