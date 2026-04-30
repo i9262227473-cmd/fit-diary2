@@ -4,6 +4,7 @@ import { useStore } from '../store'
 import { searchFood } from '../data/foodDatabase'
 import { LogOut, Camera, Bell, ChevronRight, Plus, Check, X, ChevronLeft, Play, Pause, SkipForward, Flame, Droplets, Dumbbell, TrendingUp, Award } from 'lucide-react'
 import styles from './DashboardPage.module.css'
+import { normReps, normalizePlan, clearOldPlans } from './planUtils'
 
 // ─── NAV ICONS ───────────────────────────────────────────────────────────────
 function NavHome({ color, size }) {
@@ -597,27 +598,19 @@ function ProgressScreen({ state }) {
   )
 }
 
-// ─── REST TIMER (FIXED: пустой массив зависимостей — таймер стартует один раз) ────
+// ─── REST TIMER (FIXED: пустой массив зависимостей) ───────────────────────────
 function RestTimer({ duration = 90, onClose, exerciseName, setInfo }) {
   const [remaining, setRemaining] = useState(duration)
   const ref = useRef(null)
-
-  // ИСПРАВЛЕНИЕ: useEffect с [] — интервал создаётся один раз при монтировании
-  // Используем функциональный setState чтобы не зависеть от remaining в deps
   useEffect(() => {
     ref.current = setInterval(() => {
-      setRemaining(r => {
-        if (r <= 1) { clearInterval(ref.current); return 0 }
-        return r - 1
-      })
+      setRemaining(r => { if (r <= 1) { clearInterval(ref.current); return 0 } return r - 1 })
     }, 1000)
     return () => clearInterval(ref.current)
-  }, []) // ← ПУСТОЙ массив: один интервал на всё время жизни компонента
-
+  }, [])
   const pct = remaining / duration
   const r = 80, circ = 2 * Math.PI * r
   const dash = pct * circ
-
   return createPortal(
     <div style={{ position: 'fixed', inset: 0, background: '#0e0e0e', zIndex: 500, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24 }}>
       <div style={{ fontSize: 18, fontWeight: 600, color: '#9ca3af' }}>Таймер отдыха</div>
@@ -647,25 +640,21 @@ function RestTimer({ duration = 90, onClose, exerciseName, setInfo }) {
   )
 }
 
-// ─── WORKOUT COMPLETE (FIXED: конфетти через useMemo — Math.random() вызывается один раз) ───
+// ─── WORKOUT COMPLETE (FIXED: useMemo для конфетти) ───────────────────────────
 function WorkoutComplete({ workout, duration, onSave }) {
   const [feeling, setFeeling] = useState(null)
   const [hadPain, setHadPain] = useState(null)
   const [comment, setComment] = useState('')
   const totalSets = workout.exercises.reduce((a, e) => a + e.sets.length, 0)
-
-  // ИСПРАВЛЕНИЕ: useMemo — позиции конфетти вычисляются ОДИН РАЗ при монтировании
-  // Без этого Math.random() при каждом рендере → новые значения → новый рендер → infinite loop
   const confetti = useMemo(() =>
     Array.from({ length: 20 }).map((_, i) => ({
       left: `${5 + Math.random() * 90}%`,
-      top:  `${Math.random() * 60}px`,
+      top: `${Math.random() * 60}px`,
       color: ['#4ade80','#fbbf24','#38bdf8','#f87171','#a78bfa'][i % 5],
-      dur:   `${(0.8 + Math.random()).toFixed(2)}s`,
+      dur: `${(0.8 + Math.random()).toFixed(2)}s`,
       delay: `${(i * 0.05).toFixed(2)}s`,
     }))
-  , []) // ← пустые deps: только при монтировании
-
+  , [])
   return createPortal(
     <div style={{ position: 'fixed', inset: 0, background: '#0e0e0e', zIndex: 500, overflow: 'auto', padding: '24px 20px 40px' }}>
       <div style={{ textAlign: 'center', padding: '30px 0 20px' }}>
@@ -788,14 +777,10 @@ const EN_TO_RU = {
   'Hamstring Curl':'Сгибание ног','Leg Extension':'Разгибание ног',
   'Dumbbell Row':'Тяга гантели одной рукой','Barbell Row':'Тяга штанги в наклоне',
   'Lat Pulldown':'Тяга верхнего блока','Cable Row':'Тяга горизонтального блока',
-  'Incline Bench Press':'Жим штанги на наклонной',
-  'Dumbbell Flyes':'Разводка гантелей лёжа',
-  'Cable Crossover':'Кроссовер в блоке',
-  'Skull Crusher':'Французский жим лёжа',
-  'Close Grip Bench Press':'Жим узким хватом',
-  'Hammer Curl':'Молотки с гантелями',
-  'Hyperextension':'Гиперэкстензия',
-  'Leg Raise':'Подъём ног лёжа',
+  'Incline Bench Press':'Жим штанги на наклонной','Dumbbell Flyes':'Разводка гантелей лёжа',
+  'Cable Crossover':'Кроссовер в блоке','Skull Crusher':'Французский жим лёжа',
+  'Close Grip Bench Press':'Жим узким хватом','Hammer Curl':'Молотки с гантелями',
+  'Hyperextension':'Гиперэкстензия','Leg Raise':'Подъём ног лёжа',
 }
 function translateStr(str) {
   if (!str || typeof str !== 'string') return str
@@ -820,6 +805,7 @@ function translatePlan(parsed) {
           ...ex,
           name: translateStr(ex.name),
           muscle: translateStr(ex.muscle),
+          reps: normReps(ex.reps), // ← нормализуем при сохранении
         }))
       }))
     }
@@ -1045,7 +1031,20 @@ function WorkoutScreen({ state, dispatch, aiCall }) {
 
 // ─── PLAN SCREEN ─────────────────────────────────────────────────────────────
 function PlanScreen({ onBack, aiCall, profile }) {
-  const [plan, setPlan] = useState(() => { try { return JSON.parse(localStorage.getItem(PLAN_KEY) || 'null') } catch { return null } })
+  // ИСПРАВЛЕНИЕ: нормализуем reps при загрузке из кэша
+  const [plan, setPlan] = useState(() => {
+    try {
+      const raw = localStorage.getItem(PLAN_KEY)
+      if (!raw) return null
+      const p = JSON.parse(raw)
+      if (!p?.plan?.days || !Array.isArray(p.plan.days)) { localStorage.removeItem(PLAN_KEY); return null }
+      // Нормализуем reps для каждого упражнения
+      p.plan.days.forEach(day => {
+        (day.exercises || []).forEach(ex => { ex.reps = normReps(ex.reps) })
+      })
+      return p
+    } catch { localStorage.removeItem(PLAN_KEY); return null }
+  })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [expandedDay, setExpandedDay] = useState(null)
@@ -1188,21 +1187,24 @@ function PlanScreen({ onBack, aiCall, profile }) {
                 </div>
                 {isOpen && !isRest && (
                   <div>
-                    {day.exercises.map((ex, j) => (
-                      <div key={j} style={{ padding:'12px 16px', borderBottom: j<day.exercises.length-1?'1px solid #1e1e1e':'none', display:'flex', gap:12, alignItems:'flex-start' }}>
-                        <div style={{ flex:1 }}>
-                          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
-                            <span style={{ padding:'2px 8px', background:`${typeColor(ex.type)}22`, color:typeColor(ex.type), borderRadius:6, fontSize:10, fontWeight:700 }}>{typeLabel(ex.type)}</span>
-                            <span style={{ fontSize:14, fontWeight:500 }}>{ex.name}</span>
+                    {day.exercises.map((ex, j) => {
+                      const reps = normReps(ex.reps) // ← ИСПРАВЛЕНИЕ: безопасный доступ
+                      return (
+                        <div key={j} style={{ padding:'12px 16px', borderBottom: j<day.exercises.length-1?'1px solid #1e1e1e':'none', display:'flex', gap:12, alignItems:'flex-start' }}>
+                          <div style={{ flex:1 }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+                              <span style={{ padding:'2px 8px', background:`${typeColor(ex.type)}22`, color:typeColor(ex.type), borderRadius:6, fontSize:10, fontWeight:700 }}>{typeLabel(ex.type)}</span>
+                              <span style={{ fontSize:14, fontWeight:500 }}>{ex.name}</span>
+                            </div>
+                            <div style={{ display:'flex', gap:12, fontFamily:'var(--mono)', fontSize:12 }}>
+                              <span style={{ color:'#4ade80' }}>{ex.sets} × {reps.min}–{reps.max}</span>
+                              <span style={{ color:'#6b7280' }}>отдых {ex.rest_sec}с</span>
+                            </div>
                           </div>
-                          <div style={{ display:'flex', gap:12, fontFamily:'var(--mono)', fontSize:12 }}>
-                            <span style={{ color:'#4ade80' }}>{ex.sets} × {ex.reps.min}–{ex.reps.max}</span>
-                            <span style={{ color:'#6b7280' }}>отдых {ex.rest_sec}с</span>
-                          </div>
+                          <span style={{ fontSize:11, padding:'3px 8px', background:'#222', borderRadius:6, color:'#9ca3af', flexShrink:0, marginTop:2 }}>{ex.muscle}</span>
                         </div>
-                        <span style={{ fontSize:11, padding:'3px 8px', background:'#222', borderRadius:6, color:'#9ca3af', flexShrink:0, marginTop:2 }}>{ex.muscle}</span>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>
