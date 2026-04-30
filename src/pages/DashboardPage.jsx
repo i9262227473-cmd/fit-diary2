@@ -5,7 +5,6 @@ import { searchFood } from '../data/foodDatabase'
 import { LogOut, Camera } from 'lucide-react'
 import styles from './DashboardPage.module.css'
 
-// ─── Bottom Nav Icons ────────────────────────────────────────────────────────
 function NavHome({ color, size }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M3 9.5L12 3l9 6.5V21a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" stroke={color} strokeWidth="1.8" fill="none" /><path d="M9 22v-7h6v7" stroke={color} strokeWidth="1.8" strokeLinecap="round" /></svg>
 }
@@ -22,7 +21,6 @@ function NavUser({ color, size }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke={color} strokeWidth="1.8" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke={color} strokeWidth="1.8" strokeLinecap="round" /></svg>
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 function fmtTime(s) {
   const m = Math.floor(s / 60), sec = s % 60
   return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
@@ -50,7 +48,6 @@ function compressImage(file, maxSize = 1024, quality = 0.85) {
   })
 }
 
-// Стаканчик SVG
 function GlassIcon({ filled, size = 30 }) {
   const c = filled ? 'var(--teal)' : 'var(--border)'
   const fill = filled ? 'oklch(0.60 0.15 185 / 0.3)' : 'transparent'
@@ -62,13 +59,11 @@ function GlassIcon({ filled, size = 30 }) {
   )
 }
 
-// ─── Swipeable row для удаления ───────────────────────────────────────────────
 function SwipeRow({ children, onDelete }) {
   const ACTION_W = 76
   const [offset, setOffset] = useState(0)
   const startX = useRef(null)
   const isDragging = useRef(false)
-
   const onTouchStart = e => { startX.current = e.touches[0].clientX; isDragging.current = true }
   const onTouchMove = e => {
     if (!isDragging.current) return
@@ -80,12 +75,10 @@ function SwipeRow({ children, onDelete }) {
     isDragging.current = false
     setOffset(o => Math.abs(o) > ACTION_W / 2 ? -ACTION_W : 0)
   }
-
   return (
     <div style={{ position: 'relative', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: ACTION_W, background: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 0 }}>
-        <button onClick={() => { onDelete(); setOffset(0) }}
-          style={{ width: '100%', height: '100%', background: 'none', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+        <button onClick={() => { onDelete(); setOffset(0) }} style={{ width: '100%', height: '100%', background: 'none', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
           <svg width={18} height={18} viewBox="0 0 24 24" fill="none"><polyline points="3,6 5,6 21,6" stroke="#fff" strokeWidth="2" strokeLinecap="round" /><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" stroke="#fff" strokeWidth="2" strokeLinecap="round" /><path d="M10 11v6M14 11v6" stroke="#fff" strokeWidth="2" strokeLinecap="round" /><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" stroke="#fff" strokeWidth="2" /></svg>
           Удалить
         </button>
@@ -98,27 +91,21 @@ function SwipeRow({ children, onDelete }) {
   )
 }
 
-// ─── Day Analysis Sheet ───────────────────────────────────────────────────────
 function DayAnalysisSheet({ totals, goals, workouts, onClose, aiCall }) {
   const [text, setText] = useState(null)
   const [loading, setLoading] = useState(true)
-
   const run = async () => {
     setLoading(true); setText(null)
     try {
       const foodSummary = `Калории: ${Math.round(totals.calories)} из ${goals.calories}, Белки: ${Math.round(totals.protein)}г, Жиры: ${Math.round(totals.fat)}г, Углеводы: ${Math.round(totals.carbs)}г`
       const workSummary = workouts.length > 0 ? workouts.map(w => `${w.type}: ${w.duration} мин`).join(', ') : 'тренировок нет'
-      const reply = await aiCall([{
-        role: 'user', content: `Дай краткий анализ дня одним абзацем без эмодзи, без маркеров, без звёздочек, без переносов строк. Питание: ${foodSummary}. Тренировки: ${workSummary}. 3-4 предложения.`
-      }], 350)
+      const reply = await aiCall([{ role: 'user', content: `Дай краткий анализ дня одним абзацем без эмодзи, без маркеров, без звёздочек, без переносов строк. Питание: ${foodSummary}. Тренировки: ${workSummary}. 3-4 предложения.` }], 350)
       const clean = reply.replace(/[*#•→✦✓►▸◆●]/g, '').replace(/\n+/g, ' ').replace(/\s{2,}/g, ' ').replace(/[\u{1F000}-\u{1FFFF}]/gu, '').replace(/[\u{2600}-\u{27BF}]/gu, '').trim()
       setText(clean)
     } catch { setText('Не удалось получить анализ. Попробуйте ещё раз.') }
     setLoading(false)
   }
-
   useEffect(() => { run() }, [])
-
   return createPortal(
     <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', background: 'rgba(0,0,0,0.65)' }}>
       <div style={{ background: 'var(--surface)', borderRadius: '24px 24px 0 0', maxHeight: '70%', display: 'flex', flexDirection: 'column', animation: 'slideUp 0.35s ease' }}>
@@ -133,25 +120,14 @@ function DayAnalysisSheet({ totals, goals, workouts, onClose, aiCall }) {
           <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--surface2)', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 20 }}>×</button>
         </div>
         <div style={{ overflowY: 'auto', padding: '20px 20px 36px' }}>
-          {loading && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '36px 0' }}>
-              <div style={{ width: 48, height: 48, borderRadius: '50%', border: '3px solid var(--accent-dim)', borderTop: '3px solid var(--accent)', animation: 'spin 1s linear infinite' }} />
-              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Анализирую день...</div>
-            </div>
-          )}
-          {text && (
-            <>
-              <p style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.7, margin: 0 }}>{text}</p>
-              <button onClick={run} style={{ marginTop: 20, padding: '10px 20px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12, color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font)' }}>↻ Обновить</button>
-            </>
-          )}
+          {loading && <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '36px 0' }}><div style={{ width: 48, height: 48, borderRadius: '50%', border: '3px solid var(--accent-dim)', borderTop: '3px solid var(--accent)', animation: 'spin 1s linear infinite' }} /><div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Анализирую день...</div></div>}
+          {text && <><p style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.7, margin: 0 }}>{text}</p><button onClick={run} style={{ marginTop: 20, padding: '10px 20px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12, color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font)' }}>↻ Обновить</button></>}
         </div>
       </div>
     </div>, document.body
   )
 }
 
-// ─── PROFILE SCREEN ───────────────────────────────────────────────────────────
 const LEVEL_LABELS = { beginner: 'Новичок 🌱', amateur: 'Любитель 💪', advanced: 'Продвинутый 🔥', professional: 'Профессионал 🥇' }
 const ROLE_LABELS  = { athlete: 'Спортсмен 🏋️', trainer: 'Тренер 👨‍🏫', both: 'Тренер и спортсмен 🏆' }
 const GOAL_LABELS  = { weight_loss: 'Похудение ⚖️', muscle_gain: 'Набор массы 💪', maintenance: 'Поддержание 🎯', endurance: 'Выносливость 🏃', strength: 'Сила 🏋️', health: 'Здоровье ❤️' }
@@ -160,25 +136,14 @@ const ACTIVITY_LABELS = { sedentary: 'Сидячий', light: 'Лёгкая', mo
 function ProfileScreen({ profile, saveProfile }) {
   const [section, setSection] = useState('info')
   const [form, setForm] = useState({
-    age: profile?.age || '',
-    weight: profile?.weight || '',
-    height: profile?.height || '',
-    gender: profile?.gender || 'male',
-    activity: profile?.activity || 'moderate',
-    level: profile?.level || 'amateur',
-    role: profile?.role || 'athlete',
-    goals: profile?.goals || [],
-    calorieGoal: profile?.calorieGoal || '',
-    proteinGoal: profile?.proteinGoal || '',
-    fatGoal: profile?.fatGoal || '',
-    carbGoal: profile?.carbGoal || '',
+    age: profile?.age || '', weight: profile?.weight || '', height: profile?.height || '',
+    gender: profile?.gender || 'male', activity: profile?.activity || 'moderate',
+    level: profile?.level || 'amateur', role: profile?.role || 'athlete',
+    goals: profile?.goals || [], calorieGoal: profile?.calorieGoal || '',
+    proteinGoal: profile?.proteinGoal || '', fatGoal: profile?.fatGoal || '', carbGoal: profile?.carbGoal || '',
   })
   const [saved, setSaved] = useState(false)
-
-  const toggleGoal = g => setForm(f => ({
-    ...f, goals: f.goals.includes(g) ? f.goals.filter(x => x !== g) : [...f.goals, g]
-  }))
-
+  const toggleGoal = g => setForm(f => ({ ...f, goals: f.goals.includes(g) ? f.goals.filter(x => x !== g) : [...f.goals, g] }))
   const handleSave = async () => {
     const w = +form.weight, h = +form.height, a = +form.age
     let calorieGoal = +form.calorieGoal
@@ -194,106 +159,60 @@ function ProfileScreen({ profile, saveProfile }) {
     await saveProfile({ ...profile, ...form, calorieGoal, proteinGoal, fatGoal, carbGoal, bmi })
     setSaved(true); setTimeout(() => setSaved(false), 2000)
   }
-
   const inp = { width: '100%', padding: '11px 14px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12, color: 'var(--text)', fontSize: 15, outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font)' }
   const chipActive = { padding: '8px 14px', borderRadius: 10, border: '2px solid var(--accent)', background: 'var(--accent-dim)', color: 'var(--accent)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)' }
   const chip = { padding: '8px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font)' }
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>Мой профиль</div>
       <div style={{ display: 'flex', background: 'var(--surface)', borderRadius: 14, padding: 4, gap: 4 }}>
         {[['info', 'Данные'], ['body', 'Тело'], ['kbju', 'КБЖУ']].map(([k, v]) => (
-          <button key={k} onClick={() => setSection(k)}
-            style={{ flex: 1, padding: '9px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, background: section === k ? 'var(--accent)' : 'transparent', color: section === k ? '#000' : 'var(--text-muted)', fontFamily: 'var(--font)', transition: 'all 0.15s' }}>
-            {v}
-          </button>
+          <button key={k} onClick={() => setSection(k)} style={{ flex: 1, padding: '9px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, background: section === k ? 'var(--accent)' : 'transparent', color: section === k ? '#000' : 'var(--text-muted)', fontFamily: 'var(--font)', transition: 'all 0.15s' }}>{v}</button>
         ))}
       </div>
-
       {section === 'info' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ background: 'var(--surface)', borderRadius: 18, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Роль</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {Object.entries(ROLE_LABELS).map(([k, v]) => (
-                <button key={k} onClick={() => setForm(f => ({ ...f, role: k }))} style={form.role === k ? chipActive : chip}>{v}</button>
-              ))}
-            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{Object.entries(ROLE_LABELS).map(([k, v]) => <button key={k} onClick={() => setForm(f => ({ ...f, role: k }))} style={form.role === k ? chipActive : chip}>{v}</button>)}</div>
           </div>
           <div style={{ background: 'var(--surface)', borderRadius: 18, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Уровень подготовки</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {Object.entries(LEVEL_LABELS).map(([k, v]) => (
-                <button key={k} onClick={() => setForm(f => ({ ...f, level: k }))} style={form.level === k ? chipActive : chip}>{v}</button>
-              ))}
-            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{Object.entries(LEVEL_LABELS).map(([k, v]) => <button key={k} onClick={() => setForm(f => ({ ...f, level: k }))} style={form.level === k ? chipActive : chip}>{v}</button>)}</div>
           </div>
           <div style={{ background: 'var(--surface)', borderRadius: 18, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Цели</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {Object.entries(GOAL_LABELS).map(([k, v]) => (
-                <button key={k} onClick={() => toggleGoal(k)} style={form.goals.includes(k) ? chipActive : chip}>{v}</button>
-              ))}
-            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{Object.entries(GOAL_LABELS).map(([k, v]) => <button key={k} onClick={() => toggleGoal(k)} style={form.goals.includes(k) ? chipActive : chip}>{v}</button>)}</div>
           </div>
         </div>
       )}
-
       {section === 'body' && (
         <div style={{ background: 'var(--surface)', borderRadius: 18, padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {[['Возраст', 'age'], ['Вес (кг)', 'weight'], ['Рост (см)', 'height']].map(([label, key]) => (
-              <div key={key}>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 5 }}>{label}</div>
-                <input style={inp} type="number" value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} />
-              </div>
+              <div key={key}><div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 5 }}>{label}</div><input style={inp} type="number" value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} /></div>
             ))}
-            <div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 5 }}>Пол</div>
-              <select style={inp} value={form.gender} onChange={e => setForm(f => ({ ...f, gender: e.target.value }))}>
-                <option value="male">Мужской</option>
-                <option value="female">Женский</option>
-              </select>
-            </div>
+            <div><div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 5 }}>Пол</div><select style={inp} value={form.gender} onChange={e => setForm(f => ({ ...f, gender: e.target.value }))}><option value="male">Мужской</option><option value="female">Женский</option></select></div>
           </div>
-          <div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 5 }}>Активность</div>
-            <select style={inp} value={form.activity} onChange={e => setForm(f => ({ ...f, activity: e.target.value }))}>
-              {Object.entries(ACTIVITY_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
-          </div>
-          {profile?.bmi && (
-            <div style={{ padding: '10px 14px', background: 'var(--surface2)', borderRadius: 12, display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>ИМТ</span>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 16, fontWeight: 600, color: 'var(--accent)' }}>{profile.bmi}</span>
-            </div>
-          )}
+          <div><div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 5 }}>Активность</div><select style={inp} value={form.activity} onChange={e => setForm(f => ({ ...f, activity: e.target.value }))}>{Object.entries(ACTIVITY_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+          {profile?.bmi && <div style={{ padding: '10px 14px', background: 'var(--surface2)', borderRadius: 12, display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: 13, color: 'var(--text-muted)' }}>ИМТ</span><span style={{ fontFamily: 'var(--mono)', fontSize: 16, fontWeight: 600, color: 'var(--accent)' }}>{profile.bmi}</span></div>}
         </div>
       )}
-
       {section === 'kbju' && (
         <div style={{ background: 'var(--surface)', borderRadius: 18, padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {[['Калории', 'calorieGoal', 'var(--text)'], ['Белки (г)', 'proteinGoal', 'var(--accent)'], ['Жиры (г)', 'fatGoal', 'var(--teal)'], ['Углев. (г)', 'carbGoal', 'var(--amber)']].map(([label, key, color]) => (
-              <div key={key}>
-                <div style={{ fontSize: 11, color, marginBottom: 5 }}>{label}</div>
-                <input style={{ ...inp, borderColor: color !== 'var(--text)' ? color + '44' : 'var(--border)' }} type="number" value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} />
-              </div>
+              <div key={key}><div style={{ fontSize: 11, color, marginBottom: 5 }}>{label}</div><input style={{ ...inp, borderColor: color !== 'var(--text)' ? color + '44' : 'var(--border)' }} type="number" value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} /></div>
             ))}
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>Сохрани параметры тела — КБЖУ пересчитается автоматически</div>
         </div>
       )}
-
-      <button onClick={handleSave} style={{ padding: '14px', background: saved ? 'var(--teal)' : 'var(--accent)', color: '#000', border: 'none', borderRadius: 14, cursor: 'pointer', fontSize: 15, fontWeight: 700, fontFamily: 'var(--font)', transition: 'background 0.3s' }}>
-        {saved ? '✓ Сохранено!' : 'Сохранить'}
-      </button>
+      <button onClick={handleSave} style={{ padding: '14px', background: saved ? 'var(--teal)' : 'var(--accent)', color: '#000', border: 'none', borderRadius: 14, cursor: 'pointer', fontSize: 15, fontWeight: 700, fontFamily: 'var(--font)', transition: 'background 0.3s' }}>{saved ? '✓ Сохранено!' : 'Сохранить'}</button>
     </div>
   )
 }
 
-// ─── HOME SCREEN ──────────────────────────────────────────────────────────────
 function HomeScreen({ state, dispatch, goTo, aiCall, name }) {
   const [showAnalysis, setShowAnalysis] = useState(false)
   const today = new Date().toISOString().split('T')[0]
@@ -305,7 +224,6 @@ function HomeScreen({ state, dispatch, goTo, aiCall, name }) {
   const remain = Math.max(0, goals.calories - totals.calories)
   const water = state.water
   const dayLabel = new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 8 }}>
       {showAnalysis && <DayAnalysisSheet totals={totals} goals={goals} workouts={entry.workouts || []} onClose={() => setShowAnalysis(false)} aiCall={aiCall} />}
@@ -318,9 +236,7 @@ function HomeScreen({ state, dispatch, goTo, aiCall, name }) {
           <defs><radialGradient id="g1" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="var(--accent)" stopOpacity="0.18" /><stop offset="100%" stopColor="transparent" /></radialGradient></defs>
           <circle cx={85} cy={85} r={78} fill="url(#g1)" />
           <circle cx={85} cy={85} r={r} fill="none" stroke="var(--surface2)" strokeWidth={12} />
-          <circle cx={85} cy={85} r={r} fill="none" stroke="var(--accent)" strokeWidth={12}
-            strokeDasharray={`${calPct * circ} ${circ - calPct * circ}`} strokeLinecap="round"
-            style={{ transform: 'rotate(-90deg)', transformOrigin: '85px 85px', transition: 'stroke-dasharray 0.8s ease' }} />
+          <circle cx={85} cy={85} r={r} fill="none" stroke="var(--accent)" strokeWidth={12} strokeDasharray={`${calPct * circ} ${circ - calPct * circ}`} strokeLinecap="round" style={{ transform: 'rotate(-90deg)', transformOrigin: '85px 85px', transition: 'stroke-dasharray 0.8s ease' }} />
           <text x={85} y={78} textAnchor="middle" style={{ fill: 'var(--text)', fontSize: 26, fontWeight: 700, fontFamily: 'var(--mono)' }}>{Math.round(totals.calories)}</text>
           <text x={85} y={96} textAnchor="middle" style={{ fill: 'var(--text-muted)', fontSize: 12, fontFamily: 'var(--font)' }}>ккал</text>
         </svg>
@@ -334,9 +250,7 @@ function HomeScreen({ state, dispatch, goTo, aiCall, name }) {
             {[{ l: 'Б', v: totals.protein, max: goals.protein, c: 'var(--accent)' }, { l: 'Ж', v: totals.fat, max: goals.fat, c: 'var(--teal)' }, { l: 'У', v: totals.carbs, max: goals.carbs, c: 'var(--amber)' }].map(m => (
               <div key={m.l} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 12 }}>{m.l}</span>
-                <div style={{ flex: 1, height: 4, background: 'var(--surface2)', borderRadius: 99, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', background: m.c, borderRadius: 99, width: `${Math.min(m.v / m.max * 100, 100)}%`, transition: 'width 0.6s' }} />
-                </div>
+                <div style={{ flex: 1, height: 4, background: 'var(--surface2)', borderRadius: 99, overflow: 'hidden' }}><div style={{ height: '100%', background: m.c, borderRadius: 99, width: `${Math.min(m.v / m.max * 100, 100)}%`, transition: 'width 0.6s' }} /></div>
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: m.c, minWidth: 32, textAlign: 'right' }}>{m.v.toFixed(0)}г</span>
               </div>
             ))}
@@ -350,22 +264,17 @@ function HomeScreen({ state, dispatch, goTo, aiCall, name }) {
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {Array.from({ length: water.goal }).map((_, i) => (
-            <button key={i} onClick={() => dispatch({ type: 'SET_WATER', val: i < water.consumed ? i : i + 1 })}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, opacity: i < water.consumed ? 1 : 0.35, transition: 'opacity 0.2s, transform 0.1s', transform: i < water.consumed ? 'scale(1.05)' : 'scale(1)' }}>
+            <button key={i} onClick={() => dispatch({ type: 'SET_WATER', val: i < water.consumed ? i : i + 1 })} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, opacity: i < water.consumed ? 1 : 0.35, transition: 'opacity 0.2s, transform 0.1s', transform: i < water.consumed ? 'scale(1.05)' : 'scale(1)' }}>
               <GlassIcon filled={i < water.consumed} />
             </button>
           ))}
         </div>
-        <div style={{ marginTop: 10, height: 4, background: 'var(--surface2)', borderRadius: 99, overflow: 'hidden' }}>
-          <div style={{ height: '100%', background: 'var(--teal)', borderRadius: 99, width: `${water.consumed / water.goal * 100}%`, transition: 'width 0.4s' }} />
-        </div>
+        <div style={{ marginTop: 10, height: 4, background: 'var(--surface2)', borderRadius: 99, overflow: 'hidden' }}><div style={{ height: '100%', background: 'var(--teal)', borderRadius: 99, width: `${water.consumed / water.goal * 100}%`, transition: 'width 0.4s' }} /></div>
         <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>{water.consumed * 250} мл из {water.goal * 250} мл</div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <button onClick={() => goTo('food')} style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 16, padding: '16px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>Питание</button>
-        <button onClick={() => setShowAnalysis(true)} style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 16, padding: '16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <span style={{ color: 'var(--accent)' }}>✦</span> Анализ дня
-        </button>
+        <button onClick={() => setShowAnalysis(true)} style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 16, padding: '16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}><span style={{ color: 'var(--accent)' }}>✦</span> Анализ дня</button>
       </div>
       {entry.foods.length > 0 && (
         <div style={{ background: 'var(--surface)', borderRadius: 22, padding: '16px 18px' }}>
@@ -388,7 +297,6 @@ function HomeScreen({ state, dispatch, goTo, aiCall, name }) {
   )
 }
 
-// ─── FOOD SCREEN ──────────────────────────────────────────────────────────────
 const MEALS_MAP = { breakfast: 'Завтрак', lunch: 'Обед', dinner: 'Ужин', snack: 'Перекус' }
 const MEAL_COLORS = { breakfast: 'var(--amber)', lunch: 'var(--accent)', dinner: 'var(--teal)', snack: 'var(--red)' }
 
@@ -406,75 +314,33 @@ function FoodScreen({ state, dispatch, aiCall }) {
   const [aiLoading, setAiLoading] = useState(false)
   const [scanLoading, setScanLoading] = useState(false)
   const [toast, setToast] = useState(null)
-
   const today = new Date().toISOString().split('T')[0]
   const entry = state.entries.find(e => e.date === today) || { date: today, foods: [], workouts: [] }
   const totals = entry.foods.reduce((a, f) => ({ cal: a.cal + (f.calories || 0), p: a.p + (f.protein || 0), fat: a.fat + (f.fat || 0), c: a.c + (f.carbs || 0) }), { cal: 0, p: 0, fat: 0, c: 0 })
-
   const showToast = msg => { setToast(msg); setTimeout(() => setToast(null), 2200) }
-
-  const handleSearch = q => {
-    setQuery(q); setSelectedFood(null)
-    if (q.length > 1) setResults(searchFood(q).slice(0, 8))
-    else setResults([])
-  }
-
+  const handleSearch = q => { setQuery(q); setSelectedFood(null); if (q.length > 1) setResults(searchFood(q).slice(0, 8)); else setResults([]) }
   const addFoodItem = (food, g, mealKey) => {
     const w = parseFloat(g) || 100
-    dispatch({
-      type: 'SAVE_ENTRY', entry: {
-        ...entry, foods: [...entry.foods, {
-          id: Date.now(), name: food.name, weight: w, meal: mealKey || meal,
-          calories: (food.cal100 || 0) * w / 100,
-          protein:  (food.prot100 || 0) * w / 100,
-          fat:      (food.fat100 || 0) * w / 100,
-          carbs:    (food.carbs100 || 0) * w / 100,
-          time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })
-        }]
-      }
-    })
+    dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, foods: [...entry.foods, { id: Date.now(), name: food.name, weight: w, meal: mealKey || meal, calories: (food.cal100 || 0) * w / 100, protein: (food.prot100 || 0) * w / 100, fat: (food.fat100 || 0) * w / 100, carbs: (food.carbs100 || 0) * w / 100, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' }) }] } })
     showToast(food.name + ' добавлено')
-    setSelectedFood(null); setQuery(''); setResults([]); setGrams('100')
-    setTab('log')
+    setSelectedFood(null); setQuery(''); setResults([]); setGrams('100'); setTab('log')
   }
-
   const addManual = () => {
     if (!manual.name || !manual.cal) return
     const g = parseFloat(manual.grams) || 100
-    dispatch({
-      type: 'SAVE_ENTRY', entry: {
-        ...entry, foods: [...entry.foods, {
-          id: Date.now(), name: manual.name, weight: g, meal,
-          calories: parseFloat(manual.cal) * g / 100,
-          protein:  parseFloat(manual.p  || 0) * g / 100,
-          fat:      parseFloat(manual.f  || 0) * g / 100,
-          carbs:    parseFloat(manual.c  || 0) * g / 100,
-          time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })
-        }]
-      }
-    })
-    showToast(manual.name + ' добавлено')
-    setManual({ name: '', cal: '', p: '', f: '', c: '', grams: '100' })
-    setTab('log')
+    dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, foods: [...entry.foods, { id: Date.now(), name: manual.name, weight: g, meal, calories: parseFloat(manual.cal) * g / 100, protein: parseFloat(manual.p || 0) * g / 100, fat: parseFloat(manual.f || 0) * g / 100, carbs: parseFloat(manual.c || 0) * g / 100, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' }) }] } })
+    showToast(manual.name + ' добавлено'); setManual({ name: '', cal: '', p: '', f: '', c: '', grams: '100' }); setTab('log')
   }
-
   const removeFood = id => dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, foods: entry.foods.filter(f => f.id !== id) } })
-
   const handleScan = async file => {
     setScanLoading(true)
     try {
       const b64 = await compressImage(file)
-      const res = await fetch('https://fit-ai-tracker-production.up.railway.app/ai-vision', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ b64 })
-      })
+      const res = await fetch('https://fit-ai-tracker-production.up.railway.app/ai-vision', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ b64 }) })
       const d = await res.json()
-      if (d.name) {
-        setSelectedFood({ name: d.name, cal100: d.calories || 0, prot100: d.protein || 0, fat100: d.fat || 0, carbs100: d.carbs || 0 })
-        setQuery(d.name)
-      }
+      if (d.name) { setSelectedFood({ name: d.name, cal100: d.calories || 0, prot100: d.protein || 0, fat100: d.fat || 0, carbs100: d.carbs || 0 }); setQuery(d.name) }
     } catch { alert('Не удалось прочитать этикетку') } finally { setScanLoading(false) }
   }
-
   const runAI = async () => {
     if (!aiText.trim()) return
     setAiLoading(true); setAiResults(null)
@@ -489,24 +355,13 @@ function FoodScreen({ state, dispatch, aiCall }) {
       const match = reply.replace(/```json|```/g, '').trim().match(/\[[\s\S]*\]/)
       if (match) {
         const items = JSON.parse(match[0])
-        setAiResults(items.map(item => ({
-          food: {
-            name: item.name,
-            cal100:   parseFloat(item.cal100)   || 0,
-            prot100:  parseFloat(item.prot100)  || 0,
-            fat100:   parseFloat(item.fat100)   || 0,
-            carbs100: parseFloat(item.carbs100) || 0,
-          },
-          grams: parseFloat(item.grams) || 100
-        })))
+        setAiResults(items.map(item => ({ food: { name: item.name, cal100: parseFloat(item.cal100) || 0, prot100: parseFloat(item.prot100) || 0, fat100: parseFloat(item.fat100) || 0, carbs100: parseFloat(item.carbs100) || 0 }, grams: parseFloat(item.grams) || 100 })))
       } else setAiResults([])
     } catch { setAiResults([]) }
     setAiLoading(false)
   }
-
   const inp = { width: '100%', padding: '12px 14px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12, color: 'var(--text)', fontSize: 15, outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font)' }
   const bigBtn = { padding: '14px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 14, cursor: 'pointer', fontSize: 15, fontWeight: 700, width: '100%', fontFamily: 'var(--font)' }
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
       {toast && <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', background: 'var(--accent)', color: '#000', padding: '10px 22px', borderRadius: 50, fontSize: 13, fontWeight: 600, zIndex: 999, whiteSpace: 'nowrap' }}>{toast}</div>}
@@ -523,7 +378,6 @@ function FoodScreen({ state, dispatch, aiCall }) {
           <button key={k} onClick={() => setTab(k)} style={{ flex: 1, padding: '9px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.15s', background: tab === k ? 'var(--accent)' : 'transparent', color: tab === k ? '#000' : 'var(--text-muted)', fontFamily: 'var(--font)' }}>{v}</button>
         ))}
       </div>
-
       {tab === 'log' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {entry.foods.length === 0 && <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 14 }}>Ничего не добавлено.<br />Нажми «Добавить» или «AI».</div>}
@@ -543,9 +397,7 @@ function FoodScreen({ state, dispatch, aiCall }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 14, color: 'var(--text)' }}>{item.name}</div>
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, fontFamily: 'var(--mono)' }}>
-                          {item.weight}г · <span style={{ color: 'var(--accent)' }}>Б{Math.round(item.protein)}</span> <span style={{ color: 'var(--teal)' }}>Ж{Math.round(item.fat)}</span> <span style={{ color: 'var(--amber)' }}>У{Math.round(item.carbs)}</span>
-                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, fontFamily: 'var(--mono)' }}>{item.weight}г · <span style={{ color: 'var(--accent)' }}>Б{Math.round(item.protein)}</span> <span style={{ color: 'var(--teal)' }}>Ж{Math.round(item.fat)}</span> <span style={{ color: 'var(--amber)' }}>У{Math.round(item.carbs)}</span></div>
                       </div>
                       <span style={{ fontFamily: 'var(--mono)', fontSize: 15, fontWeight: 500, color: 'var(--text)' }}>{Math.round(item.calories)}</span>
                     </div>
@@ -556,18 +408,13 @@ function FoodScreen({ state, dispatch, aiCall }) {
           })}
         </div>
       )}
-
       {tab === 'add' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {Object.entries(MEALS_MAP).map(([k, v]) => (
-              <button key={k} onClick={() => setMeal(k)} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, background: meal === k ? MEAL_COLORS[k] : 'var(--surface)', color: meal === k ? '#000' : 'var(--text-muted)', fontFamily: 'var(--font)' }}>{v}</button>
-            ))}
+            {Object.entries(MEALS_MAP).map(([k, v]) => <button key={k} onClick={() => setMeal(k)} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, background: meal === k ? MEAL_COLORS[k] : 'var(--surface)', color: meal === k ? '#000' : 'var(--text-muted)', fontFamily: 'var(--font)' }}>{v}</button>)}
           </div>
           <div style={{ display: 'flex', background: 'var(--surface)', borderRadius: 12, padding: 3, gap: 3 }}>
-            {[['search', 'Поиск'], ['manual', 'Вручную']].map(([k, v]) => (
-              <button key={k} onClick={() => setManualMode(k === 'manual')} style={{ flex: 1, padding: '8px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, background: (k === 'manual' ? manualMode : !manualMode) ? 'var(--surface2)' : 'transparent', color: (k === 'manual' ? manualMode : !manualMode) ? 'var(--text)' : 'var(--text-muted)', fontFamily: 'var(--font)' }}>{v}</button>
-            ))}
+            {[['search', 'Поиск'], ['manual', 'Вручную']].map(([k, v]) => <button key={k} onClick={() => setManualMode(k === 'manual')} style={{ flex: 1, padding: '8px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, background: (k === 'manual' ? manualMode : !manualMode) ? 'var(--surface2)' : 'transparent', color: (k === 'manual' ? manualMode : !manualMode) ? 'var(--text)' : 'var(--text-muted)', fontFamily: 'var(--font)' }}>{v}</button>)}
           </div>
           {!manualMode && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -583,9 +430,7 @@ function FoodScreen({ state, dispatch, aiCall }) {
                   {results.map((food, i) => (
                     <button key={i} onClick={() => { setSelectedFood(food); setResults([]) }} style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: '12px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, cursor: 'pointer', textAlign: 'left' }}>
                       <span style={{ fontSize: 14, color: 'var(--text)' }}>{food.name}</span>
-                      <span style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--mono)' }}>
-                        {food.cal100} ккал · <span style={{ color: 'var(--accent)' }}>Б{food.prot100}</span> <span style={{ color: 'var(--teal)' }}>Ж{food.fat100}</span> <span style={{ color: 'var(--amber)' }}>У{food.carbs100}</span> /100г
-                      </span>
+                      <span style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--mono)' }}>{food.cal100} ккал · <span style={{ color: 'var(--accent)' }}>Б{food.prot100}</span> <span style={{ color: 'var(--teal)' }}>Ж{food.fat100}</span> <span style={{ color: 'var(--amber)' }}>У{food.carbs100}</span> /100г</span>
                     </button>
                   ))}
                 </div>
@@ -593,17 +438,13 @@ function FoodScreen({ state, dispatch, aiCall }) {
               {selectedFood && (
                 <div style={{ background: 'var(--surface)', border: '1px solid var(--accent)', borderRadius: 18, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--accent)' }}>{selectedFood.name}</div>
-                  <div style={{ fontSize: 12, fontFamily: 'var(--mono)', color: 'var(--text-muted)' }}>
-                    <span style={{ color: 'var(--accent)' }}>Б{selectedFood.prot100}</span> <span style={{ color: 'var(--teal)' }}>Ж{selectedFood.fat100}</span> <span style={{ color: 'var(--amber)' }}>У{selectedFood.carbs100}</span> /100г
-                  </div>
+                  <div style={{ fontSize: 12, fontFamily: 'var(--mono)', color: 'var(--text-muted)' }}><span style={{ color: 'var(--accent)' }}>Б{selectedFood.prot100}</span> <span style={{ color: 'var(--teal)' }}>Ж{selectedFood.fat100}</span> <span style={{ color: 'var(--amber)' }}>У{selectedFood.carbs100}</span> /100г</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <label style={{ fontSize: 13, color: 'var(--text-muted)' }}>Порция:</label>
                     <input style={{ ...inp, width: 80, textAlign: 'center', fontFamily: 'var(--mono)', fontSize: 16 }} type="number" value={grams} onChange={e => setGrams(e.target.value)} />
                     <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>г</span>
                   </div>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 13, color: 'var(--text-muted)' }}>
-                    {Math.round((selectedFood.cal100 || 0) * (parseFloat(grams) || 100) / 100)} ккал · Б{Math.round((selectedFood.prot100 || 0) * (parseFloat(grams) || 100) / 100)}г Ж{Math.round((selectedFood.fat100 || 0) * (parseFloat(grams) || 100) / 100)}г У{Math.round((selectedFood.carbs100 || 0) * (parseFloat(grams) || 100) / 100)}г
-                  </div>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 13, color: 'var(--text-muted)' }}>{Math.round((selectedFood.cal100 || 0) * (parseFloat(grams) || 100) / 100)} ккал · Б{Math.round((selectedFood.prot100 || 0) * (parseFloat(grams) || 100) / 100)}г Ж{Math.round((selectedFood.fat100 || 0) * (parseFloat(grams) || 100) / 100)}г У{Math.round((selectedFood.carbs100 || 0) * (parseFloat(grams) || 100) / 100)}г</div>
                   <button style={bigBtn} onClick={() => addFoodItem(selectedFood, grams)}>Готово</button>
                 </div>
               )}
@@ -612,36 +453,23 @@ function FoodScreen({ state, dispatch, aiCall }) {
           {manualMode && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {[['Название', 'name', 'text', 'Борщ домашний'], ['Порция (г)', 'grams', 'number', '100'], ['Ккал / 100г', 'cal', 'number', '200'], ['Белки / 100г', 'p', 'number', '0'], ['Жиры / 100г', 'f', 'number', '0'], ['Углеводы / 100г', 'c', 'number', '0']].map(([label, key, type, ph]) => (
-                <div key={key}>
-                  <label style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 5, display: 'block' }}>{label}</label>
-                  <input style={inp} type={type} placeholder={ph} value={manual[key]} onChange={e => setManual({ ...manual, [key]: e.target.value })} />
-                </div>
+                <div key={key}><label style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 5, display: 'block' }}>{label}</label><input style={inp} type={type} placeholder={ph} value={manual[key]} onChange={e => setManual({ ...manual, [key]: e.target.value })} /></div>
               ))}
               <button style={{ ...bigBtn, opacity: !manual.name || !manual.cal ? 0.5 : 1 }} onClick={addManual} disabled={!manual.name || !manual.cal}>Готово</button>
             </div>
           )}
         </div>
       )}
-
       {tab === 'ai' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ background: 'var(--surface)', borderRadius: 18, padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 20, color: 'var(--accent)' }}>✦</span>
-              <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>AI-распознавание еды</span>
-            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ fontSize: 20, color: 'var(--accent)' }}>✦</span><span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>AI-распознавание еды</span></div>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>Опиши что съел — AI определит КБЖУ автоматически</p>
-            <textarea style={{ ...inp, resize: 'none', minHeight: 80, lineHeight: 1.5 }}
-              placeholder="«съел 200г куриной грудки с гречкой и стакан кефира»"
-              value={aiText} onChange={e => setAiText(e.target.value)} rows={3} />
+            <textarea style={{ ...inp, resize: 'none', minHeight: 80, lineHeight: 1.5 }} placeholder="«съел 200г куриной грудки с гречкой и стакан кефира»" value={aiText} onChange={e => setAiText(e.target.value)} rows={3} />
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {Object.entries(MEALS_MAP).map(([k, v]) => (
-                <button key={k} onClick={() => setMeal(k)} style={{ flex: 1, padding: '8px 4px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 500, background: meal === k ? MEAL_COLORS[k] : 'var(--surface2)', color: meal === k ? '#000' : 'var(--text-muted)', fontFamily: 'var(--font)' }}>{v}</button>
-              ))}
+              {Object.entries(MEALS_MAP).map(([k, v]) => <button key={k} onClick={() => setMeal(k)} style={{ flex: 1, padding: '8px 4px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 500, background: meal === k ? MEAL_COLORS[k] : 'var(--surface2)', color: meal === k ? '#000' : 'var(--text-muted)', fontFamily: 'var(--font)' }}>{v}</button>)}
             </div>
-            <button style={{ ...bigBtn, opacity: !aiText.trim() || aiLoading ? 0.5 : 1 }} onClick={runAI} disabled={!aiText.trim() || aiLoading}>
-              {aiLoading ? '⏳ Анализирую...' : '✦ Распознать'}
-            </button>
+            <button style={{ ...bigBtn, opacity: !aiText.trim() || aiLoading ? 0.5 : 1 }} onClick={runAI} disabled={!aiText.trim() || aiLoading}>{aiLoading ? '⏳ Анализирую...' : '✦ Распознать'}</button>
           </div>
           {aiResults !== null && !aiLoading && (
             <div style={{ background: 'var(--surface)', borderRadius: 18, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -653,9 +481,7 @@ function FoodScreen({ state, dispatch, aiCall }) {
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--surface2)', borderRadius: 14 }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{item.food.name}</div>
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--mono)', marginTop: 2 }}>
-                          {item.grams}г · {Math.round((item.food.cal100 || 0) * item.grams / 100)} ккал · <span style={{ color: 'var(--accent)' }}>Б{Math.round((item.food.prot100 || 0) * item.grams / 100)}г</span> <span style={{ color: 'var(--teal)' }}>Ж{Math.round((item.food.fat100 || 0) * item.grams / 100)}г</span> <span style={{ color: 'var(--amber)' }}>У{Math.round((item.food.carbs100 || 0) * item.grams / 100)}г</span>
-                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--mono)', marginTop: 2 }}>{item.grams}г · {Math.round((item.food.cal100 || 0) * item.grams / 100)} ккал · <span style={{ color: 'var(--accent)' }}>Б{Math.round((item.food.prot100 || 0) * item.grams / 100)}г</span> <span style={{ color: 'var(--teal)' }}>Ж{Math.round((item.food.fat100 || 0) * item.grams / 100)}г</span> <span style={{ color: 'var(--amber)' }}>У{Math.round((item.food.carbs100 || 0) * item.grams / 100)}г</span></div>
                       </div>
                       <button onClick={() => addFoodItem(item.food, item.grams)} style={{ padding: '8px 14px', borderRadius: 10, background: 'var(--accent)', border: 'none', color: '#000', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)' }}>Добавить</button>
                     </div>
@@ -671,16 +497,13 @@ function FoodScreen({ state, dispatch, aiCall }) {
   )
 }
 
-// ─── ANALYSIS SCREEN ──────────────────────────────────────────────────────────
 function AnalysisScreen({ state, aiCall }) {
   const [aiText, setAiText] = useState(null)
   const [aiLoading, setAiLoading] = useState(false)
-
   const today = new Date().toISOString().split('T')[0]
   const todayEntry = state.entries.find(e => e.date === today) || { foods: [] }
   const todayTotals = todayEntry.foods.reduce((a, f) => ({ cal: a.cal + (f.calories || 0), p: a.p + (f.protein || 0), fat: a.fat + (f.fat || 0), c: a.c + (f.carbs || 0) }), { cal: 0, p: 0, fat: 0, c: 0 })
   const goals = { calories: state.profile?.calorieGoal || 2000 }
-
   const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
   const weekData = weekDays.map((day, i) => {
     const d = new Date(); d.setDate(d.getDate() - (6 - i))
@@ -688,7 +511,6 @@ function AnalysisScreen({ state, aiCall }) {
     return { day, cal: e.foods.reduce((a, f) => a + (f.calories || 0), 0), isToday: false }
   })
   weekData.push({ day: 'Сг', cal: todayTotals.cal, isToday: true })
-
   const display = todayTotals
   const calPct = Math.min(display.cal / goals.calories, 1)
   const tm = display.p + display.fat + display.c
@@ -697,7 +519,6 @@ function AnalysisScreen({ state, aiCall }) {
   const cPct = tm > 0 ? 100 - pPct - fPct : 34
   const r = 60, circ = 2 * Math.PI * r
   const maxCal = Math.max(...weekData.map(d => d.cal), goals.calories, 1)
-
   const runAI = async () => {
     setAiLoading(true); setAiText(null)
     try {
@@ -707,7 +528,6 @@ function AnalysisScreen({ state, aiCall }) {
     } catch { setAiText('Не удалось получить анализ.') }
     setAiLoading(false)
   }
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>Анализ питания</div>
@@ -715,9 +535,7 @@ function AnalysisScreen({ state, aiCall }) {
         <div style={{ background: 'var(--surface)', borderRadius: 20, padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
           <svg width={140} height={140} viewBox="0 0 140 140">
             <circle cx={70} cy={70} r={r} fill="none" stroke="var(--surface2)" strokeWidth={10} />
-            <circle cx={70} cy={70} r={r} fill="none" stroke="var(--accent)" strokeWidth={10}
-              strokeDasharray={`${calPct * circ} ${circ * (1 - calPct)}`} strokeLinecap="round"
-              style={{ transform: 'rotate(-90deg)', transformOrigin: '70px 70px', transition: 'stroke-dasharray 0.6s ease' }} />
+            <circle cx={70} cy={70} r={r} fill="none" stroke="var(--accent)" strokeWidth={10} strokeDasharray={`${calPct * circ} ${circ * (1 - calPct)}`} strokeLinecap="round" style={{ transform: 'rotate(-90deg)', transformOrigin: '70px 70px', transition: 'stroke-dasharray 0.6s ease' }} />
             <text x={70} y={64} textAnchor="middle" style={{ fill: 'var(--text)', fontSize: 20, fontWeight: 700, fontFamily: 'var(--mono)' }}>{Math.round(display.cal)}</text>
             <text x={70} y={80} textAnchor="middle" style={{ fill: 'var(--text-muted)', fontSize: 11 }}>ккал</text>
             <text x={70} y={96} textAnchor="middle" style={{ fill: 'var(--accent)', fontSize: 11, fontFamily: 'var(--mono)' }}>{Math.round(calPct * 100)}%</text>
@@ -759,10 +577,7 @@ function AnalysisScreen({ state, aiCall }) {
       </div>
       <div style={{ background: 'var(--surface)', borderRadius: 20, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 18, color: 'var(--accent)' }}>✦</span>
-            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>AI-анализ</span>
-          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 18, color: 'var(--accent)' }}>✦</span><span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>AI-анализ</span></div>
           <button onClick={runAI} disabled={aiLoading} style={{ padding: '8px 16px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)' }}>{aiLoading ? '...' : 'Анализ'}</button>
         </div>
         {!aiText && !aiLoading && <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>Нажми «Анализ» — AI оценит рацион.</p>}
@@ -779,7 +594,6 @@ function AnalysesHistory({ aiCall }) {
   const [analyses, setAnalyses] = useState(() => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch { return [] } })
   const [scanning, setScanning] = useState(false)
   const [expandedId, setExpandedId] = useState(null)
-
   const handlePhoto = async (file) => {
     setScanning(true)
     try {
@@ -789,11 +603,9 @@ function AnalysesHistory({ aiCall }) {
       const analysis = await aiCall([{ role: 'user', content: `Расшифруй лабораторные анализы:\n${visionData.text || 'не удалось извлечь текст'}\n\nДай краткую расшифровку по каждому показателю.` }], 1000)
       const item = { id: Date.now(), date: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }), preview: (visionData.text || '').slice(0, 100), analysis }
       const updated = [item, ...analyses]
-      setAnalyses(updated); localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
-      setExpandedId(item.id)
+      setAnalyses(updated); localStorage.setItem(STORAGE_KEY, JSON.stringify(updated)); setExpandedId(item.id)
     } catch { alert('Ошибка обработки') } finally { setScanning(false) }
   }
-
   return (
     <div style={{ background: 'var(--surface)', borderRadius: 20, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Анализы документов</div>
@@ -805,10 +617,7 @@ function AnalysesHistory({ aiCall }) {
       {analyses.map(a => (
         <div key={a.id} style={{ background: 'var(--surface2)', borderRadius: 14, overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', cursor: 'pointer' }} onClick={() => setExpandedId(expandedId === a.id ? null : a.id)}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{a.date}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{a.preview}</div>
-            </div>
+            <div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{a.date}</div><div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{a.preview}</div></div>
             <span style={{ color: 'var(--text-muted)', fontSize: 16 }}>{expandedId === a.id ? '▲' : '▼'}</span>
             <button onClick={e => { e.stopPropagation(); const u = analyses.filter(x => x.id !== a.id); setAnalyses(u); localStorage.setItem(STORAGE_KEY, JSON.stringify(u)) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', fontSize: 16 }}>×</button>
           </div>
@@ -874,70 +683,111 @@ const EXERCISE_DB = [
 ]
 const M_COLORS = { Грудь: '#2d5c3d', Ноги: '#1e4a5a', Спина: '#3a3a6e', Плечи: '#5a4a1e', Трицепс: '#5a1e4a', Бицепс: '#5a2e1e', Кор: '#1e5a5a', Кардио: '#5a1e1e' }
 
-// ─── PLAN SCREEN ─────────────────────────────────────────────────────────────
-const PLAN_KEY = 'workout-plan-v1'
+// ─── PLAN SCREEN — новый промт по схеме JSON-in / JSON-out ───────────────────
+const PLAN_KEY = 'workout-plan-v2'
 const LEVEL_RU = { beginner: 'новичок', amateur: 'любитель', advanced: 'продвинутый', professional: 'профессионал' }
-const GOAL_RU  = { weight_loss: 'похудение', muscle_gain: 'набор массы', maintenance: 'поддержание', endurance: 'выносливость', strength: 'сила', health: 'здоровье' }
+const GOAL_RU  = { weight_loss: 'fat_loss', muscle_gain: 'muscle_gain', maintenance: 'maintenance', endurance: 'maintenance', strength: 'strength', health: 'maintenance' }
+
+// Цвета для мышечных групп в плане
+const MUSCLE_COLORS = {
+  'chest': 'var(--accent)', 'back': 'var(--teal)', 'legs': 'var(--amber)',
+  'shoulders': 'var(--accent)', 'triceps': 'var(--teal)', 'biceps': 'var(--amber)',
+  'core': 'var(--text-muted)', 'cardio': 'var(--text-muted)', 'rest': 'var(--border)',
+}
+const DAY_COLORS = ['var(--accent)', 'var(--teal)', 'var(--amber)', 'var(--accent)', 'var(--teal)', 'var(--text-muted)', 'var(--text-muted)']
 
 function PlanScreen({ onBack, aiCall, profile }) {
   const [plan, setPlan] = useState(() => { try { return JSON.parse(localStorage.getItem(PLAN_KEY) || 'null') } catch { return null } })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [expandedDay, setExpandedDay] = useState(null)
 
-  const level    = LEVEL_RU[profile?.level] || 'любитель'
-  const goals    = Array.isArray(profile?.goals) && profile.goals.length > 0 ? profile.goals.map(g => GOAL_RU[g] || g).join(', ') : 'поддержание формы'
-  const limitations = profile?.hasLimitations && profile.limitationsText ? profile.limitationsText : 'нет'
-  const weight   = profile?.weight  || 80
-  const age      = profile?.age     || 25
-  const height   = profile?.height  || 175
-  const gender   = profile?.gender === 'female' ? 'женщина' : 'мужчина'
-  const activity = profile?.activity || 'moderate'
-
-  // Параметры по уровню
-  const levelParams = {
-    beginner:     { split: 'full body (всё тело)',         sets: '2-3', reps: '10-15', rest: '60-90 сек',   exPerDay: '4-6'  },
-    amateur:      { split: 'upper/lower (верх/низ)',       sets: '3-4', reps: '8-12',  rest: '60-120 сек',  exPerDay: '5-8'  },
-    advanced:     { split: 'push/pull/legs',               sets: '3-5', reps: '6-12',  rest: '90-180 сек',  exPerDay: '6-10' },
-    professional: { split: 'кастомный сплит по целям',    sets: '4-6', reps: '4-12',  rest: '120-240 сек', exPerDay: '8-12' },
-  }
-  const lp = levelParams[profile?.level] || levelParams.amateur
+  const levelKey = profile?.level || 'amateur'
+  const levelLabel = LEVEL_RU[levelKey] || 'любитель'
+  const goalKey = GOAL_RU[profile?.goals?.[0]] || 'maintenance'
+  const injuries = profile?.hasLimitations && profile.limitationsText ? [profile.limitationsText] : []
 
   const generatePlan = async () => {
     setLoading(true); setError(null)
     try {
-      const prompt = `Ты профессиональный фитнес-тренер. Составь персональный недельный план тренировок.
+      // Формируем JSON входных данных по схеме промта
+      const userInput = {
+        user: {
+          level: levelKey === 'professional' ? 'expert' : levelKey,
+          goal: goalKey,
+          age: profile?.age || 25,
+          gender: profile?.gender || 'male',
+          weight: profile?.weight || 80,
+          height: profile?.height || 175,
+          experience_years: levelKey === 'beginner' ? 0 : levelKey === 'amateur' ? 1 : levelKey === 'advanced' ? 3 : 5,
+          subjective_load: 'medium',
+        },
+        constraints: {
+          injuries: injuries,
+          equipment: 'gym',
+        },
+        schedule: {
+          days_per_week: levelKey === 'beginner' ? 3 : levelKey === 'amateur' ? 4 : 5,
+          session_duration_min: levelKey === 'beginner' ? 45 : 60,
+        }
+      }
 
-ДАННЫЕ ПОЛЬЗОВАТЕЛЯ:
-- Уровень подготовки: ${level}
-- Цели: ${goals}
-- Возраст: ${age} лет, Пол: ${gender}, Вес: ${weight}кг, Рост: ${height}см
-- Активность в жизни: ${activity}
-- Ограничения/травмы: ${limitations}
-- Оборудование: тренажёрный зал (полное оснащение)
+      const systemPrompt = `Ты — алгоритм генерации персонализированных тренировочных программ.
+Твоя задача — на основе входных данных пользователя сгенерировать тренировочный план И СТРОГО вернуть его в формате JSON.
+ВАЖНО: Не пиши текст, комментарии или объяснения. Не используй markdown. Верни ТОЛЬКО валидный JSON.
 
-ПАРАМЕТРЫ ПРОГРАММЫ ДЛЯ УРОВНЯ "${level}":
-- Тип сплита: ${lp.split}
-- Упражнений за тренировку: ${lp.exPerDay}
-- Подходы на упражнение: ${lp.sets}
-- Повторения: ${lp.reps}
-- Отдых между подходами: ${lp.rest}
+Формат вывода:
+{
+  "plan": {
+    "split": string,
+    "days": [
+      {
+        "day_index": number,
+        "name": string,
+        "muscles": [string],
+        "exercises": [
+          {
+            "id": string,
+            "name": string,
+            "muscle": string,
+            "type": "compound | isolation",
+            "sets": number,
+            "reps": { "min": number, "max": number },
+            "rest_sec": number
+          }
+        ]
+      }
+    ]
+  },
+  "progression": {
+    "type": "linear",
+    "rules": { "success": "increase_weight", "failure": "reduce_or_repeat" },
+    "increment_percent": { "min": 2.5, "max": 5 },
+    "rpe": { "low": "<7 increase", "optimal": "7-9 keep", "high": ">9 decrease" }
+  },
+  "adaptation": {
+    "too_easy": "increase_volume_or_weight",
+    "too_hard": "reduce_volume_or_weight",
+    "skipping": "reduce_frequency",
+    "pain": "replace_exercise"
+  }
+}`
 
-ПРАВИЛА СОСТАВЛЕНИЯ:
-1. Строго соблюдай тип сплита для уровня
-2. На каждую мышечную группу: 1-2 базовых (compound) + 1 изолирующее
-3. Не более 10 упражнений за тренировку
-4. Обязательные дни отдыха (минимум 1-2 в неделю)
-5. Учитывай ограничения — исключи опасные движения
-6. Прогрессия: если выполнил все подходы → +2.5-5% к весу на следующей неделе
+      const reply = await aiCall([
+        { role: 'user', content: `${systemPrompt}\n\nВходные данные:\n${JSON.stringify(userInput, null, 2)}` }
+      ], 2500)
 
-Верни ТОЛЬКО JSON без markdown, строго 7 дней:
-[{"day":"Пн","focus":"Грудь + Трицепс","exercises":["Жим штанги лёжа 4x10 (отдых 90с)","Разводка гантелей 3x12 (отдых 60с)","Французский жим 3x12 (отдых 60с)"],"duration":60,"tips":"Акцент на технику в базовых"},{"day":"Вт","focus":"Отдых","exercises":[],"duration":0,"tips":"Лёгкая растяжка или прогулка"}]`
-
-      const reply = await aiCall([{ role: 'user', content: prompt }], 2000)
-      const match = reply.replace(/```json|```/g, '').trim().match(/\[[\s\S]*\]/)
+      const clean = reply.replace(/```json|```/g, '').trim()
+      const match = clean.match(/\{[\s\S]*\}/)
       if (match) {
-        const p = JSON.parse(match[0])
-        setPlan(p); localStorage.setItem(PLAN_KEY, JSON.stringify(p))
+        const parsed = JSON.parse(match[0])
+        if (parsed.plan?.days) {
+          setPlan(parsed)
+          localStorage.setItem(PLAN_KEY, JSON.stringify(parsed))
+          setExpandedDay(0)
+        } else {
+          setError('AI вернул некорректную структуру. Попробуй ещё раз.')
+        }
       } else {
         setError('AI вернул некорректный ответ. Попробуй ещё раз.')
       }
@@ -947,7 +797,9 @@ function PlanScreen({ onBack, aiCall, profile }) {
     setLoading(false)
   }
 
-  const DAY_COLORS = ['var(--accent)', 'var(--teal)', 'var(--amber)', 'var(--accent)', 'var(--teal)', 'var(--text-muted)', 'var(--text-muted)']
+  // Лейблы для типов
+  const typeLabel = t => t === 'compound' ? 'Базовое' : 'Изоляция'
+  const typeColor = t => t === 'compound' ? 'var(--accent)' : 'var(--teal)'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -957,11 +809,11 @@ function PlanScreen({ onBack, aiCall, profile }) {
       </div>
 
       {/* Карточка профиля */}
-      <div style={{ background: 'var(--surface)', borderRadius: 16, padding: '12px 16px', display: 'flex', gap: 0, flexWrap: 'wrap' }}>
+      <div style={{ background: 'var(--surface)', borderRadius: 16, padding: '12px 16px', display: 'flex', flexWrap: 'wrap', gap: 0 }}>
         {[
-          { label: 'Уровень', value: level, color: 'var(--accent)' },
-          { label: 'Сплит', value: lp.split, color: 'var(--text)' },
-          { label: 'Цели', value: goals, color: 'var(--teal)' },
+          { label: 'Уровень', value: levelLabel, color: 'var(--accent)' },
+          { label: 'Цель', value: profile?.goals?.[0] ? GOAL_RU[profile.goals[0]] : 'maintenance', color: 'var(--teal)' },
+          { label: 'Ограничения', value: injuries.length > 0 ? 'Есть' : 'Нет', color: injuries.length > 0 ? 'var(--amber)' : 'var(--text-muted)' },
         ].map((item, i) => (
           <div key={i} style={{ flex: 1, minWidth: 80, padding: '4px 8px', borderRight: i < 2 ? '1px solid var(--border)' : 'none' }}>
             <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.label}</div>
@@ -974,7 +826,10 @@ function PlanScreen({ onBack, aiCall, profile }) {
         <div style={{ background: 'var(--surface)', borderRadius: 20, padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, textAlign: 'center' }}>
           <span style={{ fontSize: 48 }}>✦</span>
           <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>AI составит план под тебя</div>
-          <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>Учитывает уровень, цели, сплит, ограничения здоровья и параметры тела</div>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+            Учитывает уровень, цель, сплит, ограничения здоровья и параметры тела.<br />
+            Каждое упражнение — с подходами, повторениями и временем отдыха.
+          </div>
           {error && <div style={{ fontSize: 13, color: 'var(--red)', background: 'oklch(0.62 0.200 15 / 0.1)', padding: '10px 16px', borderRadius: 10, width: '100%' }}>{error}</div>}
           <button onClick={generatePlan} style={{ padding: '14px 28px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 14, cursor: 'pointer', fontSize: 15, fontWeight: 700, fontFamily: 'var(--font)' }}>Создать план</button>
         </div>
@@ -984,44 +839,93 @@ function PlanScreen({ onBack, aiCall, profile }) {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '48px 0' }}>
           <div style={{ width: 48, height: 48, borderRadius: '50%', border: '3px solid var(--accent-dim)', borderTop: '3px solid var(--accent)', animation: 'spin 1s linear infinite' }} />
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Составляю план...</div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Это может занять 10-15 секунд</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Это может занять 15–20 секунд</div>
         </div>
       )}
 
-      {plan && plan.map((day, i) => (
-        <div key={i} style={{ background: 'var(--surface)', borderRadius: 18, overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderBottom: day.exercises?.length > 0 ? '1px solid var(--border)' : 'none' }}>
-            <div style={{ width: 10, height: 10, borderRadius: '50%', background: DAY_COLORS[i % 7], flexShrink: 0 }} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{day.day}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                {day.focus}{day.duration > 0 ? ` · ${day.duration} мин` : ''}
+      {/* Сплит + дни */}
+      {plan && (
+        <>
+          {/* Заголовок сплита */}
+          <div style={{ background: 'var(--surface)', borderRadius: 14, padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Сплит</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)', textTransform: 'capitalize' }}>{plan.plan.split}</span>
+          </div>
+
+          {/* Карточки дней */}
+          {plan.plan.days.map((day, i) => {
+            const isRest = !day.exercises || day.exercises.length === 0
+            const isOpen = expandedDay === i
+            return (
+              <div key={i} style={{ background: 'var(--surface)', borderRadius: 18, overflow: 'hidden' }}>
+                {/* Хедер дня */}
+                <div onClick={() => setExpandedDay(isOpen ? null : i)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', cursor: 'pointer', borderBottom: isOpen && !isRest ? '1px solid var(--border)' : 'none' }}>
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: isRest ? 'var(--border)' : DAY_COLORS[i % 7], flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{day.name}</div>
+                    {!isRest && day.muscles?.length > 0 && (
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{day.muscles.join(' + ')}</div>
+                    )}
+                    {isRest && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Отдых и восстановление</div>}
+                  </div>
+                  {!isRest && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--mono)' }}>{day.exercises.length} упр.</span>
+                      <span style={{ color: 'var(--text-muted)', fontSize: 14 }}>{isOpen ? '▲' : '▼'}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Упражнения */}
+                {isOpen && !isRest && (
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {day.exercises.map((ex, j) => (
+                      <div key={j} style={{ padding: '12px 16px', borderBottom: j < day.exercises.length - 1 ? '1px solid var(--border)' : 'none', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                            <span style={{ padding: '2px 8px', background: typeColor(ex.type) + '22', color: typeColor(ex.type), borderRadius: 6, fontSize: 10, fontWeight: 600 }}>{typeLabel(ex.type)}</span>
+                            <span style={{ fontSize: 14, color: 'var(--text)', fontWeight: 500 }}>{ex.name}</span>
+                          </div>
+                          <div style={{ display: 'flex', gap: 12, fontFamily: 'var(--mono)', fontSize: 12 }}>
+                            <span style={{ color: 'var(--accent)' }}>{ex.sets} × {ex.reps.min}–{ex.reps.max}</span>
+                            <span style={{ color: 'var(--text-muted)' }}>отдых {ex.rest_sec}с</span>
+                          </div>
+                        </div>
+                        <span style={{ fontSize: 11, padding: '3px 8px', background: 'var(--surface2)', borderRadius: 6, color: 'var(--text-muted)', flexShrink: 0, marginTop: 2 }}>{ex.muscle}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
+          {/* Прогрессия */}
+          {plan.progression && (
+            <div style={{ background: 'var(--surface)', borderRadius: 18, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Прогрессия нагрузки</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {[
+                  { label: 'Выполнил все подходы', value: `+${plan.progression.increment_percent.min}–${plan.progression.increment_percent.max}% к весу`, color: 'var(--teal)' },
+                  { label: 'RPE < 7 (легко)', value: 'Увеличить нагрузку', color: 'var(--accent)' },
+                  { label: 'RPE 7–9 (оптимально)', value: 'Оставить как есть', color: 'var(--amber)' },
+                  { label: 'RPE > 9 (тяжело)', value: 'Снизить нагрузку', color: 'var(--red)' },
+                ].map((row, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'var(--surface2)', borderRadius: 10 }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{row.label}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: row.color, fontFamily: 'var(--mono)' }}>{row.value}</span>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
-          {day.exercises?.length > 0 && (
-            <div style={{ padding: '10px 16px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {day.exercises.map((ex, j) => (
-                <div key={j} style={{ fontSize: 13, color: 'var(--text)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                  <div style={{ width: 4, height: 4, borderRadius: '50%', background: DAY_COLORS[i % 7], flexShrink: 0, marginTop: 6 }} />
-                  <span>{ex}</span>
-                </div>
-              ))}
-              {day.tips && (
-                <div style={{ marginTop: 6, padding: '8px 12px', background: 'var(--accent-dim)', borderRadius: 10, fontSize: 12, color: 'var(--accent)', borderLeft: '2px solid var(--accent)' }}>
-                  💡 {day.tips}
-                </div>
-              )}
-            </div>
           )}
-        </div>
-      ))}
 
-      {plan && (
-        <button onClick={() => { setPlan(null); localStorage.removeItem(PLAN_KEY); setError(null) }}
-          style={{ padding: '12px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 14, color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font)' }}>
-          ↻ Пересоздать план
-        </button>
+          <button onClick={() => { setPlan(null); localStorage.removeItem(PLAN_KEY); setError(null); setExpandedDay(null) }}
+            style={{ padding: '12px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 14, color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font)' }}>
+            ↻ Пересоздать план
+          </button>
+        </>
       )}
     </div>
   )
@@ -1034,43 +938,30 @@ function WorkoutScreen({ state, dispatch, aiCall }) {
   const [timer, setTimer] = useState(0)
   const [running, setRunning] = useState(false)
   const timerRef = useRef(null)
-
   useEffect(() => {
     if (running) timerRef.current = setInterval(() => setTimer(t => t + 1), 1000)
     else clearInterval(timerRef.current)
     return () => clearInterval(timerRef.current)
   }, [running])
-
   const today = new Date().toISOString().split('T')[0]
   const entry = state.entries.find(e => e.date === today) || { date: today, foods: [], workouts: [] }
-
-  const removeWorkout = (wId) => {
-    dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, workouts: (entry.workouts || []).filter(w => w.id !== wId) } })
-  }
-
-  const filteredEx = EXERCISE_DB.filter(e =>
-    e.name.toLowerCase().includes(exSearch.toLowerCase()) ||
-    e.muscle.toLowerCase().includes(exSearch.toLowerCase())
-  )
+  const removeWorkout = (wId) => { dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, workouts: (entry.workouts || []).filter(w => w.id !== wId) } }) }
+  const filteredEx = EXERCISE_DB.filter(e => e.name.toLowerCase().includes(exSearch.toLowerCase()) || e.muscle.toLowerCase().includes(exSearch.toLowerCase()))
   const addEx = ex => setWk(w => ({ ...w, exercises: [...w.exercises, { exerciseId: ex.id, name: ex.name, muscle: ex.muscle, sets: [{ reps: '10', weight: '0', done: false }] }] }))
   const updateSet = (eI, sI, field, val) => setWk(w => { const exs = [...w.exercises]; exs[eI] = { ...exs[eI], sets: exs[eI].sets.map((s, i) => i === sI ? { ...s, [field]: val } : s) }; return { ...w, exercises: exs } })
   const addSet = eI => setWk(w => { const exs = [...w.exercises]; const prev = exs[eI].sets[exs[eI].sets.length - 1]; exs[eI] = { ...exs[eI], sets: [...exs[eI].sets, { ...prev, done: false }] }; return { ...w, exercises: exs } })
   const removeEx = eI => setWk(w => ({ ...w, exercises: w.exercises.filter((_, i) => i !== eI) }))
   const toggleSet = (eI, sI) => setWk(w => { const exs = [...w.exercises]; exs[eI] = { ...exs[eI], sets: exs[eI].sets.map((s, i) => i === sI ? { ...s, done: !s.done } : s) }; return { ...w, exercises: exs } })
-
   const completeWorkout = () => {
     setRunning(false)
     const calBurned = Math.round(timer / 60 * 7.5)
     dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, workouts: [...(entry.workouts || []), { id: Date.now(), name: wk.name || 'Тренировка', type: wk.name || 'Тренировка', exercises: wk.exercises.map(e => e.name), duration: Math.round(timer / 60), caloriesBurned: calBurned, date: new Date().toLocaleDateString('ru', { day: 'numeric', month: 'short' }) }] } })
     setWk({ name: '', exercises: [] }); setTimer(0); setView('list')
   }
-
   const inp = { width: '100%', padding: '12px 14px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12, color: 'var(--text)', fontSize: 15, outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font)' }
   const bigBtn = { padding: '14px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 14, cursor: 'pointer', fontSize: 15, fontWeight: 700, width: '100%', fontFamily: 'var(--font)' }
   const allWorkouts = state.entries.flatMap(e => (e.workouts || []).map(w => ({ ...w, entryDate: e.date }))).sort((a, b) => b.entryDate.localeCompare(a.entryDate))
-
   if (view === 'plan') return <PlanScreen onBack={() => setView('list')} aiCall={aiCall} profile={state.profile} />
-
   if (view === 'list') return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>Тренировки</div>
@@ -1098,19 +989,13 @@ function WorkoutScreen({ state, dispatch, aiCall }) {
                   </div>
                 )}
               </div>
-              {w.caloriesBurned && (
-                <div style={{ textAlign: 'center', minWidth: 56 }}>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--teal)' }}>{w.caloriesBurned}</div>
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>ккал</div>
-                </div>
-              )}
+              {w.caloriesBurned && <div style={{ textAlign: 'center', minWidth: 56 }}><div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--teal)' }}>{w.caloriesBurned}</div><div style={{ fontSize: 10, color: 'var(--text-muted)' }}>ккал</div></div>}
             </div>
           </SwipeRow>
         ))
       }
     </div>
   )
-
   if (view === 'builder') return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1154,24 +1039,17 @@ function WorkoutScreen({ state, dispatch, aiCall }) {
           <button onClick={() => addSet(eI)} style={{ padding: '8px', background: 'transparent', border: '1px dashed var(--border)', borderRadius: 10, color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font)' }}>Добавить подход</button>
         </div>
       ))}
-      {wk.exercises.length > 0 && (
-        <button style={bigBtn} onClick={() => { setTimer(0); setRunning(true); setView('active') }}>Начать тренировку</button>
-      )}
+      {wk.exercises.length > 0 && <button style={bigBtn} onClick={() => { setTimer(0); setRunning(true); setView('active') }}>Начать тренировку</button>}
     </div>
   )
-
   if (view === 'active') return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ background: 'var(--surface)', borderRadius: 22, padding: '20px', display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
         <div style={{ fontFamily: 'var(--mono)', fontSize: 48, fontWeight: 500, color: 'var(--accent)', letterSpacing: '0.02em' }}>{fmtTime(timer)}</div>
         <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{wk.name || 'Тренировка'}</div>
         <div style={{ display: 'flex', gap: 10, width: '100%' }}>
-          <button onClick={() => setRunning(r => !r)} style={{ flex: 1, padding: '12px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 14, color: 'var(--text)', cursor: 'pointer', fontSize: 14, fontWeight: 500, fontFamily: 'var(--font)' }}>
-            {running ? '⏸ Пауза' : '▶ Продолжить'}
-          </button>
-          <button onClick={completeWorkout} style={{ flex: 1, padding: '12px', background: 'var(--accent)', border: 'none', borderRadius: 14, color: '#000', cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)' }}>
-            Завершить ✓
-          </button>
+          <button onClick={() => setRunning(r => !r)} style={{ flex: 1, padding: '12px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 14, color: 'var(--text)', cursor: 'pointer', fontSize: 14, fontWeight: 500, fontFamily: 'var(--font)' }}>{running ? '⏸ Пауза' : '▶ Продолжить'}</button>
+          <button onClick={completeWorkout} style={{ flex: 1, padding: '12px', background: 'var(--accent)', border: 'none', borderRadius: 14, color: '#000', cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)' }}>Завершить ✓</button>
         </div>
       </div>
       {wk.exercises.map((ex, eI) => (
@@ -1192,12 +1070,10 @@ function WorkoutScreen({ state, dispatch, aiCall }) {
   )
 }
 
-// ─── MAIN DASHBOARD ───────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const { user, profile, signOut, aiCall, entries, saveEntry, saveProfile } = useStore()
   const [tab, setTab] = useState('home')
   const name = profile?.name || user?.user_metadata?.name || 'Спортсмен'
-
   const [water, setWater] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('water-state-v2') || '{}')
@@ -1208,9 +1084,7 @@ export default function DashboardPage() {
       return { goal: saved.goal || waterGoal, consumed: saved.date === todayKey ? (saved.consumed || 0) : 0, date: todayKey }
     } catch { return { goal: 8, consumed: 0, date: new Date().toISOString().split('T')[0] } }
   })
-
   useEffect(() => { localStorage.setItem('water-state-v2', JSON.stringify(water)) }, [water])
-
   const state = { entries: entries || [], profile, water }
   const dispatch = (action) => {
     switch (action.type) {
@@ -1218,7 +1092,6 @@ export default function DashboardPage() {
       case 'SET_WATER':  setWater(w => ({ ...w, consumed: action.val })); break
     }
   }
-
   const tabs = [
     { id: 'home',     label: 'Главная', Icon: NavHome },
     { id: 'food',     label: 'Питание', Icon: NavFood },
@@ -1226,7 +1099,6 @@ export default function DashboardPage() {
     { id: 'workout',  label: 'Тренинг', Icon: NavDumbbell },
     { id: 'profile',  label: 'Профиль', Icon: NavUser },
   ]
-
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -1239,9 +1111,7 @@ export default function DashboardPage() {
             <div className={styles.headerName}>{name}</div>
           </div>
         </div>
-        <button className={styles.signOutBtn} onClick={signOut}>
-          <LogOut size={16} color="var(--text-muted)" />
-        </button>
+        <button className={styles.signOutBtn} onClick={signOut}><LogOut size={16} color="var(--text-muted)" /></button>
       </div>
       <div className={styles.content}>
         {tab === 'home'     && <HomeScreen     state={state} dispatch={dispatch} goTo={setTab} aiCall={aiCall} name={name} />}
