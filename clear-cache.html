@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Очистка кэша</title>
+<style>
+body{background:#0e0e0e;color:#f5f5f5;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;}
+.box{background:#1a1a1a;border:1px solid #2e2e2e;border-radius:16px;padding:32px;text-align:center;max-width:400px;}
+button{background:#4ade80;color:#000;border:none;border-radius:12px;padding:14px 28px;font-size:15px;font-weight:700;cursor:pointer;margin-top:16px;}
+.ok{color:#4ade80;font-size:18px;margin-top:12px;}
+</style>
+</head>
+<body>
+<div class="box">
+  <div style="font-size:48px">🗑️</div>
+  <h2>Очистка кэша планов</h2>
+  <p style="color:#6b7280;font-size:14px">Удаляет битый кэш планов тренировок из localStorage и перенаправляет на дашборд</p>
+  <button onclick="clearCache()">Очистить и перейти →</button>
+  <div id="result"></div>
+</div>
+<script>
+function clearCache() {
+  const keys = [
+    'workout-plan-v4-pro','workout-plan-v3-ru',
+    'workout-plan-v4','workout-plan-v3','workout-plan-v2','workout-plan-v1'
+  ]
+  let cleared = 0
+  keys.forEach(k => { 
+    if (localStorage.getItem(k)) { localStorage.removeItem(k); cleared++ } 
+  })
+  document.getElementById('result').innerHTML = 
+    '<div class="ok">✓ Удалено ' + cleared + ' записей. Перенаправление...</div>'
+  setTimeout(() => window.location.href = '/dashboard', 1500)
+}
+// Авто-запуск
+clearCache()
+</script>
+</body>
+</html>

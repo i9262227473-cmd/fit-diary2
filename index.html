@@ -3,9 +3,39 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="theme-color" content="#1a2a4a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#0e0e0e" />
     <title>Фитнес Дневник</title>
+    <script>
+      // Патч: нормализуем кэш планов тренировок ПЕРЕД рендером React
+      // Исправляет TypeError: Cannot read properties of undefined (reading 'min')
+      try {
+        var PLAN_KEYS = ['workout-plan-v4-pro','workout-plan-v3-ru','workout-plan-v4','workout-plan-v3','workout-plan-v2','workout-plan-v1']
+        PLAN_KEYS.forEach(function(key) {
+          try {
+            var raw = localStorage.getItem(key)
+            if (!raw) return
+            var p = JSON.parse(raw)
+            if (!p || !p.plan || !Array.isArray(p.plan.days)) { localStorage.removeItem(key); return }
+            var modified = false
+            p.plan.days.forEach(function(day) {
+              if (!day.exercises) return
+              day.exercises.forEach(function(ex) {
+                if (!ex.reps) {
+                  ex.reps = { min: 8, max: 12 }; modified = true
+                } else if (typeof ex.reps === 'string') {
+                  var parts = ex.reps.split('-')
+                  ex.reps = { min: parseInt(parts[0]) || 8, max: parseInt(parts[1]) || 12 }; modified = true
+                } else if (typeof ex.reps === 'object' && !('min' in ex.reps)) {
+                  ex.reps = { min: 8, max: 12 }; modified = true
+                }
+              })
+            })
+            if (modified) localStorage.setItem(key, JSON.stringify(p))
+          } catch(e) { localStorage.removeItem(key) }
+        })
+      } catch(e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
