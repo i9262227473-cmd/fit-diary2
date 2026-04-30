@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from '../store'
 import { searchFood } from '../data/foodDatabase'
@@ -597,20 +597,27 @@ function ProgressScreen({ state }) {
   )
 }
 
-// ─── REST TIMER ───────────────────────────────────────────────────────────────
+// ─── REST TIMER (FIXED: пустой массив зависимостей — таймер стартует один раз) ────
 function RestTimer({ duration = 90, onClose, exerciseName, setInfo }) {
   const [remaining, setRemaining] = useState(duration)
-  const [running, setRunning] = useState(true)
   const ref = useRef(null)
+
+  // ИСПРАВЛЕНИЕ: useEffect с [] — интервал создаётся один раз при монтировании
+  // Используем функциональный setState чтобы не зависеть от remaining в deps
   useEffect(() => {
-    if (running && remaining > 0) {
-      ref.current = setInterval(() => setRemaining(r => r - 1), 1000)
-    } else { clearInterval(ref.current) }
+    ref.current = setInterval(() => {
+      setRemaining(r => {
+        if (r <= 1) { clearInterval(ref.current); return 0 }
+        return r - 1
+      })
+    }, 1000)
     return () => clearInterval(ref.current)
-  }, [running, remaining])
+  }, []) // ← ПУСТОЙ массив: один интервал на всё время жизни компонента
+
   const pct = remaining / duration
   const r = 80, circ = 2 * Math.PI * r
   const dash = pct * circ
+
   return createPortal(
     <div style={{ position: 'fixed', inset: 0, background: '#0e0e0e', zIndex: 500, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24 }}>
       <div style={{ fontSize: 18, fontWeight: 600, color: '#9ca3af' }}>Таймер отдыха</div>
@@ -640,18 +647,31 @@ function RestTimer({ duration = 90, onClose, exerciseName, setInfo }) {
   )
 }
 
-// ─── WORKOUT COMPLETE ─────────────────────────────────────────────────────────
+// ─── WORKOUT COMPLETE (FIXED: конфетти через useMemo — Math.random() вызывается один раз) ───
 function WorkoutComplete({ workout, duration, onSave }) {
   const [feeling, setFeeling] = useState(null)
   const [hadPain, setHadPain] = useState(null)
   const [comment, setComment] = useState('')
   const totalSets = workout.exercises.reduce((a, e) => a + e.sets.length, 0)
+
+  // ИСПРАВЛЕНИЕ: useMemo — позиции конфетти вычисляются ОДИН РАЗ при монтировании
+  // Без этого Math.random() при каждом рендере → новые значения → новый рендер → infinite loop
+  const confetti = useMemo(() =>
+    Array.from({ length: 20 }).map((_, i) => ({
+      left: `${5 + Math.random() * 90}%`,
+      top:  `${Math.random() * 60}px`,
+      color: ['#4ade80','#fbbf24','#38bdf8','#f87171','#a78bfa'][i % 5],
+      dur:   `${(0.8 + Math.random()).toFixed(2)}s`,
+      delay: `${(i * 0.05).toFixed(2)}s`,
+    }))
+  , []) // ← пустые deps: только при монтировании
+
   return createPortal(
     <div style={{ position: 'fixed', inset: 0, background: '#0e0e0e', zIndex: 500, overflow: 'auto', padding: '24px 20px 40px' }}>
       <div style={{ textAlign: 'center', padding: '30px 0 20px' }}>
         <div style={{ position: 'relative', height: 60, marginBottom: 10 }}>
-          {Array.from({ length: 20 }).map((_, i) => (
-            <div key={i} style={{ position: 'absolute', left: `${5 + Math.random()*90}%`, top: `${Math.random()*60}px`, width: 6, height: 6, borderRadius: '50%', background: ['#4ade80','#fbbf24','#38bdf8','#f87171','#a78bfa'][i%5], animation: `confetti ${0.8 + Math.random()}s ease ${i*0.05}s both` }} />
+          {confetti.map((c, i) => (
+            <div key={i} style={{ position: 'absolute', left: c.left, top: c.top, width: 6, height: 6, borderRadius: '50%', background: c.color, animation: `confetti ${c.dur} ease ${c.delay} both` }} />
           ))}
         </div>
         <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#4ade80', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 0 30px rgba(74,222,128,0.4)' }}>
@@ -849,7 +869,6 @@ function WorkoutScreen({ state, dispatch, aiCall }) {
 
   const M_COLORS = { Грудь:'#22c55e', Спина:'#3b82f6', Ноги:'#f59e0b', Плечи:'#8b5cf6', Трицепс:'#ec4899', Бицепс:'#f97316', Кор:'#06b6d4', Кардио:'#ef4444' }
 
-  // LIST
   if (view === 'list') return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {showRestTimer && <RestTimer duration={restInfo.duration} exerciseName={restInfo.exercise} setInfo={restInfo.setInfo} onClose={() => setShowRestTimer(false)} />}
@@ -903,7 +922,6 @@ function WorkoutScreen({ state, dispatch, aiCall }) {
     </div>
   )
 
-  // BUILDER
   if (view === 'builder') return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {showRestTimer && <RestTimer duration={restInfo.duration} exerciseName={restInfo.exercise} setInfo={restInfo.setInfo} onClose={() => setShowRestTimer(false)} />}
@@ -958,7 +976,6 @@ function WorkoutScreen({ state, dispatch, aiCall }) {
     </div>
   )
 
-  // ACTIVE
   if (view === 'active') return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {showRestTimer && <RestTimer duration={restInfo.duration} exerciseName={restInfo.exercise} setInfo={restInfo.setInfo} onClose={() => setShowRestTimer(false)} />}
@@ -1041,7 +1058,6 @@ function PlanScreen({ onBack, aiCall, profile }) {
   const generatePlan = async () => {
     setLoading(true); setError(null)
     try {
-      // ─── Параметры по уровню ──────────────────────────────────────────────
       const lvlKey = levelKey === 'professional' ? 'expert' : levelKey
       const levelParams = {
         beginner: { split:'full body',      exMax:6,  sets:'2-3', restSec:'60-90',   reps:{ fat_loss:'10-15', muscle_gain:'8-12', strength:'6-10', maintenance:'10-12' } },
@@ -1055,7 +1071,6 @@ function PlanScreen({ onBack, aiCall, profile }) {
       const duration = lvlKey === 'beginner' ? 45 : 60
       const expYears = lvlKey === 'beginner' ? 0 : lvlKey === 'amateur' ? 1 : lvlKey === 'advanced' ? 3 : 5
 
-      // ─── Промт профессионального тренера ──────────────────────────────────
       const prompt = `Ты — профессиональный фитнес-тренер и алгоритм генерации персональных тренировочных программ.
 НЕ используй шаблонные программы. Всегда генерируй план через правила и параметры.
 
@@ -1100,18 +1115,10 @@ function PlanScreen({ onBack, aiCall, profile }) {
         const parsed = JSON.parse(match[0])
         if (parsed.plan?.days) {
           const translated = translatePlan(parsed)
-          setPlan(translated)
-          localStorage.setItem(PLAN_KEY, JSON.stringify(translated))
-          setExpandedDay(0)
-        } else {
-          setError('AI вернул некорректную структуру. Попробуй ещё раз.')
-        }
-      } else {
-        setError('AI вернул некорректный ответ. Попробуй ещё раз.')
-      }
-    } catch (e) {
-      setError('Ошибка соединения. Проверь интернет и попробуй снова.')
-    }
+          setPlan(translated); localStorage.setItem(PLAN_KEY, JSON.stringify(translated)); setExpandedDay(0)
+        } else setError('AI вернул некорректную структуру. Попробуй ещё раз.')
+      } else setError('AI вернул некорректный ответ. Попробуй ещё раз.')
+    } catch { setError('Ошибка соединения. Попробуй снова.') }
     setLoading(false)
   }
 
@@ -1127,7 +1134,7 @@ function PlanScreen({ onBack, aiCall, profile }) {
         <span style={{ fontSize: 18, fontWeight: 700 }}>AI-план тренировок</span>
       </div>
 
-      <div style={{ background: '#1a1a1a', borderRadius: 14, padding: '12px 16px', display: 'flex', gap: 0, border: '1px solid #2e2e2e' }}>
+      <div style={{ background: '#1a1a1a', borderRadius: 14, padding: '12px 16px', display: 'flex', border: '1px solid #2e2e2e' }}>
         {[{ label:'Уровень', value:levelLabel, c:'#4ade80' }, { label:'Цель', value:goalKey, c:'#38bdf8' }, { label:'Ограничения', value:injuries.length>0?'Есть':'Нет', c:injuries.length>0?'#fbbf24':'#6b7280' }].map((item, i) => (
           <div key={i} style={{ flex: 1, padding:'4px 8px', borderRight: i<2?'1px solid #2e2e2e':'none' }}>
             <div style={{ fontSize: 10, color:'#6b7280', marginBottom:3, textTransform:'uppercase', letterSpacing:'0.05em' }}>{item.label}</div>
@@ -1140,7 +1147,7 @@ function PlanScreen({ onBack, aiCall, profile }) {
         <div style={{ background:'#1a1a1a', borderRadius:20, padding:28, display:'flex', flexDirection:'column', alignItems:'center', gap:16, textAlign:'center', border:'1px solid #2e2e2e' }}>
           <div style={{ fontSize:48 }}>✦</div>
           <div style={{ fontSize:16, fontWeight:700 }}>AI составит план под тебя</div>
-          <div style={{ fontSize:13, color:'#6b7280', lineHeight:1.6 }}>Профессиональный тренер анализирует уровень, цель, сплит и ограничения — и строит персональную программу</div>
+          <div style={{ fontSize:13, color:'#6b7280', lineHeight:1.6 }}>Профессиональный тренер анализирует уровень, цель, сплит и ограничения</div>
           {error && <div style={{ fontSize:13, color:'#f87171', background:'rgba(248,113,113,0.1)', padding:'10px 16px', borderRadius:10, width:'100%' }}>{error}</div>}
           <button onClick={generatePlan} style={{ background:'#4ade80', color:'#000', border:'none', borderRadius:14, padding:'14px 28px', fontSize:15, fontWeight:700, cursor:'pointer', textTransform:'uppercase', letterSpacing:0.5 }}>Создать план</button>
         </div>
@@ -1160,7 +1167,6 @@ function PlanScreen({ onBack, aiCall, profile }) {
             <span style={{ fontSize:13, color:'#6b7280' }}>Сплит</span>
             <span style={{ fontSize:13, fontWeight:700, color:'#4ade80' }}>{plan.plan.split}</span>
           </div>
-
           {plan.plan.days.map((day, i) => {
             const isRest = !day.exercises || day.exercises.length === 0
             const isOpen = expandedDay === i
@@ -1202,7 +1208,6 @@ function PlanScreen({ onBack, aiCall, profile }) {
               </div>
             )
           })}
-
           {plan.progression && (
             <div style={{ background:'#1a1a1a', borderRadius:18, padding:16, border:'1px solid #2e2e2e' }}>
               <div style={{ fontSize:13, fontWeight:700, marginBottom:12 }}>Прогрессия нагрузки</div>
@@ -1214,7 +1219,6 @@ function PlanScreen({ onBack, aiCall, profile }) {
               ))}
             </div>
           )}
-
           <button onClick={() => { setPlan(null); localStorage.removeItem(PLAN_KEY); setError(null); setExpandedDay(null) }}
             style={{ padding:'12px', background:'transparent', border:'1px solid #2e2e2e', borderRadius:14, color:'#6b7280', cursor:'pointer', fontSize:13 }}>
             ↻ Пересоздать план
@@ -1266,13 +1270,11 @@ function ProfileScreen({ profile, saveProfile, signOut }) {
           <LogOut size={16} color="#9ca3af" />
         </button>
       </div>
-
       <div style={{ display:'flex', background:'#1a1a1a', borderRadius:12, padding:4, gap:4, border:'1px solid #2e2e2e' }}>
         {[['plan','Мой план'],['profile','Профиль'],['settings','Настройки']].map(([k,v]) => (
           <button key={k} onClick={() => setSection(k)} style={{ flex:1, padding:'9px', borderRadius:9, border:'none', cursor:'pointer', fontSize:13, fontWeight:500, background:section===k?'#4ade80':'transparent', color:section===k?'#000':'#6b7280', transition:'all 0.15s' }}>{v}</button>
         ))}
       </div>
-
       {section === 'plan' && (
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
           <div style={{ background:'#1a1a1a', borderRadius:16, padding:20, border:'1px solid #2e2e2e' }}>
@@ -1313,7 +1315,6 @@ function ProfileScreen({ profile, saveProfile, signOut }) {
           </div>
         </div>
       )}
-
       {section === 'profile' && (
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
           {[['Имя','name','text','Алексей'],['Рост (см)','height','number','180'],['Вес (кг)','weight','number','90'],['Возраст','age','number','28']].map(([label,key,type,ph]) => (
@@ -1343,7 +1344,6 @@ function ProfileScreen({ profile, saveProfile, signOut }) {
           )}
         </div>
       )}
-
       {section === 'settings' && (
         <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
           <div style={{ background:'#1a1a1a', borderRadius:16, padding:16, border:'1px solid #2e2e2e' }}>
@@ -1368,7 +1368,6 @@ function ProfileScreen({ profile, saveProfile, signOut }) {
           ))}
         </div>
       )}
-
       <button onClick={handleSave} style={{ background: saved ? '#22c55e' : '#4ade80', color:'#000', border:'none', borderRadius:14, padding:'15px', fontSize:15, fontWeight:700, cursor:'pointer', textTransform:'uppercase', letterSpacing:0.5, transition:'background 0.3s' }}>
         {saved ? '✓ Сохранено!' : 'Сохранить'}
       </button>
@@ -1420,7 +1419,6 @@ export default function DashboardPage() {
         {tab === 'workout'  && <WorkoutScreen  state={state} dispatch={dispatch} aiCall={aiCall} />}
         {tab === 'profile'  && <ProfileScreen  profile={profile} saveProfile={saveProfile} signOut={signOut} />}
       </div>
-
       <div style={{ display:'flex', borderTop:'1px solid #1e1e1e', background:'#111', paddingBottom:'env(safe-area-inset-bottom, 0px)', flexShrink:0 }}>
         {tabs.map(({ id, label, Icon }) => {
           const isActive = tab === id
