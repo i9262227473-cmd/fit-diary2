@@ -2,69 +2,15 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
+  background: #0e0e0e;
   overflow: hidden;
 }
 
-/* ── Header ── */
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 44px 20px 10px;
-  flex-shrink: 0;
-}
-
-.headerLeft { display: flex; align-items: center; gap: 12px; }
-
-.avatar {
-  width: 42px; height: 42px; border-radius: 14px;
-  background: var(--accent-dim);
-  color: var(--accent);
-  font-size: 16px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-
-.headerGreet { font-size: 11px; color: var(--text-muted); font-weight: 500; margin-bottom: 1px; }
-.headerName  { font-size: 17px; font-weight: 700; color: var(--text); }
-
-.signOutBtn {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px; width: 36px; height: 36px;
-  display: flex; align-items: center; justify-content: center; cursor: pointer;
-}
-
-/* ── Content ── */
 .content {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 8px 16px 16px;
+  padding: 52px 16px 16px;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-}
-
-/* ── Bottom Navigation ── */
-.bottomNav {
-  display: flex;
-  border-top: 1px solid var(--border);
-  background: var(--surface);
-  padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
-  flex-shrink: 0;
-}
-
-.navBtn {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; gap: 2px; padding: 8px 8px 6px;
-  background: transparent; border: none; cursor: pointer;
-  position: relative;
-}
-
-.navDot {
-  position: absolute; bottom: 4px;
-  width: 4px; height: 4px;
-  background: var(--accent); border-radius: 50%;
-  box-shadow: 0 0 6px var(--accent);
 }
