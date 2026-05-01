@@ -80,7 +80,6 @@ function EditFoodModal({ food, onSave, onClose }) {
   const [weight, setWeight] = useState(String(food.weight || 100))
   const [meal, setMeal] = useState(food.meal || 'breakfast')
 
-  // Считаем БЖУ за 100г из текущих значений
   const w = food.weight || 100
   const cal100 = w ? (food.calories||0) * 100 / w : 0
   const prot100 = w ? (food.protein||0) * 100 / w : 0
@@ -749,6 +748,23 @@ function translatePlan(parsed) {
   }
 }
 
+// Валидация — проверяем что AI вернул нормальный план (не 1 упражнение в день)
+function validatePlanQuality(plan, minExercisesPerDay) {
+  if (!plan?.plan?.days || !Array.isArray(plan.plan.days)) {
+    return { ok: false, reason: 'Структура повреждена' }
+  }
+  const trainingDays = plan.plan.days.filter(d => d.exercises && d.exercises.length > 0)
+  if (trainingDays.length === 0) {
+    return { ok: false, reason: 'Нет тренировочных дней' }
+  }
+  for (const day of trainingDays) {
+    if (day.exercises.length < minExercisesPerDay) {
+      return { ok: false, reason: `В дне "${day.name}" только ${day.exercises.length} упражнений (нужно от ${minExercisesPerDay})` }
+    }
+  }
+  return { ok: true }
+}
+
 // ─── WORKOUT SCREEN ───────────────────────────────────────────────────────────
 function WorkoutScreen({ state, dispatch, aiCall }) {
   const [view, setView] = useState('list')
@@ -939,7 +955,6 @@ function WorkoutScreen({ state, dispatch, aiCall }) {
     return <PlanScreen onBack={() => setView('list')} aiCall={aiCall} profile={state.profile} />
   }
 
-  // Fallback: возвращаемся к списку при неизвестном view
   return (
     <div style={{ padding: 20, textAlign: 'center' }}>
       <button onClick={() => setView('list')} style={{ background: '#4ade80', color: '#000', border: 'none', borderRadius: 12, padding: '12px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
@@ -962,6 +977,7 @@ function PlanScreen({ onBack, aiCall, profile }) {
     } catch { localStorage.removeItem(PLAN_KEY); return null }
   })
   const [loading, setLoading] = useState(false)
+  const [loadingMsg, setLoadingMsg] = useState('Составляю план...')
   const [error, setError] = useState(null)
   const [expandedDay, setExpandedDay] = useState(null)
 
@@ -970,61 +986,121 @@ function PlanScreen({ onBack, aiCall, profile }) {
   const goalKey = GOAL_RU[profile?.goals?.[0]] || 'maintenance'
   const injuries = profile?.hasLimitations && profile.limitationsText ? [profile.limitationsText] : []
 
-  const generatePlan = async () => {
-    setLoading(true); setError(null)
+  // Один запрос к AI с длинным промтом и валидацией
+  const requestPlan = async (lvlKey, goalKey, p, repsRange, daysPerWeek, duration, expYears) => {
+    const TIMEOUT_MS = 60000
 
-    // Timeout 35 секунд — если AI не ответил, показываем ошибку
+    const prompt = `Ты — профессиональный фитнес-тренер с 10-летним опытом. Составь персональный недельный план тренировок строго по правилам.
+
+ВХОДНЫЕ ДАННЫЕ ПОЛЬЗОВАТЕЛЯ:
+- Уровень подготовки: ${lvlKey} (опыт ${expYears} лет)
+- Цель: ${goalKey}
+- Возраст: ${profile?.age || 25}
+- Пол: ${profile?.gender || 'male'}
+- Вес: ${profile?.weight || 80} кг
+- Рост: ${profile?.height || 175} см
+- Ограничения/травмы: ${injuries.length > 0 ? injuries.join(', ') : 'нет'}
+- Доступ к оборудованию: тренажёрный зал
+- Частота тренировок: ${daysPerWeek} в неделю
+- Длительность тренировки: ${duration} минут
+
+ПАРАМЕТРЫ ПО УРОВНЮ (строго соблюдай):
+- Тип сплита: ${p.split}
+- Упражнений за тренировку: МИНИМУМ ${p.exMin}, максимум ${p.exMax}
+- Подходов на упражнение: ${p.sets}
+- Повторений (под цель ${goalKey}): ${repsRange}
+- Отдых между подходами: ${p.restSec} сек
+
+ОБЯЗАТЕЛЬНЫЕ ПРАВИЛА (нарушение = брак):
+1. В КАЖДОМ тренировочном дне МИНИМУМ ${p.exMin} упражнений. ЭТО КРИТИЧНО. Один-два упражнения = неприемлемо.
+2. НЕ БОЛЕЕ 20 подходов на одну мышечную группу за неделю.
+3. На каждую целевую мышечную группу дня: 1-2 базовых (compound) + 1-2 изолирующих (isolation).
+4. Логика сплита:
+   - full body: каждая тренировка прорабатывает несколько групп (грудь+спина+ноги или верх+низ)
+   - upper/lower: чередовать ВЕРХ (грудь+спина+плечи+руки) и НИЗ (ноги+ягодицы+кор)
+   - push/pull/legs: жим (грудь+плечи+трицепс) → тяга (спина+бицепс) → ноги
+5. Между тренировочными днями вставлять дни отдыха (exercises: []).
+6. Если есть травмы — исключить упражнения нагружающие травмированную область.
+7. ВСЕ названия — на русском (Понедельник..Воскресенье; Грудь, Спина, Ноги, Плечи, Трицепс, Бицепс, Кор, Кардио).
+8. Названия упражнений — реальные русские: "Жим штанги лёжа", "Приседания со штангой", "Тяга верхнего блока", "Махи гантелями в стороны" и т.д.
+
+СТРУКТУРА УПРАЖНЕНИЯ В ДНЕ:
+- Базовые (compound) идут ПЕРВЫМИ в дне, затем изолирующие
+- На большие группы (грудь, спина, ноги): 4-5 упражнений на тренировке
+- На малые (бицепс, трицепс, плечи отдельно): 2-3 упражнения
+
+ПРИМЕРЫ ПРАВИЛЬНОЙ ТРЕНИРОВКИ (для уровня ${lvlKey}):
+- Грудь+Трицепс: Жим штанги лёжа, Жим гантелей на наклонной, Разводка гантелей, Жим узким хватом, Разгибания на блоке
+- Спина+Бицепс: Тяга штанги в наклоне, Тяга верхнего блока, Тяга гантели одной рукой, Подъём штанги на бицепс, Молотки с гантелями
+- Ноги: Приседания со штангой, Жим ногами, Румынская тяга, Разгибание ног, Сгибание ног, Подъём на икры
+
+ВЕРНИ ТОЛЬКО валидный JSON без markdown:
+{"plan":{"split":"Фулбоди","days":[{"day_index":0,"name":"Понедельник","muscles":["Грудь","Трицепс"],"exercises":[{"name":"Жим штанги лёжа","muscle":"Грудь","type":"compound","sets":3,"reps":{"min":8,"max":12},"rest_sec":90},{"name":"Жим гантелей на наклонной","muscle":"Грудь","type":"compound","sets":3,"reps":{"min":10,"max":12},"rest_sec":90},{"name":"Разводка гантелей лёжа","muscle":"Грудь","type":"isolation","sets":3,"reps":{"min":12,"max":15},"rest_sec":60},{"name":"Жим узким хватом","muscle":"Трицепс","type":"compound","sets":3,"reps":{"min":8,"max":12},"rest_sec":90},{"name":"Разгибания на блоке","muscle":"Трицепс","type":"isolation","sets":3,"reps":{"min":12,"max":15},"rest_sec":60}]},{"day_index":1,"name":"Вторник","muscles":[],"exercises":[]}]},"progression":{"type":"linear","increment_percent":{"min":2.5,"max":5},"rules":{"success":"increase_weight","failure":"reduce_or_repeat"}}}
+
+НАПОМИНАНИЕ: каждый тренировочный день — МИНИМУМ ${p.exMin} упражнений. План с 1-2 упражнениями в день БУДЕТ ОТВЕРГНУТ.`
+
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('TIMEOUT')), 35000)
+      setTimeout(() => reject(new Error('TIMEOUT')), TIMEOUT_MS)
     )
+
+    const reply = await Promise.race([
+      aiCall([{ role: 'user', content: prompt }], 3500),
+      timeoutPromise
+    ])
+
+    const clean = reply.replace(/```json|```/g, '').trim()
+    const match = clean.match(/\{[\s\S]*\}/)
+    if (!match) throw new Error('NO_JSON')
+
+    let parsed
+    try { parsed = JSON.parse(match[0]) }
+    catch (e) { throw new Error('BAD_JSON') }
+
+    if (!parsed.plan?.days || !Array.isArray(parsed.plan.days)) {
+      throw new Error('BAD_STRUCTURE')
+    }
+
+    return parsed
+  }
+
+  const generatePlan = async () => {
+    setLoading(true); setError(null); setLoadingMsg('Составляю план...')
 
     try {
       const lvlKey = levelKey === 'professional' ? 'expert' : levelKey
       const levelParams = {
-        beginner: { split:'full body',      exMax:6,  sets:'2-3', restSec:'60-90',   reps:{ fat_loss:'10-15', muscle_gain:'8-12', strength:'6-10', maintenance:'10-12' } },
-        amateur:  { split:'upper/lower',    exMax:8,  sets:'3-4', restSec:'60-120',  reps:{ fat_loss:'10-15', muscle_gain:'6-12', strength:'4-8',  maintenance:'8-12'  } },
-        advanced: { split:'push/pull/legs', exMax:10, sets:'3-5', restSec:'90-180',  reps:{ fat_loss:'10-15', muscle_gain:'6-12', strength:'4-6',  maintenance:'8-12'  } },
-        expert:   { split:'кастомный',      exMax:12, sets:'4-6', restSec:'120-240', reps:{ fat_loss:'10-15', muscle_gain:'6-12', strength:'3-6',  maintenance:'8-12'  } },
+        beginner: { split:'full body',      exMin:4, exMax:6,  sets:'2-3', restSec:'60-90',   reps:{ fat_loss:'10-15', muscle_gain:'8-12', strength:'6-10', maintenance:'10-12' } },
+        amateur:  { split:'upper/lower',    exMin:5, exMax:8,  sets:'3-4', restSec:'60-120',  reps:{ fat_loss:'10-15', muscle_gain:'6-12', strength:'4-8',  maintenance:'8-12'  } },
+        advanced: { split:'push/pull/legs', exMin:6, exMax:10, sets:'3-5', restSec:'90-180',  reps:{ fat_loss:'10-15', muscle_gain:'6-12', strength:'4-6',  maintenance:'8-12'  } },
+        expert:   { split:'кастомный',      exMin:7, exMax:12, sets:'4-6', restSec:'120-240', reps:{ fat_loss:'10-15', muscle_gain:'6-12', strength:'3-6',  maintenance:'8-12'  } },
       }
       const p = levelParams[lvlKey] || levelParams.amateur
       const repsRange = p.reps[goalKey] || '8-12'
       const daysPerWeek = lvlKey === 'beginner' ? 3 : lvlKey === 'amateur' ? 4 : 5
       const duration = lvlKey === 'beginner' ? 45 : 60
+      const expYears = lvlKey === 'beginner' ? 0 : lvlKey === 'amateur' ? 1 : lvlKey === 'advanced' ? 3 : 5
 
-      // СОКРАЩЁННЫЙ промт — экономим токены
-      const prompt = `Ты профессиональный фитнес-тренер. Составь персональный план тренировок.
+      let parsed = null
+      let lastReason = null
 
-Пользователь: уровень ${lvlKey}, цель ${goalKey}, ${profile?.age || 25} лет, ${profile?.gender || 'male'}, ${profile?.weight || 80}кг, ${profile?.height || 175}см. Ограничения: ${injuries.length > 0 ? injuries.join(', ') : 'нет'}.
+      // До 2 попыток — если AI возвращает мусор, пробуем ещё раз
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        if (attempt === 2) setLoadingMsg('План получился слабым, переделываю...')
 
-Параметры: сплит ${p.split}, ${daysPerWeek} раз/нед, ${duration} мин. На тренировку: до ${p.exMax} упражнений, ${p.sets} подходов, ${repsRange} повторов, отдых ${p.restSec} сек.
-
-Все названия по-русски (Понедельник..Воскресенье; Грудь, Спина, Ноги, Плечи, Трицепс, Бицепс, Кор, Кардио).
-
-Верни ТОЛЬКО JSON: {"plan":{"split":"...","days":[{"day_index":0,"name":"Понедельник","muscles":["Грудь"],"exercises":[{"name":"Жим штанги лёжа","muscle":"Грудь","type":"compound","sets":3,"reps":{"min":8,"max":12},"rest_sec":90}]}]},"progression":{"increment_percent":{"min":2.5,"max":5}}}`
-
-      const reply = await Promise.race([
-        aiCall([{ role: 'user', content: prompt }], 2000),
-        timeoutPromise
-      ])
-
-      const clean = reply.replace(/```json|```/g, '').trim()
-      const match = clean.match(/\{[\s\S]*\}/)
-      if (!match) {
-        setError('AI вернул некорректный ответ. Попробуй ещё раз.')
-        setLoading(false)
-        return
+        try {
+          parsed = await requestPlan(lvlKey, goalKey, p, repsRange, daysPerWeek, duration, expYears)
+          const validation = validatePlanQuality(parsed, p.exMin)
+          if (validation.ok) break // Успех
+          lastReason = validation.reason
+          parsed = null
+        } catch (e) {
+          if (e.message === 'TIMEOUT') throw e // timeout не повторяем
+          lastReason = e.message
+        }
       }
 
-      let parsed
-      try { parsed = JSON.parse(match[0]) }
-      catch (e) {
-        setError('AI вернул невалидный JSON. Попробуй ещё раз.')
-        setLoading(false)
-        return
-      }
-
-      if (!parsed.plan?.days || !Array.isArray(parsed.plan.days)) {
-        setError('AI вернул некорректную структуру. Попробуй ещё раз.')
+      if (!parsed) {
+        setError(`AI не смог составить корректный план (${lastReason || 'попробуй ещё раз'}). Можно попробовать снова — иногда помогает.`)
         setLoading(false)
         return
       }
@@ -1035,7 +1111,9 @@ function PlanScreen({ onBack, aiCall, profile }) {
       setExpandedDay(0)
     } catch (e) {
       if (e.message === 'TIMEOUT') {
-        setError('AI слишком долго отвечает. Проверь интернет и попробуй ещё раз.')
+        setError('AI слишком долго отвечает (>60с). Проверь интернет и попробуй ещё раз.')
+      } else if (e.message === 'NO_JSON' || e.message === 'BAD_JSON') {
+        setError('AI вернул некорректный ответ. Попробуй ещё раз.')
       } else {
         setError('Ошибка соединения. Попробуй снова.')
       }
@@ -1078,8 +1156,8 @@ function PlanScreen({ onBack, aiCall, profile }) {
       {loading && (
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:16, padding:'48px 0' }}>
           <div style={{ width:48, height:48, borderRadius:'50%', border:'3px solid rgba(74,222,128,0.2)', borderTop:'3px solid #4ade80', animation:'spin 1s linear infinite' }} />
-          <div style={{ fontSize:14, fontWeight:600 }}>Составляю план...</div>
-          <div style={{ fontSize:12, color:'#6b7280' }}>15–30 секунд</div>
+          <div style={{ fontSize:14, fontWeight:600 }}>{loadingMsg}</div>
+          <div style={{ fontSize:12, color:'#6b7280' }}>20–40 секунд</div>
         </div>
       )}
 
