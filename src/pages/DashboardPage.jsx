@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from '../store'
 import { searchFood } from '../data/foodDatabase'
+import { saveCachedFood } from '../data/userFoodCache'
 import { LogOut, Camera, Bell, ChevronRight, Plus, Check, X, ChevronLeft, Play, Pause, SkipForward, Flame, Droplets, Dumbbell, TrendingUp, Award } from 'lucide-react'
 import styles from './DashboardPage.module.css'
 import { normReps, normalizePlan, clearOldPlans } from './planUtils'
@@ -281,6 +282,8 @@ function FoodScreen({ state, dispatch, aiCall }) {
   const addManual = () => {
     if (!manual.name || !manual.cal) return
     const g = parseFloat(manual.grams) || 100
+    // Сохраняем в кэш ручные продукты тоже — пользователь чаще будет их использовать
+    saveCachedFood({ name: manual.name, cal100: parseFloat(manual.cal)||0, prot100: parseFloat(manual.p)||0, fat100: parseFloat(manual.f)||0, carbs100: parseFloat(manual.c)||0 })
     dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, foods: [...entry.foods, { id: Date.now(), name: manual.name, weight: g, meal, calories: parseFloat(manual.cal)*g/100, protein: parseFloat(manual.p||0)*g/100, fat: parseFloat(manual.f||0)*g/100, carbs: parseFloat(manual.c||0)*g/100, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' }) }] } })
     showToast(manual.name + ' добавлено')
     setManual({ name: '', cal: '', p: '', f: '', c: '', grams: '100' }); setTab('log')
@@ -294,7 +297,12 @@ function FoodScreen({ state, dispatch, aiCall }) {
       const b64 = await compressImage(file)
       const res = await fetch('https://fit-ai-tracker-production.up.railway.app/ai-vision', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ b64 }) })
       const d = await res.json()
-      if (d.name) { setSelectedFood({ name: d.name, cal100: d.calories||0, prot100: d.protein||0, fat100: d.fat||0, carbs100: d.carbs||0 }); setQuery(d.name) }
+      if (d.name) {
+        const food = { name: d.name, cal100: d.calories||0, prot100: d.protein||0, fat100: d.fat||0, carbs100: d.carbs||0 }
+        // Сохраняем распознанный продукт в кэш
+        saveCachedFood(food)
+        setSelectedFood(food); setQuery(d.name)
+      }
     } catch { alert('Не удалось прочитать') } finally { setScanLoading(false) }
   }
 
@@ -305,8 +313,12 @@ function FoodScreen({ state, dispatch, aiCall }) {
       const prompt = `Ты диетолог. Верни ТОЛЬКО JSON-массив без markdown. ВАЖНО: все поля числа. Формат: [{"name":"Название","cal100":число,"prot100":число,"fat100":число,"carbs100":число,"grams":число}]. Еда: "${aiText}"`
       const reply = await aiCall([{ role: 'user', content: prompt }], 700)
       const match = reply.replace(/```json|```/g, '').trim().match(/\[[\s\S]*\]/)
-      if (match) setAiResults(JSON.parse(match[0]).map(item => ({ food: { name: item.name, cal100: parseFloat(item.cal100)||0, prot100: parseFloat(item.prot100)||0, fat100: parseFloat(item.fat100)||0, carbs100: parseFloat(item.carbs100)||0 }, grams: parseFloat(item.grams)||100 })))
-      else setAiResults([])
+      if (match) {
+        const parsed = JSON.parse(match[0]).map(item => ({ food: { name: item.name, cal100: parseFloat(item.cal100)||0, prot100: parseFloat(item.prot100)||0, fat100: parseFloat(item.fat100)||0, carbs100: parseFloat(item.carbs100)||0 }, grams: parseFloat(item.grams)||100 }))
+        // Сохраняем все распознанные продукты в кэш — отдельно по БЖУ, дедупликация внутри saveCachedFood
+        parsed.forEach(item => saveCachedFood(item.food))
+        setAiResults(parsed)
+      } else setAiResults([])
     } catch { setAiResults([]) }
     setAiLoading(false)
   }
@@ -430,7 +442,10 @@ function FoodScreen({ state, dispatch, aiCall }) {
                   {results.map((food, i) => (
                     <button key={i} onClick={() => { setSelectedFood(food); setResults([]) }} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'transparent', border: 'none', borderBottom: i < results.length-1 ? '1px solid #222' : 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
                       <div>
-                        <div style={{ fontSize: 14, color: '#f5f5f5' }}>{food.name}</div>
+                        <div style={{ fontSize: 14, color: '#f5f5f5', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {food.name}
+                          {food.isUserCache && <span style={{ fontSize: 9, padding: '2px 6px', background: 'rgba(74,222,128,0.15)', color: '#4ade80', borderRadius: 4, fontWeight: 600 }}>✦ AI</span>}
+                        </div>
                         <div style={{ fontSize: 12, color: '#6b7280', fontFamily: 'var(--mono)' }}>{food.cal100} ккал/100г</div>
                       </div>
                       <ChevronRight size={16} color="#4b5563" />
@@ -476,7 +491,7 @@ function FoodScreen({ state, dispatch, aiCall }) {
               <span style={{ fontSize: 20, color: '#4ade80' }}>✦</span>
               <span style={{ fontSize: 15, fontWeight: 600 }}>AI-распознавание еды</span>
             </div>
-            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 12 }}>Опиши что съел — AI определит КБЖУ</p>
+            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 12 }}>Опиши что съел — AI определит КБЖУ. Распознанные продукты сохраняются — в следующий раз поиск найдёт их без AI</p>
             <textarea style={{ ...inp, resize: 'none', minHeight: 80, lineHeight: 1.5 }} placeholder="«200г куриной грудки с гречкой»" value={aiText} onChange={e => setAiText(e.target.value)} rows={3} />
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '10px 0' }}>
               {Object.entries(MEALS_MAP).map(([k, v]) => (
@@ -805,7 +820,7 @@ function translatePlan(parsed) {
           ...ex,
           name: translateStr(ex.name),
           muscle: translateStr(ex.muscle),
-          reps: normReps(ex.reps), // ← нормализуем при сохранении
+          reps: normReps(ex.reps),
         }))
       }))
     }
@@ -1031,14 +1046,12 @@ function WorkoutScreen({ state, dispatch, aiCall }) {
 
 // ─── PLAN SCREEN ─────────────────────────────────────────────────────────────
 function PlanScreen({ onBack, aiCall, profile }) {
-  // ИСПРАВЛЕНИЕ: нормализуем reps при загрузке из кэша
   const [plan, setPlan] = useState(() => {
     try {
       const raw = localStorage.getItem(PLAN_KEY)
       if (!raw) return null
       const p = JSON.parse(raw)
       if (!p?.plan?.days || !Array.isArray(p.plan.days)) { localStorage.removeItem(PLAN_KEY); return null }
-      // Нормализуем reps для каждого упражнения
       p.plan.days.forEach(day => {
         (day.exercises || []).forEach(ex => { ex.reps = normReps(ex.reps) })
       })
@@ -1188,7 +1201,7 @@ function PlanScreen({ onBack, aiCall, profile }) {
                 {isOpen && !isRest && (
                   <div>
                     {day.exercises.map((ex, j) => {
-                      const reps = normReps(ex.reps) // ← ИСПРАВЛЕНИЕ: безопасный доступ
+                      const reps = normReps(ex.reps)
                       return (
                         <div key={j} style={{ padding:'12px 16px', borderBottom: j<day.exercises.length-1?'1px solid #1e1e1e':'none', display:'flex', gap:12, alignItems:'flex-start' }}>
                           <div style={{ flex:1 }}>
@@ -1210,10 +1223,10 @@ function PlanScreen({ onBack, aiCall, profile }) {
               </div>
             )
           })}
-          {plan.progression && (
+          {plan.progression && plan.progression.increment_percent && (
             <div style={{ background:'#1a1a1a', borderRadius:18, padding:16, border:'1px solid #2e2e2e' }}>
               <div style={{ fontSize:13, fontWeight:700, marginBottom:12 }}>Прогрессия нагрузки</div>
-              {[{ l:'Выполнил все подходы', v:`+${plan.progression.increment_percent.min}–${plan.progression.increment_percent.max}% к весу`, c:'#4ade80' }, { l:'RPE < 7 (легко)', v:'Увеличить нагрузку', c:'#4ade80' }, { l:'RPE 7–9 (норма)', v:'Оставить как есть', c:'#fbbf24' }, { l:'RPE > 9 (тяжело)', v:'Снизить нагрузку', c:'#f87171' }].map((row, i) => (
+              {[{ l:'Выполнил все подходы', v:`+${plan.progression.increment_percent?.min ?? 2.5}–${plan.progression.increment_percent?.max ?? 5}% к весу`, c:'#4ade80' }, { l:'RPE < 7 (легко)', v:'Увеличить нагрузку', c:'#4ade80' }, { l:'RPE 7–9 (норма)', v:'Оставить как есть', c:'#fbbf24' }, { l:'RPE > 9 (тяжело)', v:'Снизить нагрузку', c:'#f87171' }].map((row, i) => (
                 <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 12px', background:'#222', borderRadius:10, marginBottom:6 }}>
                   <span style={{ fontSize:12, color:'#9ca3af' }}>{row.l}</span>
                   <span style={{ fontSize:12, fontWeight:700, color:row.c, fontFamily:'var(--mono)' }}>{row.v}</span>

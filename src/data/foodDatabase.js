@@ -1,4 +1,6 @@
 // База продуктов: [название, ккал/100г, белки, жиры, углеводы]
+import { searchCachedFoods, saveCachedFood } from './userFoodCache'
+
 export const FOOD_DB = [
   // Мясо и птица
   ["Куриная грудка варёная", 137, 25, 3, 0],
@@ -164,14 +166,30 @@ export const FOOD_DB = [
   ["Апельсиновый сок", 45, 1, 0, 10],
 ]
 
-// Поиск по базе
+// Реэкспорт — чтобы FoodScreen мог сохранять AI-распознанные продукты
+export { saveCachedFood }
+
+// Поиск: сначала в пользовательском кэше (AI-распознанные), потом в базе
 export function searchFood(query) {
   if (!query || query.length < 2) return []
   const lq = query.toLowerCase()
-  return FOOD_DB
+
+  // 1. Сначала кэш — продукты которые юзер уже распознавал
+  const cached = searchCachedFoods(query)
+    .map(f => ({ ...f, isUserCache: true }))
+
+  // 2. Потом база
+  const fromDb = FOOD_DB
     .filter(([name]) => name.toLowerCase().includes(lq))
     .slice(0, 10)
     .map(([name, cal, prot, fat, carbs]) => ({
       name, cal100: cal, prot100: prot, fat100: fat, carbs100: carbs
     }))
+
+  // 3. Объединяем — кэшированные впереди, базовые после
+  // Дедупликация: если в кэше уже есть продукт с таким БЖУ, не показываем дубликат из базы
+  const cachedKeys = new Set(cached.map(c => `${c.cal100}-${c.prot100}-${c.fat100}-${c.carbs100}`))
+  const dbFiltered = fromDb.filter(d => !cachedKeys.has(`${d.cal100}-${d.prot100}-${d.fat100}-${d.carbs100}`))
+
+  return [...cached, ...dbFiltered].slice(0, 10)
 }

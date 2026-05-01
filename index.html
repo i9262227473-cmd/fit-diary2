@@ -7,34 +7,43 @@
     <meta name="theme-color" content="#0e0e0e" />
     <title>Фитнес Дневник</title>
     <script>
-      // Патч: нормализуем кэш планов тренировок ПЕРЕД рендером React
-      // Исправляет TypeError: Cannot read properties of undefined (reading 'min')
-      try {
-        var PLAN_KEYS = ['workout-plan-v4-pro','workout-plan-v3-ru','workout-plan-v4','workout-plan-v3','workout-plan-v2','workout-plan-v1']
-        PLAN_KEYS.forEach(function(key) {
-          try {
-            var raw = localStorage.getItem(key)
-            if (!raw) return
-            var p = JSON.parse(raw)
-            if (!p || !p.plan || !Array.isArray(p.plan.days)) { localStorage.removeItem(key); return }
-            var modified = false
-            p.plan.days.forEach(function(day) {
-              if (!day.exercises) return
-              day.exercises.forEach(function(ex) {
-                if (!ex.reps) {
-                  ex.reps = { min: 8, max: 12 }; modified = true
-                } else if (typeof ex.reps === 'string') {
-                  var parts = ex.reps.split('-')
-                  ex.reps = { min: parseInt(parts[0]) || 8, max: parseInt(parts[1]) || 12 }; modified = true
-                } else if (typeof ex.reps === 'object' && !('min' in ex.reps)) {
-                  ex.reps = { min: 8, max: 12 }; modified = true
-                }
-              })
-            })
-            if (modified) localStorage.setItem(key, JSON.stringify(p))
-          } catch(e) { localStorage.removeItem(key) }
-        })
-      } catch(e) {}
+      // КРИТИЧЕСКИЙ ПАТЧ v3: запускается ДО React, нормализует ВСЕ планы
+      // Исправляет: TypeError: Cannot read properties of undefined (reading 'min')
+      ;(function() {
+        var KEY = 'workout-plan-v4-pro';
+        var OLD = ['workout-plan-v1','workout-plan-v2','workout-plan-v3','workout-plan-v3-ru','workout-plan-v4'];
+        // Удаляем все старые ключи
+        OLD.forEach(function(k){ try { localStorage.removeItem(k); } catch(e){} });
+        // Нормализуем текущий план
+        try {
+          var raw = localStorage.getItem(KEY);
+          if (!raw) return;
+          var p = JSON.parse(raw);
+          if (!p || !p.plan || !Array.isArray(p.plan.days)) {
+            localStorage.removeItem(KEY); return;
+          }
+          var changed = false;
+          p.plan.days.forEach(function(day) {
+            if (!Array.isArray(day.exercises)) return;
+            day.exercises.forEach(function(ex) {
+              var r = ex.reps;
+              if (r === null || r === undefined) {
+                ex.reps = {min:8, max:12}; changed = true;
+              } else if (typeof r === 'string') {
+                var pts = r.split('-');
+                ex.reps = {min: parseInt(pts[0])||8, max: parseInt(pts[1])||12}; changed = true;
+              } else if (typeof r === 'number') {
+                ex.reps = {min: r, max: r}; changed = true;
+              } else if (typeof r === 'object' && (!('min' in r) || !('max' in r))) {
+                ex.reps = {min: r.min||8, max: r.max||12}; changed = true;
+              }
+            });
+          });
+          if (changed) localStorage.setItem(KEY, JSON.stringify(p));
+        } catch(e) {
+          try { localStorage.removeItem(KEY); } catch(e2) {}
+        }
+      })();
     </script>
   </head>
   <body>
