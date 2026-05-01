@@ -3,9 +3,9 @@ import { createPortal } from 'react-dom'
 import { useStore } from '../store'
 import { searchFoodSmart } from '../data/searchUtils'
 import { saveCachedFood, getCachedFoods, clearCachedFoods } from '../data/userFoodCache'
-import { LogOut, Camera, Bell, ChevronRight, Plus, Check, X, ChevronLeft, Play, Pause, SkipForward, Flame, Droplets, Dumbbell, TrendingUp, Award, Edit2, Trash2 } from 'lucide-react'
+import { LogOut, Camera, Bell, ChevronRight, Plus, Check, X, ChevronLeft, Play, Pause, Flame, Droplets, Dumbbell, Edit2, Trash2, AlertTriangle, Sparkles } from 'lucide-react'
 import styles from './DashboardPage.module.css'
-import { normReps, normalizePlan, clearOldPlans } from './planUtils'
+import { normReps } from './planUtils'
 
 // ─── NAV ICONS ───────────────────────────────────────────────────────────────
 function NavHome({ color, size }) {
@@ -25,7 +25,6 @@ function NavUser({ color, size }) {
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
-function fmtTime(s) { const m = Math.floor(s / 60), sec = s % 60; return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` }
 function fmtTimeLong(s) {
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60
   if (h > 0) return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`
@@ -54,18 +53,28 @@ function compressImage(file, maxSize = 1024, quality = 0.85) {
   })
 }
 
-// ─── CIRCULAR PROGRESS ───────────────────────────────────────────────────────
-function CircularProgress({ value, max, size = 120, stroke = 10, color = '#4ade80', children }) {
+// Цвет кружка калорий в зависимости от заполнения (постепенный градиент)
+function getCalorieColor(pct) {
+  if (pct < 0.6) return '#4ade80'   // зелёный
+  if (pct < 0.85) return '#a3e635'  // зелёно-жёлтый
+  if (pct < 0.95) return '#fbbf24'  // жёлтый
+  if (pct < 1.05) return '#fb923c'  // оранжевый
+  return '#ef4444'                   // красный (превышение)
+}
+
+// ─── CIRCULAR PROGRESS (тоньше + динамический цвет) ──────────────────────────
+function CircularProgress({ value, max, size = 120, stroke = 5, color, dynamicColor = false, children, onClick }) {
   const r = (size - stroke) / 2
   const circ = 2 * Math.PI * r
-  const pct = Math.min(value / max, 1)
-  const dash = pct * circ
+  const pct = Math.min(value / max, 1.2)
+  const dash = Math.min(pct, 1) * circ
+  const finalColor = dynamicColor ? getCalorieColor(value / max) : (color || '#4ade80')
   return (
-    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+    <div onClick={onClick} style={{ position: 'relative', width: size, height: size, flexShrink: 0, cursor: onClick ? 'pointer' : 'default' }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#2a2a2a" strokeWidth={stroke} />
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round"
-          strokeDasharray={`${dash} ${circ - dash}`} style={{ transition: 'stroke-dasharray 0.8s ease' }} />
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={finalColor} strokeWidth={stroke} strokeLinecap="round"
+          strokeDasharray={`${dash} ${circ - dash}`} style={{ transition: 'stroke-dasharray 0.6s ease, stroke 0.4s ease' }} />
       </svg>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         {children}
@@ -141,7 +150,7 @@ function EditFoodModal({ food, onSave, onClose }) {
 }
 
 // ─── HOME SCREEN ─────────────────────────────────────────────────────────────
-function HomeScreen({ state, dispatch, goTo, aiCall, name }) {
+function HomeScreen({ state, dispatch, goTo, name }) {
   const today = new Date().toISOString().split('T')[0]
   const entry = state.entries.find(e => e.date === today) || { date: today, foods: [], workouts: [] }
   const goals = { calories: state.profile?.calorieGoal || 2200, protein: state.profile?.proteinGoal || 150, fat: state.profile?.fatGoal || 70, carbs: state.profile?.carbGoal || 250 }
@@ -150,6 +159,7 @@ function HomeScreen({ state, dispatch, goTo, aiCall, name }) {
   const remaining = Math.max(0, goals.calories - eaten)
   const water = state.water
   const dayName = new Date().toLocaleDateString('ru-RU', { weekday: 'long' })
+  const calColor = getCalorieColor(eaten / goals.calories)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -162,8 +172,10 @@ function HomeScreen({ state, dispatch, goTo, aiCall, name }) {
           <Bell size={18} color="#9ca3af" />
         </button>
       </div>
+
+      {/* Тренировка сегодня */}
       {entry.workouts?.length > 0 ? (
-        <div style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #222 100%)', borderRadius: 20, padding: 20, border: '1px solid #2e2e2e' }}>
+        <div onClick={() => goTo('workout')} style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #222 100%)', borderRadius: 20, padding: 20, border: '1px solid #2e2e2e', cursor: 'pointer' }}>
           <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>Последняя тренировка</div>
           <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>{entry.workouts[entry.workouts.length-1]?.name || 'Тренировка'}</div>
           <div style={{ fontSize: 13, color: '#9ca3af' }}>{entry.workouts[entry.workouts.length-1]?.exercises?.length || 0} упражнений · {entry.workouts[entry.workouts.length-1]?.duration || 0} мин</div>
@@ -178,14 +190,18 @@ function HomeScreen({ state, dispatch, goTo, aiCall, name }) {
           </button>
         </div>
       )}
-      <div style={{ background: '#1a1a1a', borderRadius: 20, padding: 20, border: '1px solid #2e2e2e' }}>
+
+      {/* Калории — кликабельная карточка ведёт в Питание */}
+      <div onClick={() => goTo('food')} style={{ background: '#1a1a1a', borderRadius: 20, padding: 20, border: '1px solid #2e2e2e', cursor: 'pointer', transition: 'border-color 0.2s' }}
+        onMouseEnter={e => e.currentTarget.style.borderColor = '#4ade80'}
+        onMouseLeave={e => e.currentTarget.style.borderColor = '#2e2e2e'}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div style={{ fontSize: 15, fontWeight: 600 }}>Калории</div>
           <div style={{ fontSize: 13, color: '#6b7280' }}>Цель: {goals.calories} ккал</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <CircularProgress value={eaten} max={goals.calories} size={100} stroke={8} color="#4ade80">
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 18, fontWeight: 700, color: '#4ade80' }}>{eaten}</div>
+          <CircularProgress value={eaten} max={goals.calories} size={100} stroke={5} dynamicColor>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: calColor }}>{eaten}</div>
             <div style={{ fontSize: 10, color: '#6b7280' }}>ккал</div>
           </CircularProgress>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -207,6 +223,8 @@ function HomeScreen({ state, dispatch, goTo, aiCall, name }) {
           </div>
         </div>
       </div>
+
+      {/* Вода */}
       <div style={{ background: '#1a1a1a', borderRadius: 20, padding: 20, border: '1px solid #2e2e2e' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -226,22 +244,6 @@ function HomeScreen({ state, dispatch, goTo, aiCall, name }) {
         <div style={{ height: 3, background: '#2a2a2a', borderRadius: 99 }}>
           <div style={{ height: '100%', background: '#38bdf8', borderRadius: 99, width: `${water.consumed / water.goal * 100}%`, transition: 'width 0.4s' }} />
         </div>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <button onClick={() => goTo('food')} style={{ background: '#1a1a1a', border: '1px solid #2e2e2e', borderRadius: 16, padding: 16, cursor: 'pointer', textAlign: 'left' }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(74,222,128,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-            <Flame size={18} color="#4ade80" />
-          </div>
-          <div style={{ fontSize: 14, fontWeight: 600 }}>Питание</div>
-          <div style={{ fontSize: 12, color: '#6b7280' }}>Добавить приём</div>
-        </button>
-        <button onClick={() => goTo('workout')} style={{ background: '#1a1a1a', border: '1px solid #2e2e2e', borderRadius: 16, padding: 16, cursor: 'pointer', textAlign: 'left' }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(74,222,128,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-            <Dumbbell size={18} color="#4ade80" />
-          </div>
-          <div style={{ fontSize: 14, fontWeight: 600 }}>Тренировка</div>
-          <div style={{ fontSize: 12, color: '#6b7280' }}>Новая сессия</div>
-        </button>
       </div>
     </div>
   )
@@ -351,8 +353,8 @@ function FoodScreen({ state, dispatch, aiCall }) {
 
       <div style={{ background: '#1a1a1a', borderRadius: 20, padding: 20, border: '1px solid #2e2e2e', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <CircularProgress value={totals.cal} max={goals.calories} size={90} stroke={7} color="#4ade80">
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 16, fontWeight: 700, color: '#4ade80' }}>{Math.round(totals.cal)}</div>
+          <CircularProgress value={totals.cal} max={goals.calories} size={90} stroke={5} dynamicColor>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 18, fontWeight: 700, color: getCalorieColor(totals.cal / goals.calories) }}>{Math.round(totals.cal)}</div>
             <div style={{ fontSize: 10, color: '#6b7280' }}>ккал</div>
           </CircularProgress>
           <div style={{ flex: 1 }}>
@@ -543,7 +545,6 @@ function FoodScreen({ state, dispatch, aiCall }) {
 
 // ─── PROGRESS SCREEN ─────────────────────────────────────────────────────────
 function ProgressScreen({ state }) {
-  const [period, setPeriod] = useState('Месяц')
   const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
   const weekData = weekDays.map((day, i) => {
     const d = new Date(); d.setDate(d.getDate() - (6 - i))
@@ -559,11 +560,6 @@ function ProgressScreen({ state }) {
       <div>
         <div style={{ fontSize: 11, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>Статистика</div>
         <div style={{ fontSize: 20, fontWeight: 700 }}>Прогресс</div>
-      </div>
-      <div style={{ display: 'flex', background: '#1a1a1a', borderRadius: 12, padding: 4, gap: 4, border: '1px solid #2e2e2e' }}>
-        {['Неделя', 'Месяц', '3 месяца', 'Год'].map(p => (
-          <button key={p} onClick={() => setPeriod(p)} style={{ flex: 1, padding: '8px 4px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 500, background: period === p ? '#4ade80' : 'transparent', color: period === p ? '#000' : '#6b7280' }}>{p}</button>
-        ))}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
         {[
@@ -613,8 +609,8 @@ function RestTimer({ duration = 90, onClose, exerciseName, setInfo }) {
       <div style={{ fontSize: 18, fontWeight: 600, color: '#9ca3af' }}>Таймер отдыха</div>
       <div style={{ position: 'relative', width: 200, height: 200 }}>
         <svg width={200} height={200} style={{ transform: 'rotate(-90deg)' }}>
-          <circle cx={100} cy={100} r={r} fill="none" stroke="#2a2a2a" strokeWidth={8} />
-          <circle cx={100} cy={100} r={r} fill="none" stroke="#4ade80" strokeWidth={8} strokeLinecap="round"
+          <circle cx={100} cy={100} r={r} fill="none" stroke="#2a2a2a" strokeWidth={5} />
+          <circle cx={100} cy={100} r={r} fill="none" stroke="#4ade80" strokeWidth={5} strokeLinecap="round"
             strokeDasharray={`${dash} ${circ - dash}`} style={{ transition: 'stroke-dasharray 0.5s ease' }} />
         </svg>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -706,7 +702,7 @@ const EXERCISE_DB = [
 // ─── PLAN CONSTANTS ───────────────────────────────────────────────────────────
 const PLAN_KEY = 'workout-plan-v4-pro'
 const LEVEL_RU = { beginner: 'новичок', amateur: 'любитель', advanced: 'продвинутый', professional: 'профессионал' }
-const GOAL_RU  = { weight_loss: 'fat_loss', muscle_gain: 'muscle_gain', maintenance: 'maintenance', endurance: 'maintenance', strength: 'strength', health: 'maintenance' }
+const GOAL_RU = { weight_loss: 'fat_loss', muscle_gain: 'muscle_gain', maintenance: 'maintenance', endurance: 'maintenance', strength: 'strength', health: 'maintenance' }
 const DAY_COLORS_PLAN = ['#4ade80', '#38bdf8', '#fbbf24', '#4ade80', '#38bdf8', '#6b7280', '#6b7280']
 
 const EN_TO_RU = {
@@ -748,18 +744,15 @@ function translatePlan(parsed) {
   }
 }
 
-// Валидация — проверяем что AI вернул нормальный план (не 1 упражнение в день)
 function validatePlanQuality(plan, minExercisesPerDay) {
   if (!plan?.plan?.days || !Array.isArray(plan.plan.days)) {
     return { ok: false, reason: 'Структура повреждена' }
   }
   const trainingDays = plan.plan.days.filter(d => d.exercises && d.exercises.length > 0)
-  if (trainingDays.length === 0) {
-    return { ok: false, reason: 'Нет тренировочных дней' }
-  }
+  if (trainingDays.length === 0) return { ok: false, reason: 'Нет тренировочных дней' }
   for (const day of trainingDays) {
     if (day.exercises.length < minExercisesPerDay) {
-      return { ok: false, reason: `В дне "${day.name}" только ${day.exercises.length} упражнений (нужно от ${minExercisesPerDay})` }
+      return { ok: false, reason: `В дне "${day.name}" только ${day.exercises.length} упражнений` }
     }
   }
   return { ok: true }
@@ -805,6 +798,26 @@ function WorkoutScreen({ state, dispatch, aiCall }) {
     setWk({ name: '', exercises: [] }); setTimer(0); setShowComplete(false); setView('list')
   }
   const removeWorkout = wId => dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, workouts: (entry.workouts||[]).filter(w => w.id !== wId) } })
+
+  // Загружает день из AI-плана в builder для редактирования и старта
+  const startFromPlan = (day) => {
+    const exercises = (day.exercises || []).map(ex => {
+      const reps = normReps(ex.reps)
+      const repsValue = `${reps.min}-${reps.max}`
+      const setsCount = parseInt(ex.sets) || 3
+      // Ищем в EXERCISE_DB совпадение по имени для muscle/type
+      const dbEx = EXERCISE_DB.find(e => e.name.toLowerCase() === (ex.name || '').toLowerCase())
+      return {
+        exerciseId: dbEx?.id || Date.now() + Math.random(),
+        name: ex.name,
+        muscle: ex.muscle || dbEx?.muscle || 'Кор',
+        type: ex.type || dbEx?.type || 'compound',
+        sets: Array.from({ length: setsCount }, () => ({ reps: repsValue, weight: '0', done: false }))
+      }
+    })
+    setWk({ name: day.name + ' (AI)', exercises })
+    setView('builder')
+  }
 
   const M_COLORS = { Грудь:'#22c55e', Спина:'#3b82f6', Ноги:'#f59e0b', Плечи:'#8b5cf6', Трицепс:'#ec4899', Бицепс:'#f97316', Кор:'#06b6d4', Кардио:'#ef4444' }
 
@@ -952,7 +965,7 @@ function WorkoutScreen({ state, dispatch, aiCall }) {
   }
 
   if (view === 'plan') {
-    return <PlanScreen onBack={() => setView('list')} aiCall={aiCall} profile={state.profile} />
+    return <PlanScreen onBack={() => setView('list')} aiCall={aiCall} profile={state.profile} onStartWorkout={startFromPlan} />
   }
 
   return (
@@ -965,7 +978,7 @@ function WorkoutScreen({ state, dispatch, aiCall }) {
 }
 
 // ─── PLAN SCREEN ─────────────────────────────────────────────────────────────
-function PlanScreen({ onBack, aiCall, profile }) {
+function PlanScreen({ onBack, aiCall, profile, onStartWorkout }) {
   const [plan, setPlan] = useState(() => {
     try {
       const raw = localStorage.getItem(PLAN_KEY)
@@ -984,95 +997,82 @@ function PlanScreen({ onBack, aiCall, profile }) {
   const levelKey = profile?.level || 'amateur'
   const levelLabel = LEVEL_RU[levelKey] || 'любитель'
   const goalKey = GOAL_RU[profile?.goals?.[0]] || 'maintenance'
-  const injuries = profile?.hasLimitations && profile.limitationsText ? [profile.limitationsText] : []
 
-  // Один запрос к AI с длинным промтом и валидацией
+  // Объединяем ограничения текстом + AI-анализ
+  const limitations = profile?.limitationsText || ''
+  const aiAnalysis = profile?.aiAnalysis || ''
+  const hasLimitations = !!(limitations || aiAnalysis)
+
   const requestPlan = async (lvlKey, goalKey, p, repsRange, daysPerWeek, duration, expYears) => {
     const TIMEOUT_MS = 60000
 
+    const limitationsBlock = hasLimitations
+      ? `
+ОГРАНИЧЕНИЯ И ТРАВМЫ ПОЛЬЗОВАТЕЛЯ (КРИТИЧНО учитывать):
+${limitations ? `- Описание: ${limitations}` : ''}
+${aiAnalysis ? `- Рекомендации врача/AI: ${aiAnalysis}` : ''}
+Исключи из плана упражнения нагружающие травмированную область. Заменяй на безопасные альтернативы.`
+      : '- Ограничения/травмы: нет'
+
     const prompt = `Ты — профессиональный фитнес-тренер с 10-летним опытом. Составь персональный недельный план тренировок строго по правилам.
 
-ВХОДНЫЕ ДАННЫЕ ПОЛЬЗОВАТЕЛЯ:
-- Уровень подготовки: ${lvlKey} (опыт ${expYears} лет)
+ВХОДНЫЕ ДАННЫЕ:
+- Уровень: ${lvlKey} (опыт ${expYears} лет)
 - Цель: ${goalKey}
-- Возраст: ${profile?.age || 25}
-- Пол: ${profile?.gender || 'male'}
-- Вес: ${profile?.weight || 80} кг
-- Рост: ${profile?.height || 175} см
-- Ограничения/травмы: ${injuries.length > 0 ? injuries.join(', ') : 'нет'}
-- Доступ к оборудованию: тренажёрный зал
-- Частота тренировок: ${daysPerWeek} в неделю
-- Длительность тренировки: ${duration} минут
+- Возраст: ${profile?.age || 25}, пол: ${profile?.gender || 'male'}
+- Вес: ${profile?.weight || 80} кг, рост: ${profile?.height || 175} см
+${limitationsBlock}
+- Оборудование: тренажёрный зал
+- Частота: ${daysPerWeek} тренировок в неделю
+- Длительность: ${duration} минут
 
-ПАРАМЕТРЫ ПО УРОВНЮ (строго соблюдай):
-- Тип сплита: ${p.split}
+ПАРАМЕТРЫ (соблюдай ТОЧНО):
+- Сплит: ${p.split}
 - Упражнений за тренировку: МИНИМУМ ${p.exMin}, максимум ${p.exMax}
-- Подходов на упражнение: ${p.sets}
+- Подходов: ${p.sets}
 - Повторений (под цель ${goalKey}): ${repsRange}
-- Отдых между подходами: ${p.restSec} сек
+- Отдых: ${p.restSec} сек
 
 ОБЯЗАТЕЛЬНЫЕ ПРАВИЛА (нарушение = брак):
-1. В КАЖДОМ тренировочном дне МИНИМУМ ${p.exMin} упражнений. ЭТО КРИТИЧНО. Один-два упражнения = неприемлемо.
-2. НЕ БОЛЕЕ 20 подходов на одну мышечную группу за неделю.
-3. На каждую целевую мышечную группу дня: 1-2 базовых (compound) + 1-2 изолирующих (isolation).
-4. Логика сплита:
-   - full body: каждая тренировка прорабатывает несколько групп (грудь+спина+ноги или верх+низ)
-   - upper/lower: чередовать ВЕРХ (грудь+спина+плечи+руки) и НИЗ (ноги+ягодицы+кор)
-   - push/pull/legs: жим (грудь+плечи+трицепс) → тяга (спина+бицепс) → ноги
+1. В КАЖДОМ тренировочном дне МИНИМУМ ${p.exMin} упражнений. КРИТИЧНО.
+2. Не более 20 подходов на одну мышечную группу за неделю.
+3. На каждую группу: 1-2 базовых (compound) + 1-2 изолирующих (isolation).
+4. Сплит:
+   - full body: каждая тренировка прорабатывает ВСЁ ТЕЛО
+   - upper/lower: чередовать ВЕРХ и НИЗ
+   - push/pull/legs: жим → тяга → ноги
 5. Между тренировочными днями вставлять дни отдыха (exercises: []).
-6. Если есть травмы — исключить упражнения нагружающие травмированную область.
+${hasLimitations ? '6. ОБЯЗАТЕЛЬНО исключить опасные упражнения для указанных травм. Например при коксартрозе/болях в ТБС — БЕЗ приседаний со штангой, становой, выпадов с весом, жима ногами. Заменить на безопасные: разгибания/сгибания ног в тренажёре, упражнения сидя, плавание-кардио.' : ''}
 7. ВСЕ названия — на русском (Понедельник..Воскресенье; Грудь, Спина, Ноги, Плечи, Трицепс, Бицепс, Кор, Кардио).
-8. Названия упражнений — реальные русские: "Жим штанги лёжа", "Приседания со штангой", "Тяга верхнего блока", "Махи гантелями в стороны" и т.д.
+8. Названия упражнений — реальные русские: "Жим штанги лёжа", "Тяга верхнего блока" и т.д.
 
-СТРУКТУРА УПРАЖНЕНИЯ В ДНЕ:
-- Базовые (compound) идут ПЕРВЫМИ в дне, затем изолирующие
-- На большие группы (грудь, спина, ноги): 4-5 упражнений на тренировке
-- На малые (бицепс, трицепс, плечи отдельно): 2-3 упражнения
+СТРУКТУРА: compound первыми, потом isolation. На большие группы (грудь/спина/ноги) 4-5 упр., на малые (бицепс/трицепс) 2-3.
 
-ПРИМЕРЫ ПРАВИЛЬНОЙ ТРЕНИРОВКИ (для уровня ${lvlKey}):
-- Грудь+Трицепс: Жим штанги лёжа, Жим гантелей на наклонной, Разводка гантелей, Жим узким хватом, Разгибания на блоке
-- Спина+Бицепс: Тяга штанги в наклоне, Тяга верхнего блока, Тяга гантели одной рукой, Подъём штанги на бицепс, Молотки с гантелями
-- Ноги: Приседания со штангой, Жим ногами, Румынская тяга, Разгибание ног, Сгибание ног, Подъём на икры
+ВЕРНИ ТОЛЬКО валидный JSON:
+{"plan":{"split":"Фулбоди","days":[{"day_index":0,"name":"Понедельник","muscles":["Грудь","Трицепс"],"exercises":[{"name":"Жим штанги лёжа","muscle":"Грудь","type":"compound","sets":3,"reps":{"min":8,"max":12},"rest_sec":90},{"name":"Жим гантелей на наклонной","muscle":"Грудь","type":"compound","sets":3,"reps":{"min":10,"max":12},"rest_sec":90},{"name":"Разводка гантелей лёжа","muscle":"Грудь","type":"isolation","sets":3,"reps":{"min":12,"max":15},"rest_sec":60},{"name":"Жим узким хватом","muscle":"Трицепс","type":"compound","sets":3,"reps":{"min":8,"max":12},"rest_sec":90},{"name":"Разгибания на блоке","muscle":"Трицепс","type":"isolation","sets":3,"reps":{"min":12,"max":15},"rest_sec":60}]},{"day_index":1,"name":"Вторник","muscles":[],"exercises":[]}]},"progression":{"increment_percent":{"min":2.5,"max":5}}}
 
-ВЕРНИ ТОЛЬКО валидный JSON без markdown:
-{"plan":{"split":"Фулбоди","days":[{"day_index":0,"name":"Понедельник","muscles":["Грудь","Трицепс"],"exercises":[{"name":"Жим штанги лёжа","muscle":"Грудь","type":"compound","sets":3,"reps":{"min":8,"max":12},"rest_sec":90},{"name":"Жим гантелей на наклонной","muscle":"Грудь","type":"compound","sets":3,"reps":{"min":10,"max":12},"rest_sec":90},{"name":"Разводка гантелей лёжа","muscle":"Грудь","type":"isolation","sets":3,"reps":{"min":12,"max":15},"rest_sec":60},{"name":"Жим узким хватом","muscle":"Трицепс","type":"compound","sets":3,"reps":{"min":8,"max":12},"rest_sec":90},{"name":"Разгибания на блоке","muscle":"Трицепс","type":"isolation","sets":3,"reps":{"min":12,"max":15},"rest_sec":60}]},{"day_index":1,"name":"Вторник","muscles":[],"exercises":[]}]},"progression":{"type":"linear","increment_percent":{"min":2.5,"max":5},"rules":{"success":"increase_weight","failure":"reduce_or_repeat"}}}
+НАПОМИНАНИЕ: каждый тренировочный день — МИНИМУМ ${p.exMin} упражнений.`
 
-НАПОМИНАНИЕ: каждый тренировочный день — МИНИМУМ ${p.exMin} упражнений. План с 1-2 упражнениями в день БУДЕТ ОТВЕРГНУТ.`
-
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('TIMEOUT')), TIMEOUT_MS)
-    )
-
-    const reply = await Promise.race([
-      aiCall([{ role: 'user', content: prompt }], 3500),
-      timeoutPromise
-    ])
-
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), TIMEOUT_MS))
+    const reply = await Promise.race([aiCall([{ role: 'user', content: prompt }], 3500), timeoutPromise])
     const clean = reply.replace(/```json|```/g, '').trim()
     const match = clean.match(/\{[\s\S]*\}/)
     if (!match) throw new Error('NO_JSON')
-
     let parsed
-    try { parsed = JSON.parse(match[0]) }
-    catch (e) { throw new Error('BAD_JSON') }
-
-    if (!parsed.plan?.days || !Array.isArray(parsed.plan.days)) {
-      throw new Error('BAD_STRUCTURE')
-    }
-
+    try { parsed = JSON.parse(match[0]) } catch { throw new Error('BAD_JSON') }
+    if (!parsed.plan?.days || !Array.isArray(parsed.plan.days)) throw new Error('BAD_STRUCTURE')
     return parsed
   }
 
   const generatePlan = async () => {
     setLoading(true); setError(null); setLoadingMsg('Составляю план...')
-
     try {
       const lvlKey = levelKey === 'professional' ? 'expert' : levelKey
       const levelParams = {
-        beginner: { split:'full body',      exMin:4, exMax:6,  sets:'2-3', restSec:'60-90',   reps:{ fat_loss:'10-15', muscle_gain:'8-12', strength:'6-10', maintenance:'10-12' } },
-        amateur:  { split:'upper/lower',    exMin:5, exMax:8,  sets:'3-4', restSec:'60-120',  reps:{ fat_loss:'10-15', muscle_gain:'6-12', strength:'4-8',  maintenance:'8-12'  } },
-        advanced: { split:'push/pull/legs', exMin:6, exMax:10, sets:'3-5', restSec:'90-180',  reps:{ fat_loss:'10-15', muscle_gain:'6-12', strength:'4-6',  maintenance:'8-12'  } },
-        expert:   { split:'кастомный',      exMin:7, exMax:12, sets:'4-6', restSec:'120-240', reps:{ fat_loss:'10-15', muscle_gain:'6-12', strength:'3-6',  maintenance:'8-12'  } },
+        beginner: { split:'full body', exMin:4, exMax:6, sets:'2-3', restSec:'60-90', reps:{ fat_loss:'10-15', muscle_gain:'8-12', strength:'6-10', maintenance:'10-12' } },
+        amateur:  { split:'upper/lower', exMin:5, exMax:8, sets:'3-4', restSec:'60-120', reps:{ fat_loss:'10-15', muscle_gain:'6-12', strength:'4-8', maintenance:'8-12' } },
+        advanced: { split:'push/pull/legs', exMin:6, exMax:10, sets:'3-5', restSec:'90-180', reps:{ fat_loss:'10-15', muscle_gain:'6-12', strength:'4-6', maintenance:'8-12' } },
+        expert:   { split:'кастомный', exMin:7, exMax:12, sets:'4-6', restSec:'120-240', reps:{ fat_loss:'10-15', muscle_gain:'6-12', strength:'3-6', maintenance:'8-12' } },
       }
       const p = levelParams[lvlKey] || levelParams.amateur
       const repsRange = p.reps[goalKey] || '8-12'
@@ -1083,26 +1083,23 @@ function PlanScreen({ onBack, aiCall, profile }) {
       let parsed = null
       let lastReason = null
 
-      // До 2 попыток — если AI возвращает мусор, пробуем ещё раз
       for (let attempt = 1; attempt <= 2; attempt++) {
         if (attempt === 2) setLoadingMsg('План получился слабым, переделываю...')
-
         try {
           parsed = await requestPlan(lvlKey, goalKey, p, repsRange, daysPerWeek, duration, expYears)
           const validation = validatePlanQuality(parsed, p.exMin)
-          if (validation.ok) break // Успех
+          if (validation.ok) break
           lastReason = validation.reason
           parsed = null
         } catch (e) {
-          if (e.message === 'TIMEOUT') throw e // timeout не повторяем
+          if (e.message === 'TIMEOUT') throw e
           lastReason = e.message
         }
       }
 
       if (!parsed) {
-        setError(`AI не смог составить корректный план (${lastReason || 'попробуй ещё раз'}). Можно попробовать снова — иногда помогает.`)
-        setLoading(false)
-        return
+        setError(`AI не смог составить корректный план (${lastReason || 'попробуй ещё раз'}).`)
+        setLoading(false); return
       }
 
       const translated = translatePlan(parsed)
@@ -1110,16 +1107,10 @@ function PlanScreen({ onBack, aiCall, profile }) {
       localStorage.setItem(PLAN_KEY, JSON.stringify(translated))
       setExpandedDay(0)
     } catch (e) {
-      if (e.message === 'TIMEOUT') {
-        setError('AI слишком долго отвечает (>60с). Проверь интернет и попробуй ещё раз.')
-      } else if (e.message === 'NO_JSON' || e.message === 'BAD_JSON') {
-        setError('AI вернул некорректный ответ. Попробуй ещё раз.')
-      } else {
-        setError('Ошибка соединения. Попробуй снова.')
-      }
-    } finally {
-      setLoading(false)
-    }
+      if (e.message === 'TIMEOUT') setError('AI слишком долго отвечает (>60с). Попробуй ещё раз.')
+      else if (e.message === 'NO_JSON' || e.message === 'BAD_JSON') setError('AI вернул некорректный ответ. Попробуй ещё раз.')
+      else setError('Ошибка соединения. Попробуй снова.')
+    } finally { setLoading(false) }
   }
 
   const typeLabel = t => t === 'compound' ? 'Базовое' : 'Изоляция'
@@ -1135,7 +1126,7 @@ function PlanScreen({ onBack, aiCall, profile }) {
       </div>
 
       <div style={{ background: '#1a1a1a', borderRadius: 14, padding: '12px 16px', display: 'flex', border: '1px solid #2e2e2e' }}>
-        {[{ label:'Уровень', value:levelLabel, c:'#4ade80' }, { label:'Цель', value:goalKey, c:'#38bdf8' }, { label:'Ограничения', value:injuries.length>0?'Есть':'Нет', c:injuries.length>0?'#fbbf24':'#6b7280' }].map((item, i) => (
+        {[{ label:'Уровень', value:levelLabel, c:'#4ade80' }, { label:'Цель', value:goalKey, c:'#38bdf8' }, { label:'Ограничения', value:hasLimitations?'Есть':'Нет', c:hasLimitations?'#fbbf24':'#6b7280' }].map((item, i) => (
           <div key={i} style={{ flex: 1, padding:'4px 8px', borderRight: i<2?'1px solid #2e2e2e':'none' }}>
             <div style={{ fontSize: 10, color:'#6b7280', marginBottom:3, textTransform:'uppercase' }}>{item.label}</div>
             <div style={{ fontSize:12, color:item.c, fontWeight:600, textTransform:'capitalize' }}>{item.value}</div>
@@ -1147,7 +1138,7 @@ function PlanScreen({ onBack, aiCall, profile }) {
         <div style={{ background:'#1a1a1a', borderRadius:20, padding:28, display:'flex', flexDirection:'column', alignItems:'center', gap:16, textAlign:'center', border:'1px solid #2e2e2e' }}>
           <div style={{ fontSize:48 }}>✦</div>
           <div style={{ fontSize:16, fontWeight:700 }}>AI составит план под тебя</div>
-          <div style={{ fontSize:13, color:'#6b7280', lineHeight:1.6 }}>Профессиональный тренер анализирует уровень, цель, сплит и ограничения</div>
+          <div style={{ fontSize:13, color:'#6b7280', lineHeight:1.6 }}>Учитывает уровень, цель, сплит{hasLimitations ? ' и ваши ограничения/травмы' : ''}</div>
           {error && <div style={{ fontSize:13, color:'#f87171', background:'rgba(248,113,113,0.1)', padding:'10px 16px', borderRadius:10, width:'100%' }}>{error}</div>}
           <button onClick={generatePlan} style={{ background:'#4ade80', color:'#000', border:'none', borderRadius:14, padding:'14px 28px', fontSize:15, fontWeight:700, cursor:'pointer', textTransform:'uppercase', letterSpacing:0.5 }}>Создать план</button>
         </div>
@@ -1206,6 +1197,13 @@ function PlanScreen({ onBack, aiCall, profile }) {
                         </div>
                       )
                     })}
+                    {/* Кнопка "Начать тренировку" — переносит упражнения в builder */}
+                    <div style={{ padding: '12px 16px', borderTop: '1px solid #2a2a2a', background: '#161616' }}>
+                      <button onClick={() => onStartWorkout && onStartWorkout(day)}
+                        style={{ width: '100%', background: '#4ade80', color: '#000', border: 'none', borderRadius: 12, padding: '12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        <Play size={14} /> Начать тренировку
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1234,12 +1232,22 @@ const LEVEL_LABELS = { beginner:'Новичок', amateur:'Любитель', ad
 const GOAL_LABELS  = { weight_loss:'Похудение', muscle_gain:'Набор массы', maintenance:'Поддержание', endurance:'Выносливость', strength:'Сила', health:'Здоровье' }
 const ACTIVITY_LABELS = { sedentary:'Сидячий', light:'Лёгкая', moderate:'Умеренная', active:'Высокая', very_active:'Очень высокая' }
 
-function ProfileScreen({ profile, saveProfile, signOut }) {
+function ProfileScreen({ profile, saveProfile, signOut, aiCall }) {
   const [section, setSection] = useState('plan')
-  const [form, setForm] = useState({ age:profile?.age||'', weight:profile?.weight||'', height:profile?.height||'', gender:profile?.gender||'male', activity:profile?.activity||'moderate', level:profile?.level||'amateur', goals:profile?.goals||[], calorieGoal:profile?.calorieGoal||'', proteinGoal:profile?.proteinGoal||'', fatGoal:profile?.fatGoal||'', carbGoal:profile?.carbGoal||'' })
+  const [form, setForm] = useState({
+    age:profile?.age||'', weight:profile?.weight||'', height:profile?.height||'',
+    gender:profile?.gender||'male', activity:profile?.activity||'moderate',
+    level:profile?.level||'amateur', goals:profile?.goals||[],
+    calorieGoal:profile?.calorieGoal||'', proteinGoal:profile?.proteinGoal||'',
+    fatGoal:profile?.fatGoal||'', carbGoal:profile?.carbGoal||'',
+    limitationsText: profile?.limitationsText || '',
+    aiAnalysis: profile?.aiAnalysis || '',
+  })
   const [saved, setSaved] = useState(false)
   const [cacheCount, setCacheCount] = useState(() => getCachedFoods().length)
   const [cacheCleared, setCacheCleared] = useState(false)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [analyzeError, setAnalyzeError] = useState(null)
 
   const toggleGoal = g => setForm(f => ({ ...f, goals: f.goals.includes(g) ? f.goals.filter(x => x!==g) : [...f.goals, g] }))
 
@@ -1249,6 +1257,40 @@ function ProfileScreen({ profile, saveProfile, signOut }) {
       setCacheCount(0)
       setCacheCleared(true)
       setTimeout(() => setCacheCleared(false), 2000)
+    }
+  }
+
+  const runAIAnalysis = async () => {
+    if (!form.limitationsText.trim()) {
+      setAnalyzeError('Сначала опишите ограничения')
+      return
+    }
+    setAnalyzing(true)
+    setAnalyzeError(null)
+    try {
+      const prompt = `Ты — спортивный врач и реабилитолог. Пользователь описал свои ограничения здоровья:
+
+"${form.limitationsText}"
+
+Дай краткий анализ (3-5 предложений) на русском:
+1. Какие виды нагрузок ОПАСНЫ при этом состоянии (что исключить)
+2. Какие упражнения БЕЗОПАСНЫ и рекомендуются
+3. Общие рекомендации по тренировкам
+
+Ответь простым текстом без markdown, без заголовков, в одном абзаце. Конкретно и по делу.`
+
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 30000))
+      const reply = await Promise.race([
+        aiCall([{ role: 'user', content: prompt }], 800),
+        timeoutPromise
+      ])
+
+      const cleaned = reply.replace(/```/g, '').trim()
+      setForm(f => ({ ...f, aiAnalysis: cleaned }))
+    } catch (e) {
+      setAnalyzeError(e.message === 'TIMEOUT' ? 'AI долго отвечает, попробуй ещё раз' : 'Ошибка анализа, попробуй ещё раз')
+    } finally {
+      setAnalyzing(false)
     }
   }
 
@@ -1282,8 +1324,8 @@ function ProfileScreen({ profile, saveProfile, signOut }) {
         </button>
       </div>
       <div style={{ display:'flex', background:'#1a1a1a', borderRadius:12, padding:4, gap:4, border:'1px solid #2e2e2e' }}>
-        {[['plan','Мой план'],['profile','Профиль'],['settings','Настройки']].map(([k,v]) => (
-          <button key={k} onClick={() => setSection(k)} style={{ flex:1, padding:'9px', borderRadius:9, border:'none', cursor:'pointer', fontSize:13, fontWeight:500, background:section===k?'#4ade80':'transparent', color:section===k?'#000':'#6b7280' }}>{v}</button>
+        {[['plan','План'],['profile','Профиль'],['health','Здоровье'],['settings','Настройки']].map(([k,v]) => (
+          <button key={k} onClick={() => setSection(k)} style={{ flex:1, padding:'9px 4px', borderRadius:9, border:'none', cursor:'pointer', fontSize:12, fontWeight:500, background:section===k?'#4ade80':'transparent', color:section===k?'#000':'#6b7280' }}>{v}</button>
         ))}
       </div>
 
@@ -1329,6 +1371,66 @@ function ProfileScreen({ profile, saveProfile, signOut }) {
               {Object.entries(ACTIVITY_LABELS).map(([v,l]) => <option key={v} value={v} style={{ background:'#222' }}>{l}</option>)}
             </select>
           </div>
+          {profile?.bmi && (
+            <div style={{ background:'rgba(74,222,128,0.05)', borderRadius:14, padding:'14px 16px', border:'1px solid rgba(74,222,128,0.2)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+              <span style={{ fontSize:14, color:'#9ca3af' }}>ИМТ</span>
+              <span style={{ fontSize:14, fontWeight:700, color:'#4ade80' }}>{profile.bmi}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {section === 'health' && (
+        <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+          <div style={{ background:'#1a1a1a', borderRadius:16, padding:16, border:'1px solid #2e2e2e' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+              <AlertTriangle size={16} color="#fbbf24" />
+              <div style={{ fontSize:14, fontWeight:600 }}>Ограничения и травмы</div>
+            </div>
+            <div style={{ fontSize:12, color:'#6b7280', marginBottom:10, lineHeight:1.5 }}>
+              Опиши состояния, травмы и ограничения. AI учтёт их при составлении плана тренировок.
+            </div>
+            <textarea
+              style={{ ...inp, resize:'none', minHeight:90, lineHeight:1.5, fontSize:14 }}
+              placeholder="Например: коксартроз правого ТБС 2 степени, грыжа L4-L5, проблемы с коленями"
+              value={form.limitationsText}
+              onChange={e => setForm(f => ({ ...f, limitationsText: e.target.value }))}
+              rows={4}
+            />
+            <button
+              onClick={runAIAnalysis}
+              disabled={analyzing || !form.limitationsText.trim()}
+              style={{
+                marginTop:10, width:'100%', background:'#4ade80', color:'#000', border:'none',
+                borderRadius:12, padding:'12px', fontSize:13, fontWeight:700, cursor:'pointer',
+                opacity: analyzing || !form.limitationsText.trim() ? 0.5 : 1,
+                display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                textTransform:'uppercase', letterSpacing:0.5
+              }}>
+              <Sparkles size={14} />
+              {analyzing ? 'Анализирую...' : 'Получить AI-анализ'}
+            </button>
+            {analyzeError && (
+              <div style={{ marginTop:8, fontSize:12, color:'#f87171', background:'rgba(248,113,113,0.1)', padding:'8px 12px', borderRadius:8 }}>
+                {analyzeError}
+              </div>
+            )}
+          </div>
+
+          {form.aiAnalysis && (
+            <div style={{ background:'rgba(74,222,128,0.05)', borderRadius:16, padding:16, border:'1px solid rgba(74,222,128,0.25)' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+                <Sparkles size={16} color="#4ade80" />
+                <div style={{ fontSize:13, fontWeight:600, color:'#4ade80' }}>AI-анализ</div>
+              </div>
+              <div style={{ fontSize:13, color:'#d1d5db', lineHeight:1.6, whiteSpace:'pre-wrap' }}>
+                {form.aiAnalysis}
+              </div>
+              <div style={{ marginTop:10, fontSize:11, color:'#6b7280', fontStyle:'italic' }}>
+                Эти данные будут учтены при генерации AI-плана тренировок
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1355,9 +1457,6 @@ function ProfileScreen({ profile, saveProfile, signOut }) {
                 style={{ padding:'8px 14px', borderRadius:10, background: cacheCleared ? '#22c55e' : 'rgba(239,68,68,0.1)', border:`1px solid ${cacheCleared ? '#22c55e' : 'rgba(239,68,68,0.3)'}`, color: cacheCleared ? '#000' : '#ef4444', cursor:'pointer', fontSize:12, fontWeight:600, opacity: cacheCount === 0 ? 0.4 : 1 }}>
                 {cacheCleared ? '✓ Очищено' : 'Очистить'}
               </button>
-            </div>
-            <div style={{ fontSize:11, color:'#6b7280', lineHeight:1.4 }}>
-              Удаляет все продукты, которые AI распознал и сохранил для быстрого поиска
             </div>
           </div>
         </div>
@@ -1397,22 +1496,23 @@ export default function DashboardPage() {
     }
   }
 
+  // Новый порядок: Главная → Питание → Тренировки → Прогресс → Профиль
   const tabs = [
     { id:'home',     label:'Главная',    Icon:NavHome },
+    { id:'food',     label:'Питание',    Icon:NavFood },
     { id:'workout',  label:'Тренировки', Icon:NavWorkout },
     { id:'analysis', label:'Прогресс',   Icon:NavProgress },
-    { id:'food',     label:'Питание',    Icon:NavFood },
     { id:'profile',  label:'Профиль',    Icon:NavUser },
   ]
 
   return (
     <div className={styles.page}>
       <div className={styles.content}>
-        {tab === 'home'     && <HomeScreen     state={state} dispatch={dispatch} goTo={setTab} aiCall={aiCall} name={name} />}
+        {tab === 'home'     && <HomeScreen     state={state} dispatch={dispatch} goTo={setTab} name={name} />}
         {tab === 'food'     && <FoodScreen     state={state} dispatch={dispatch} aiCall={aiCall} />}
         {tab === 'analysis' && <ProgressScreen state={state} />}
         {tab === 'workout'  && <WorkoutScreen  state={state} dispatch={dispatch} aiCall={aiCall} />}
-        {tab === 'profile'  && <ProfileScreen  profile={profile} saveProfile={saveProfile} signOut={signOut} />}
+        {tab === 'profile'  && <ProfileScreen  profile={profile} saveProfile={saveProfile} signOut={signOut} aiCall={aiCall} />}
       </div>
       <div style={{ display:'flex', borderTop:'1px solid #1e1e1e', background:'#111', paddingBottom:'env(safe-area-inset-bottom, 0px)', flexShrink:0 }}>
         {tabs.map(({ id, label, Icon }) => {
