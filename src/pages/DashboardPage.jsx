@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from '../store'
-import { searchFood } from '../data/foodDatabase'
-import { saveCachedFood } from '../data/userFoodCache'
-import { LogOut, Camera, Bell, ChevronRight, Plus, Check, X, ChevronLeft, Play, Pause, SkipForward, Flame, Droplets, Dumbbell, TrendingUp, Award } from 'lucide-react'
+import { searchFoodSmart } from '../data/searchUtils'
+import { saveCachedFood, getCachedFoods, clearCachedFoods } from '../data/userFoodCache'
+import { LogOut, Camera, Bell, ChevronRight, Plus, Check, X, ChevronLeft, Play, Pause, SkipForward, Flame, Droplets, Dumbbell, TrendingUp, Award, Edit2, Trash2 } from 'lucide-react'
 import styles from './DashboardPage.module.css'
 import { normReps, normalizePlan, clearOldPlans } from './planUtils'
 
@@ -25,10 +25,7 @@ function NavUser({ color, size }) {
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
-function fmtTime(s) {
-  const m = Math.floor(s / 60), sec = s % 60
-  return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
-}
+function fmtTime(s) { const m = Math.floor(s / 60), sec = s % 60; return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` }
 function fmtTimeLong(s) {
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60
   if (h > 0) return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`
@@ -67,10 +64,8 @@ function CircularProgress({ value, max, size = 120, stroke = 10, color = '#4ade8
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#2a2a2a" strokeWidth={stroke} />
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color}
-          strokeWidth={stroke} strokeLinecap="round"
-          strokeDasharray={`${dash} ${circ - dash}`}
-          style={{ transition: 'stroke-dasharray 0.8s ease' }} />
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round"
+          strokeDasharray={`${dash} ${circ - dash}`} style={{ transition: 'stroke-dasharray 0.8s ease' }} />
       </svg>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         {children}
@@ -79,33 +74,70 @@ function CircularProgress({ value, max, size = 120, stroke = 10, color = '#4ade8
   )
 }
 
-// ─── SWIPE ROW ────────────────────────────────────────────────────────────────
-function SwipeRow({ children, onDelete }) {
-  const [offset, setOffset] = useState(0)
-  const startX = useRef(null)
-  const dragging = useRef(false)
-  const ACTION_W = 80
-  const onTouchStart = e => { startX.current = e.touches[0].clientX; dragging.current = true }
-  const onTouchMove = e => {
-    if (!dragging.current) return
-    const dx = e.touches[0].clientX - startX.current
-    if (dx < 0) setOffset(Math.max(dx, -ACTION_W))
-    else if (offset < 0) setOffset(Math.min(0, offset + dx))
-  }
-  const onTouchEnd = () => { dragging.current = false; setOffset(o => Math.abs(o) > ACTION_W / 2 ? -ACTION_W : 0) }
-  return (
-    <div style={{ position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: ACTION_W, background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 0 }}>
-        <button onClick={() => { onDelete(); setOffset(0) }} style={{ width: '100%', height: '100%', background: 'none', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
-          <svg width={16} height={16} viewBox="0 0 24 24" fill="none"><polyline points="3,6 5,6 21,6" stroke="#fff" strokeWidth="2" strokeLinecap="round" /><path d="M19 6l-1 14H6L5 6" stroke="#fff" strokeWidth="2" strokeLinecap="round" /></svg>
-          Удалить
-        </button>
+// ─── EDIT FOOD MODAL ─────────────────────────────────────────────────────────
+function EditFoodModal({ food, onSave, onClose }) {
+  const [name, setName] = useState(food.name)
+  const [weight, setWeight] = useState(String(food.weight || 100))
+  const [meal, setMeal] = useState(food.meal || 'breakfast')
+
+  // Считаем БЖУ за 100г из текущих значений
+  const w = food.weight || 100
+  const cal100 = w ? (food.calories||0) * 100 / w : 0
+  const prot100 = w ? (food.protein||0) * 100 / w : 0
+  const fat100 = w ? (food.fat||0) * 100 / w : 0
+  const carbs100 = w ? (food.carbs||0) * 100 / w : 0
+
+  const newW = parseFloat(weight) || 100
+  const inp = { padding:'10px 14px', background:'#222', border:'1px solid #2e2e2e', borderRadius:10, color:'#f5f5f5', fontSize:14, outline:'none', boxSizing:'border-box', width:'100%' }
+  const MEALS = { breakfast:'🌅 Завтрак', lunch:'☀️ Обед', dinner:'🌙 Ужин', snack:'🍎 Перекус' }
+
+  return createPortal(
+    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', zIndex:600, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:'#1a1a1a', borderRadius:'20px 20px 0 0', padding:24, width:'100%', maxWidth:500, maxHeight:'80vh', overflowY:'auto' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:18 }}>
+          <span style={{ fontSize:17, fontWeight:700 }}>Редактировать</span>
+          <button onClick={onClose} style={{ width:32, height:32, borderRadius:8, background:'#222', border:'none', color:'#9ca3af', cursor:'pointer', fontSize:18 }}>×</button>
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+          <div>
+            <div style={{ fontSize:11, color:'#6b7280', marginBottom:5, textTransform:'uppercase', letterSpacing:0.5 }}>Название</div>
+            <input style={inp} value={name} onChange={e => setName(e.target.value)} />
+          </div>
+          <div>
+            <div style={{ fontSize:11, color:'#6b7280', marginBottom:5, textTransform:'uppercase', letterSpacing:0.5 }}>Вес (г)</div>
+            <input style={inp} type="number" value={weight} onChange={e => setWeight(e.target.value)} />
+          </div>
+          <div>
+            <div style={{ fontSize:11, color:'#6b7280', marginBottom:5, textTransform:'uppercase', letterSpacing:0.5 }}>Приём пищи</div>
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+              {Object.entries(MEALS).map(([k,v]) => (
+                <button key={k} onClick={() => setMeal(k)} style={{ padding:'8px 12px', borderRadius:8, border:`1px solid ${meal===k?'#4ade80':'#2e2e2e'}`, background:meal===k?'rgba(74,222,128,0.1)':'#222', color:meal===k?'#4ade80':'#9ca3af', cursor:'pointer', fontSize:12 }}>{v}</button>
+              ))}
+            </div>
+          </div>
+          <div style={{ background:'#222', borderRadius:10, padding:'12px 14px' }}>
+            <div style={{ fontSize:11, color:'#6b7280', marginBottom:6, textTransform:'uppercase', letterSpacing:0.5 }}>Расчёт за {newW}г</div>
+            <div style={{ fontFamily:'var(--mono)', fontSize:13, color:'#9ca3af' }}>
+              <span style={{ color:'#4ade80', fontWeight:700 }}>{Math.round(cal100*newW/100)} ккал</span>
+              {' · '}
+              Б{Math.round(prot100*newW/100)} Ж{Math.round(fat100*newW/100)} У{Math.round(carbs100*newW/100)}
+            </div>
+          </div>
+          <button onClick={() => onSave({
+            ...food,
+            name: name.trim() || food.name,
+            weight: newW,
+            meal,
+            calories: cal100*newW/100,
+            protein: prot100*newW/100,
+            fat: fat100*newW/100,
+            carbs: carbs100*newW/100,
+          })} style={{ background:'#4ade80', color:'#000', border:'none', borderRadius:12, padding:'13px', fontSize:14, fontWeight:700, cursor:'pointer', textTransform:'uppercase', letterSpacing:0.5, marginTop:6 }}>
+            Сохранить
+          </button>
+        </div>
       </div>
-      <div style={{ transform: `translateX(${offset}px)`, transition: dragging.current ? 'none' : 'transform 0.22s ease', position: 'relative', zIndex: 1 }}
-        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
-        {children}
-      </div>
-    </div>
+    </div>, document.body
   )
 }
 
@@ -131,10 +163,8 @@ function HomeScreen({ state, dispatch, goTo, aiCall, name }) {
           <Bell size={18} color="#9ca3af" />
         </button>
       </div>
-
       {entry.workouts?.length > 0 ? (
-        <div style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #222 100%)', borderRadius: 20, padding: 20, border: '1px solid #2e2e2e', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: 0, right: 0, width: 120, height: 120, background: 'radial-gradient(circle, rgba(74,222,128,0.08) 0%, transparent 70%)' }} />
+        <div style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #222 100%)', borderRadius: 20, padding: 20, border: '1px solid #2e2e2e' }}>
           <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>Последняя тренировка</div>
           <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>{entry.workouts[entry.workouts.length-1]?.name || 'Тренировка'}</div>
           <div style={{ fontSize: 13, color: '#9ca3af' }}>{entry.workouts[entry.workouts.length-1]?.exercises?.length || 0} упражнений · {entry.workouts[entry.workouts.length-1]?.duration || 0} мин</div>
@@ -149,7 +179,6 @@ function HomeScreen({ state, dispatch, goTo, aiCall, name }) {
           </button>
         </div>
       )}
-
       <div style={{ background: '#1a1a1a', borderRadius: 20, padding: 20, border: '1px solid #2e2e2e' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div style={{ fontSize: 15, fontWeight: 600 }}>Калории</div>
@@ -161,7 +190,7 @@ function HomeScreen({ state, dispatch, goTo, aiCall, name }) {
             <div style={{ fontSize: 10, color: '#6b7280' }}>ккал</div>
           </CircularProgress>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <div><div style={{ fontSize: 11, color: '#6b7280' }}>Съедено</div><div style={{ fontFamily: 'var(--mono)', fontSize: 16, fontWeight: 600 }}>{eaten}</div></div>
               <div style={{ textAlign: 'right' }}><div style={{ fontSize: 11, color: '#6b7280' }}>Осталось</div><div style={{ fontFamily: 'var(--mono)', fontSize: 16, fontWeight: 600, color: '#4ade80' }}>{remaining}</div></div>
             </div>
@@ -179,7 +208,6 @@ function HomeScreen({ state, dispatch, goTo, aiCall, name }) {
           </div>
         </div>
       </div>
-
       <div style={{ background: '#1a1a1a', borderRadius: 20, padding: 20, border: '1px solid #2e2e2e' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -191,7 +219,7 @@ function HomeScreen({ state, dispatch, goTo, aiCall, name }) {
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
           {Array.from({ length: water.goal }).map((_, i) => (
             <button key={i} onClick={() => dispatch({ type: 'SET_WATER', val: i < water.consumed ? i : i + 1 })}
-              style={{ width: 36, height: 36, borderRadius: 10, border: `2px solid ${i < water.consumed ? '#38bdf8' : '#2e2e2e'}`, background: i < water.consumed ? 'rgba(56,189,248,0.15)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+              style={{ width: 36, height: 36, borderRadius: 10, border: `2px solid ${i < water.consumed ? '#38bdf8' : '#2e2e2e'}`, background: i < water.consumed ? 'rgba(56,189,248,0.15)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Droplets size={14} color={i < water.consumed ? '#38bdf8' : '#4b5563'} />
             </button>
           ))}
@@ -199,43 +227,23 @@ function HomeScreen({ state, dispatch, goTo, aiCall, name }) {
         <div style={{ height: 3, background: '#2a2a2a', borderRadius: 99 }}>
           <div style={{ height: '100%', background: '#38bdf8', borderRadius: 99, width: `${water.consumed / water.goal * 100}%`, transition: 'width 0.4s' }} />
         </div>
-        <div style={{ marginTop: 6, fontSize: 11, color: '#6b7280' }}>{water.consumed * 250} мл из {water.goal * 250} мл</div>
       </div>
-
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <button onClick={() => goTo('food')} style={{ background: '#1a1a1a', border: '1px solid #2e2e2e', borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', gap: 8, cursor: 'pointer', textAlign: 'left' }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(74,222,128,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <button onClick={() => goTo('food')} style={{ background: '#1a1a1a', border: '1px solid #2e2e2e', borderRadius: 16, padding: 16, cursor: 'pointer', textAlign: 'left' }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(74,222,128,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
             <Flame size={18} color="#4ade80" />
           </div>
           <div style={{ fontSize: 14, fontWeight: 600 }}>Питание</div>
           <div style={{ fontSize: 12, color: '#6b7280' }}>Добавить приём</div>
         </button>
-        <button onClick={() => goTo('workout')} style={{ background: '#1a1a1a', border: '1px solid #2e2e2e', borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', gap: 8, cursor: 'pointer', textAlign: 'left' }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(74,222,128,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <button onClick={() => goTo('workout')} style={{ background: '#1a1a1a', border: '1px solid #2e2e2e', borderRadius: 16, padding: 16, cursor: 'pointer', textAlign: 'left' }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(74,222,128,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
             <Dumbbell size={18} color="#4ade80" />
           </div>
           <div style={{ fontSize: 14, fontWeight: 600 }}>Тренировка</div>
           <div style={{ fontSize: 12, color: '#6b7280' }}>Новая сессия</div>
         </button>
       </div>
-
-      {entry.foods.length > 0 && (
-        <div style={{ background: '#1a1a1a', borderRadius: 20, padding: 20, border: '1px solid #2e2e2e' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <div style={{ fontSize: 15, fontWeight: 600 }}>Последние приёмы</div>
-            <button onClick={() => goTo('food')} style={{ fontSize: 13, color: '#4ade80', background: 'none', border: 'none', cursor: 'pointer' }}>Все →</button>
-          </div>
-          {entry.foods.slice(-3).reverse().map(f => (
-            <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #2a2a2a' }}>
-              <div>
-                <div style={{ fontSize: 14 }}>{f.name}</div>
-                <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{f.weight || 0}г · Б{Math.round(f.protein||0)} Ж{Math.round(f.fat||0)} У{Math.round(f.carbs||0)}</div>
-              </div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 600, color: '#4ade80' }}>{Math.round(f.calories||0)}</div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
@@ -259,6 +267,7 @@ function FoodScreen({ state, dispatch, aiCall }) {
   const [aiLoading, setAiLoading] = useState(false)
   const [scanLoading, setScanLoading] = useState(false)
   const [toast, setToast] = useState(null)
+  const [editingFood, setEditingFood] = useState(null)
 
   const today = new Date().toISOString().split('T')[0]
   const entry = state.entries.find(e => e.date === today) || { date: today, foods: [], workouts: [] }
@@ -268,7 +277,7 @@ function FoodScreen({ state, dispatch, aiCall }) {
 
   const handleSearch = q => {
     setQuery(q); setSelectedFood(null)
-    if (q.length > 1) setResults(searchFood(q).slice(0, 8))
+    if (q.length > 1) setResults(searchFoodSmart(q).slice(0, 8))
     else setResults([])
   }
 
@@ -282,7 +291,6 @@ function FoodScreen({ state, dispatch, aiCall }) {
   const addManual = () => {
     if (!manual.name || !manual.cal) return
     const g = parseFloat(manual.grams) || 100
-    // Сохраняем в кэш ручные продукты тоже — пользователь чаще будет их использовать
     saveCachedFood({ name: manual.name, cal100: parseFloat(manual.cal)||0, prot100: parseFloat(manual.p)||0, fat100: parseFloat(manual.f)||0, carbs100: parseFloat(manual.c)||0 })
     dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, foods: [...entry.foods, { id: Date.now(), name: manual.name, weight: g, meal, calories: parseFloat(manual.cal)*g/100, protein: parseFloat(manual.p||0)*g/100, fat: parseFloat(manual.f||0)*g/100, carbs: parseFloat(manual.c||0)*g/100, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' }) }] } })
     showToast(manual.name + ' добавлено')
@@ -290,6 +298,12 @@ function FoodScreen({ state, dispatch, aiCall }) {
   }
 
   const removeFood = id => dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, foods: entry.foods.filter(f => f.id !== id) } })
+
+  const updateFood = (updatedFood) => {
+    dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, foods: entry.foods.map(f => f.id === updatedFood.id ? updatedFood : f) } })
+    showToast('Изменения сохранены')
+    setEditingFood(null)
+  }
 
   const handleScan = async file => {
     setScanLoading(true)
@@ -299,7 +313,6 @@ function FoodScreen({ state, dispatch, aiCall }) {
       const d = await res.json()
       if (d.name) {
         const food = { name: d.name, cal100: d.calories||0, prot100: d.protein||0, fat100: d.fat||0, carbs100: d.carbs||0 }
-        // Сохраняем распознанный продукт в кэш
         saveCachedFood(food)
         setSelectedFood(food); setQuery(d.name)
       }
@@ -315,7 +328,6 @@ function FoodScreen({ state, dispatch, aiCall }) {
       const match = reply.replace(/```json|```/g, '').trim().match(/\[[\s\S]*\]/)
       if (match) {
         const parsed = JSON.parse(match[0]).map(item => ({ food: { name: item.name, cal100: parseFloat(item.cal100)||0, prot100: parseFloat(item.prot100)||0, fat100: parseFloat(item.fat100)||0, carbs100: parseFloat(item.carbs100)||0 }, grams: parseFloat(item.grams)||100 }))
-        // Сохраняем все распознанные продукты в кэш — отдельно по БЖУ, дедупликация внутри saveCachedFood
         parsed.forEach(item => saveCachedFood(item.food))
         setAiResults(parsed)
       } else setAiResults([])
@@ -329,15 +341,12 @@ function FoodScreen({ state, dispatch, aiCall }) {
   return (
     <div>
       {toast && <div style={{ position: 'fixed', bottom: 90, left: '50%', transform: 'translateX(-50%)', background: '#4ade80', color: '#000', padding: '10px 22px', borderRadius: 50, fontSize: 13, fontWeight: 700, zIndex: 999, whiteSpace: 'nowrap' }}>{toast}</div>}
+      {editingFood && <EditFoodModal food={editingFood} onSave={updateFood} onClose={() => setEditingFood(null)} />}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
           <div style={{ fontSize: 11, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 1 }}>Питание</div>
           <div style={{ fontSize: 20, fontWeight: 700 }}>Сегодня</div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button style={{ fontSize: 20, background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer' }}>‹</button>
-          <button style={{ fontSize: 20, background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer' }}>›</button>
         </div>
       </div>
 
@@ -352,7 +361,6 @@ function FoodScreen({ state, dispatch, aiCall }) {
               <div><div style={{ fontSize: 11, color: '#6b7280' }}>Съедено</div><div style={{ fontFamily: 'var(--mono)', fontSize: 18, fontWeight: 700 }}>{Math.round(totals.cal)}</div></div>
               <div style={{ textAlign: 'right' }}><div style={{ fontSize: 11, color: '#6b7280' }}>Осталось</div><div style={{ fontFamily: 'var(--mono)', fontSize: 18, fontWeight: 700, color: '#4ade80' }}>{Math.max(0, goals.calories - Math.round(totals.cal))}</div></div>
             </div>
-            <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 8 }}>Цель: {goals.calories} ккал</div>
             <div style={{ display: 'flex', gap: 12 }}>
               {[{ l: 'Белки', v: totals.p, c: '#4ade80' }, { l: 'Жиры', v: totals.fat, c: '#fbbf24' }, { l: 'Углев.', v: totals.c, c: '#38bdf8' }].map(m => (
                 <div key={m.l} style={{ textAlign: 'center' }}>
@@ -367,7 +375,7 @@ function FoodScreen({ state, dispatch, aiCall }) {
 
       <div style={{ display: 'flex', background: '#1a1a1a', borderRadius: 12, padding: 4, gap: 4, marginBottom: 16, border: '1px solid #2e2e2e' }}>
         {[['log', 'Дневник'], ['add', 'Добавить'], ['ai', '✦ AI']].map(([k, v]) => (
-          <button key={k} onClick={() => setTab(k)} style={{ flex: 1, padding: '9px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, background: tab === k ? '#4ade80' : 'transparent', color: tab === k ? '#000' : '#6b7280', transition: 'all 0.15s' }}>{v}</button>
+          <button key={k} onClick={() => setTab(k)} style={{ flex: 1, padding: '9px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, background: tab === k ? '#4ade80' : 'transparent', color: tab === k ? '#000' : '#6b7280' }}>{v}</button>
         ))}
       </div>
 
@@ -392,18 +400,21 @@ function FoodScreen({ state, dispatch, aiCall }) {
                     <div style={{ fontSize: 11, color: '#6b7280' }}>{MEAL_TIMES[mealKey]}</div>
                   </div>
                   <div style={{ fontFamily: 'var(--mono)', fontSize: 14, color: '#4ade80', fontWeight: 600 }}>{Math.round(mCal)} ккал</div>
-                  <ChevronRight size={16} color="#4b5563" />
                 </div>
                 {items.map(item => (
-                  <SwipeRow key={item.id} onDelete={() => removeFood(item.id)}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: '#1a1a1a', borderBottom: '1px solid #222' }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14 }}>{item.name}</div>
-                        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2, fontFamily: 'var(--mono)' }}>{item.weight}г · <span style={{ color: '#4ade80' }}>Б{Math.round(item.protein||0)}</span> <span style={{ color: '#fbbf24' }}>Ж{Math.round(item.fat||0)}</span> <span style={{ color: '#38bdf8' }}>У{Math.round(item.carbs||0)}</span></div>
-                      </div>
-                      <div style={{ fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 600 }}>{Math.round(item.calories||0)}</div>
-                    </div>
-                  </SwipeRow>
+                  <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', background: '#1a1a1a', borderBottom: '1px solid #222' }}>
+                    <button onClick={() => setEditingFood(item)} style={{ flex: 1, background: 'transparent', border: 'none', textAlign: 'left', cursor: 'pointer', padding: 0 }}>
+                      <div style={{ fontSize: 14, color: '#f5f5f5' }}>{item.name}</div>
+                      <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2, fontFamily: 'var(--mono)' }}>{item.weight}г · <span style={{ color: '#4ade80' }}>Б{Math.round(item.protein||0)}</span> <span style={{ color: '#fbbf24' }}>Ж{Math.round(item.fat||0)}</span> <span style={{ color: '#38bdf8' }}>У{Math.round(item.carbs||0)}</span></div>
+                    </button>
+                    <div style={{ fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 600, marginRight: 4 }}>{Math.round(item.calories||0)}</div>
+                    <button onClick={() => setEditingFood(item)} style={{ width: 30, height: 30, borderRadius: 8, background: '#222', border: '1px solid #2e2e2e', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Редактировать">
+                      <Edit2 size={13} color="#9ca3af" />
+                    </button>
+                    <button onClick={() => removeFood(item.id)} style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Удалить">
+                      <Trash2 size={13} color="#ef4444" />
+                    </button>
+                  </div>
                 ))}
               </div>
             )
@@ -463,7 +474,7 @@ function FoodScreen({ state, dispatch, aiCall }) {
                     <span style={{ color: '#6b7280', fontSize: 13 }}>г</span>
                   </div>
                   <div style={{ fontFamily: 'var(--mono)', fontSize: 13, color: '#9ca3af' }}>
-                    {Math.round((selectedFood.cal100||0)*(parseFloat(grams)||100)/100)} ккал · Б{Math.round((selectedFood.prot100||0)*(parseFloat(grams)||100)/100)}г
+                    {Math.round((selectedFood.cal100||0)*(parseFloat(grams)||100)/100)} ккал
                   </div>
                   <button onClick={() => addFoodItem(selectedFood, grams)} style={{ background: '#4ade80', color: '#000', border: 'none', borderRadius: 12, padding: '13px', fontSize: 14, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}>Добавить</button>
                 </div>
@@ -569,51 +580,23 @@ function ProgressScreen({ state }) {
         ))}
       </div>
       <div style={{ background: '#1a1a1a', borderRadius: 20, padding: 20, border: '1px solid #2e2e2e' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div style={{ fontSize: 15, fontWeight: 600 }}>Калории за неделю</div>
-          <div style={{ fontSize: 11, padding: '4px 10px', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 50, color: '#4ade80' }}>Цель 2200</div>
-        </div>
+        <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>Калории за неделю</div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 120 }}>
           {weekData.map((d, i) => (
             <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, height: '100%', justifyContent: 'flex-end' }}>
-              <div style={{ width: '100%', position: 'relative', flex: 1, display: 'flex', alignItems: 'flex-end' }}>
-                <div style={{ position: 'absolute', bottom: `${(2200/maxCal)*100}%`, left: '-2px', right: '-2px', height: 1, borderTop: '1px dashed rgba(74,222,128,0.3)' }} />
-                <div style={{ width: '100%', borderRadius: '6px 6px 0 0', height: `${Math.max((d.cal/maxCal)*100, 2)}%`, background: d.isToday ? '#4ade80' : 'rgba(74,222,128,0.25)', transition: 'height 0.6s' }} />
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'flex-end' }}>
+                <div style={{ width: '100%', borderRadius: '6px 6px 0 0', height: `${Math.max((d.cal/maxCal)*100, 2)}%`, background: d.isToday ? '#4ade80' : 'rgba(74,222,128,0.25)' }} />
               </div>
               <div style={{ fontSize: 11, color: d.isToday ? '#4ade80' : '#6b7280', fontWeight: d.isToday ? 700 : 400 }}>{d.day}</div>
             </div>
           ))}
         </div>
       </div>
-      <div style={{ background: '#1a1a1a', borderRadius: 20, padding: 20, border: '1px solid #2e2e2e' }}>
-        <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>История тренировок</div>
-        {state.entries.flatMap(e => (e.workouts||[]).map(w => ({ ...w, entryDate: e.date }))).sort((a,b) => b.entryDate.localeCompare(a.entryDate)).slice(0, 5).map((w, i) => (
-          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #222' }}>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 500 }}>{w.name || w.type}</div>
-              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{w.entryDate} · {w.duration} мин</div>
-            </div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 600, color: '#4ade80' }}>{w.caloriesBurned} ккал</div>
-          </div>
-        ))}
-        {state.entries.flatMap(e => e.workouts||[]).length === 0 && (
-          <div style={{ textAlign: 'center', padding: '20px 0', color: '#6b7280', fontSize: 14 }}>Тренировок пока нет</div>
-        )}
-      </div>
-      <div style={{ background: '#1a1a1a', borderRadius: 20, padding: 20, border: '1px solid #2e2e2e' }}>
-        <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 14 }}>Тренды</div>
-        {[{ l: 'Силовые показатели', v: '+12%', c: '#4ade80' }, { l: 'Объём тренировок', v: '+8%', c: '#4ade80' }, { l: 'Среднее КБЖУ', v: '±5%', c: '#fbbf24' }].map(t => (
-          <div key={t.l} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #222' }}>
-            <div style={{ fontSize: 14 }}>{t.l}</div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 15, fontWeight: 700, color: t.c }}>{t.v}</div>
-          </div>
-        ))}
-      </div>
     </div>
   )
 }
 
-// ─── REST TIMER (FIXED: пустой массив зависимостей) ───────────────────────────
+// ─── REST TIMER ──────────────────────────────────────────────────────────────
 function RestTimer({ duration = 90, onClose, exerciseName, setInfo }) {
   const [remaining, setRemaining] = useState(duration)
   const ref = useRef(null)
@@ -639,46 +622,23 @@ function RestTimer({ duration = 90, onClose, exerciseName, setInfo }) {
           <div style={{ fontFamily: 'var(--mono)', fontSize: 48, fontWeight: 700, color: remaining > 0 ? '#f5f5f5' : '#4ade80' }}>
             {String(Math.floor(remaining/60)).padStart(2,'0')}:{String(remaining%60).padStart(2,'0')}
           </div>
-          <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>из {String(Math.floor(duration/60)).padStart(2,'0')}:{String(duration%60).padStart(2,'0')}</div>
         </div>
       </div>
-      {exerciseName && (
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>{exerciseName}</div>
-          {setInfo && <div style={{ fontSize: 13, color: '#6b7280' }}>{setInfo}</div>}
-        </div>
-      )}
-      <button onClick={onClose} style={{ background: '#222', color: '#f5f5f5', border: '1px solid #2e2e2e', borderRadius: 14, padding: '14px 28px', fontSize: 14, fontWeight: 600, cursor: 'pointer', letterSpacing: 0.5, textTransform: 'uppercase' }}>
-        Пропустить отдых
-      </button>
+      {exerciseName && <div style={{ textAlign: 'center' }}><div style={{ fontSize: 16, fontWeight: 600 }}>{exerciseName}</div>{setInfo && <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>{setInfo}</div>}</div>}
+      <button onClick={onClose} style={{ background: '#222', color: '#f5f5f5', border: '1px solid #2e2e2e', borderRadius: 14, padding: '14px 28px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Пропустить</button>
     </div>, document.body
   )
 }
 
-// ─── WORKOUT COMPLETE (FIXED: useMemo для конфетти) ───────────────────────────
+// ─── WORKOUT COMPLETE ─────────────────────────────────────────────────────────
 function WorkoutComplete({ workout, duration, onSave }) {
   const [feeling, setFeeling] = useState(null)
-  const [hadPain, setHadPain] = useState(null)
   const [comment, setComment] = useState('')
   const totalSets = workout.exercises.reduce((a, e) => a + e.sets.length, 0)
-  const confetti = useMemo(() =>
-    Array.from({ length: 20 }).map((_, i) => ({
-      left: `${5 + Math.random() * 90}%`,
-      top: `${Math.random() * 60}px`,
-      color: ['#4ade80','#fbbf24','#38bdf8','#f87171','#a78bfa'][i % 5],
-      dur: `${(0.8 + Math.random()).toFixed(2)}s`,
-      delay: `${(i * 0.05).toFixed(2)}s`,
-    }))
-  , [])
   return createPortal(
     <div style={{ position: 'fixed', inset: 0, background: '#0e0e0e', zIndex: 500, overflow: 'auto', padding: '24px 20px 40px' }}>
       <div style={{ textAlign: 'center', padding: '30px 0 20px' }}>
-        <div style={{ position: 'relative', height: 60, marginBottom: 10 }}>
-          {confetti.map((c, i) => (
-            <div key={i} style={{ position: 'absolute', left: c.left, top: c.top, width: 6, height: 6, borderRadius: '50%', background: c.color, animation: `confetti ${c.dur} ease ${c.delay} both` }} />
-          ))}
-        </div>
-        <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#4ade80', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 0 30px rgba(74,222,128,0.4)' }}>
+        <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#4ade80', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
           <Check size={32} color="#000" />
         </div>
         <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 6 }}>Тренировка завершена!</div>
@@ -691,77 +651,57 @@ function WorkoutComplete({ workout, duration, onSave }) {
           </div>
         ))}
       </div>
-      <div style={{ background: '#1a1a1a', borderRadius: 20, padding: 20, border: '1px solid #2e2e2e', marginBottom: 14 }}>
+      <div style={{ background: '#1a1a1a', borderRadius: 20, padding: 20, marginBottom: 14 }}>
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Как прошла тренировка?</div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-          {[['😊', 'Легко'], ['😐', 'Нормально'], ['😤', 'Тяжело'], ['🥵', 'Очень тяжело']].map(([emoji, label]) => (
-            <button key={label} onClick={() => setFeeling(label)}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px', borderRadius: 12, border: `1px solid ${feeling === label ? '#4ade80' : '#2e2e2e'}`, background: feeling === label ? 'rgba(74,222,128,0.1)' : '#222', cursor: 'pointer' }}>
+          {[['😊', 'Легко'], ['😐', 'Норм'], ['😤', 'Тяжело'], ['🥵', 'Очень']].map(([emoji, label]) => (
+            <button key={label} onClick={() => setFeeling(label)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px', borderRadius: 12, border: `1px solid ${feeling === label ? '#4ade80' : '#2e2e2e'}`, background: feeling === label ? 'rgba(74,222,128,0.1)' : '#222', cursor: 'pointer' }}>
               <span style={{ fontSize: 24 }}>{emoji}</span>
-              <span style={{ fontSize: 10, color: feeling === label ? '#4ade80' : '#6b7280', whiteSpace: 'nowrap' }}>{label}</span>
+              <span style={{ fontSize: 10, color: feeling === label ? '#4ade80' : '#6b7280' }}>{label}</span>
             </button>
           ))}
         </div>
       </div>
-      <div style={{ background: '#1a1a1a', borderRadius: 20, padding: 20, border: '1px solid #2e2e2e', marginBottom: 14 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Была боль?</div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          {['Да', 'Нет'].map(v => (
-            <button key={v} onClick={() => setHadPain(v === 'Да')}
-              style={{ flex: 1, padding: '12px', borderRadius: 12, border: `1px solid ${hadPain === (v==='Да') ? '#4ade80' : '#2e2e2e'}`, background: hadPain === (v==='Да') ? 'rgba(74,222,128,0.1)' : '#222', color: hadPain === (v==='Да') ? '#4ade80' : '#9ca3af', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>{v}</button>
-          ))}
-        </div>
-      </div>
-      <div style={{ background: '#1a1a1a', borderRadius: 20, padding: 20, border: '1px solid #2e2e2e', marginBottom: 20 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>Комментарий (необязательно)</div>
-        <textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Как всё прошло?" rows={3}
-          style={{ width: '100%', background: '#222', border: '1px solid #2e2e2e', borderRadius: 10, padding: '12px', color: '#f5f5f5', fontSize: 14, resize: 'none', outline: 'none' }} />
-      </div>
-      <button onClick={() => onSave({ feeling, hadPain, comment })}
-        style={{ background: '#4ade80', color: '#000', border: 'none', borderRadius: 14, padding: '16px', fontSize: 15, fontWeight: 700, width: '100%', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 1 }}>
-        Сохранить
-      </button>
+      <button onClick={() => onSave({ feeling, comment })} style={{ background: '#4ade80', color: '#000', border: 'none', borderRadius: 14, padding: '16px', fontSize: 15, fontWeight: 700, width: '100%', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 1 }}>Сохранить</button>
     </div>, document.body
   )
 }
 
 // ─── EXERCISE DB ─────────────────────────────────────────────────────────────
 const EXERCISE_DB = [
-  { id:1,  name:'Жим штанги лёжа',           muscle:'Грудь',    type:'compound' },
-  { id:2,  name:'Жим гантелей лёжа',          muscle:'Грудь',    type:'compound' },
-  { id:3,  name:'Жим штанги на наклонной',    muscle:'Грудь',    type:'compound' },
-  { id:4,  name:'Разводка гантелей лёжа',     muscle:'Грудь',    type:'isolation' },
-  { id:5,  name:'Кроссовер в блоке',          muscle:'Грудь',    type:'isolation' },
-  { id:6,  name:'Отжимания от пола',          muscle:'Грудь',    type:'compound' },
-  { id:7,  name:'Отжимания на брусьях',       muscle:'Грудь',    type:'compound' },
-  { id:8,  name:'Тяга верхнего блока',        muscle:'Спина',    type:'compound' },
-  { id:9,  name:'Тяга горизонтального блока', muscle:'Спина',    type:'compound' },
-  { id:10, name:'Тяга штанги в наклоне',      muscle:'Спина',    type:'compound' },
-  { id:11, name:'Тяга гантели одной рукой',   muscle:'Спина',    type:'compound' },
-  { id:12, name:'Подтягивания',               muscle:'Спина',    type:'compound' },
-  { id:13, name:'Гиперэкстензия',             muscle:'Спина',    type:'isolation' },
-  { id:14, name:'Приседания со штангой',      muscle:'Ноги',     type:'compound' },
-  { id:15, name:'Жим ногами в тренажёре',     muscle:'Ноги',     type:'compound' },
-  { id:16, name:'Разгибание ног',             muscle:'Ноги',     type:'isolation' },
-  { id:17, name:'Сгибание ног',               muscle:'Ноги',     type:'isolation' },
-  { id:18, name:'Выпады с гантелями',         muscle:'Ноги',     type:'compound' },
-  { id:19, name:'Румынская тяга',             muscle:'Ноги',     type:'compound' },
-  { id:20, name:'Подъём на икры стоя',        muscle:'Ноги',     type:'isolation' },
-  { id:21, name:'Жим гантелей сидя',          muscle:'Плечи',    type:'compound' },
-  { id:22, name:'Жим штанги сидя',            muscle:'Плечи',    type:'compound' },
-  { id:23, name:'Махи гантелями в стороны',   muscle:'Плечи',    type:'isolation' },
-  { id:24, name:'Тяга к подбородку',          muscle:'Плечи',    type:'compound' },
-  { id:25, name:'Разгибания на блоке',        muscle:'Трицепс',  type:'isolation' },
-  { id:26, name:'Французский жим лёжа',       muscle:'Трицепс',  type:'isolation' },
-  { id:27, name:'Жим узким хватом',           muscle:'Трицепс',  type:'compound' },
-  { id:28, name:'Подъём штанги на бицепс',    muscle:'Бицепс',   type:'isolation' },
-  { id:29, name:'Подъём гантелей на бицепс',  muscle:'Бицепс',   type:'isolation' },
-  { id:30, name:'Молотки с гантелями',        muscle:'Бицепс',   type:'isolation' },
-  { id:31, name:'Планка',                     muscle:'Кор',      type:'isolation' },
-  { id:32, name:'Скручивания',                muscle:'Кор',      type:'isolation' },
-  { id:33, name:'Подъём ног лёжа',            muscle:'Кор',      type:'isolation' },
-  { id:34, name:'Бег',                        muscle:'Кардио',   type:'cardio' },
-  { id:35, name:'Прыжки со скакалкой',        muscle:'Кардио',   type:'cardio' },
+  { id:1, name:'Жим штанги лёжа', muscle:'Грудь', type:'compound' },
+  { id:2, name:'Жим гантелей лёжа', muscle:'Грудь', type:'compound' },
+  { id:3, name:'Жим штанги на наклонной', muscle:'Грудь', type:'compound' },
+  { id:4, name:'Разводка гантелей лёжа', muscle:'Грудь', type:'isolation' },
+  { id:5, name:'Кроссовер в блоке', muscle:'Грудь', type:'isolation' },
+  { id:6, name:'Отжимания от пола', muscle:'Грудь', type:'compound' },
+  { id:7, name:'Отжимания на брусьях', muscle:'Грудь', type:'compound' },
+  { id:8, name:'Тяга верхнего блока', muscle:'Спина', type:'compound' },
+  { id:9, name:'Тяга горизонтального блока', muscle:'Спина', type:'compound' },
+  { id:10, name:'Тяга штанги в наклоне', muscle:'Спина', type:'compound' },
+  { id:11, name:'Тяга гантели одной рукой', muscle:'Спина', type:'compound' },
+  { id:12, name:'Подтягивания', muscle:'Спина', type:'compound' },
+  { id:13, name:'Гиперэкстензия', muscle:'Спина', type:'isolation' },
+  { id:14, name:'Приседания со штангой', muscle:'Ноги', type:'compound' },
+  { id:15, name:'Жим ногами в тренажёре', muscle:'Ноги', type:'compound' },
+  { id:16, name:'Разгибание ног', muscle:'Ноги', type:'isolation' },
+  { id:17, name:'Сгибание ног', muscle:'Ноги', type:'isolation' },
+  { id:18, name:'Выпады с гантелями', muscle:'Ноги', type:'compound' },
+  { id:19, name:'Румынская тяга', muscle:'Ноги', type:'compound' },
+  { id:20, name:'Подъём на икры стоя', muscle:'Ноги', type:'isolation' },
+  { id:21, name:'Жим гантелей сидя', muscle:'Плечи', type:'compound' },
+  { id:22, name:'Жим штанги сидя', muscle:'Плечи', type:'compound' },
+  { id:23, name:'Махи гантелями в стороны', muscle:'Плечи', type:'isolation' },
+  { id:24, name:'Тяга к подбородку', muscle:'Плечи', type:'compound' },
+  { id:25, name:'Разгибания на блоке', muscle:'Трицепс', type:'isolation' },
+  { id:26, name:'Французский жим лёжа', muscle:'Трицепс', type:'isolation' },
+  { id:27, name:'Жим узким хватом', muscle:'Трицепс', type:'compound' },
+  { id:28, name:'Подъём штанги на бицепс', muscle:'Бицепс', type:'isolation' },
+  { id:29, name:'Подъём гантелей на бицепс', muscle:'Бицепс', type:'isolation' },
+  { id:30, name:'Молотки с гантелями', muscle:'Бицепс', type:'isolation' },
+  { id:31, name:'Планка', muscle:'Кор', type:'isolation' },
+  { id:32, name:'Скручивания', muscle:'Кор', type:'isolation' },
+  { id:33, name:'Подъём ног лёжа', muscle:'Кор', type:'isolation' },
 ]
 
 // ─── PLAN CONSTANTS ───────────────────────────────────────────────────────────
@@ -770,32 +710,14 @@ const LEVEL_RU = { beginner: 'новичок', amateur: 'любитель', adva
 const GOAL_RU  = { weight_loss: 'fat_loss', muscle_gain: 'muscle_gain', maintenance: 'maintenance', endurance: 'maintenance', strength: 'strength', health: 'maintenance' }
 const DAY_COLORS_PLAN = ['#4ade80', '#38bdf8', '#fbbf24', '#4ade80', '#38bdf8', '#6b7280', '#6b7280']
 
-// ─── EN→RU перевод ────────────────────────────────────────────────────────────
 const EN_TO_RU = {
   'Monday':'Понедельник','Tuesday':'Вторник','Wednesday':'Среда','Thursday':'Четверг',
   'Friday':'Пятница','Saturday':'Суббота','Sunday':'Воскресенье',
   'Rest':'Отдых','Rest Day':'День отдыха','Recovery':'Восстановление',
   'chest':'Грудь','back':'Спина','legs':'Ноги','shoulders':'Плечи',
-  'triceps':'Трицепс','biceps':'Бицепс','core':'Кор','abs':'Пресс',
-  'cardio':'Кардио','glutes':'Ягодицы','hamstrings':'Бицепс бедра',
-  'quadriceps':'Квадрицепс','calves':'Икры','arms':'Руки',
-  'full body':'Всё тело','full_body':'Фулбоди',
-  'upper_lower':'Верх/Низ','push_pull_legs':'Жим/Тяга/Ноги',
-  'push/pull/legs':'Жим/Тяга/Ноги','upper/lower':'Верх/Низ',
-  'Bench Press':'Жим штанги лёжа','Pull Ups':'Подтягивания',
-  'Overhead Press':'Жим штанги сидя','Squats':'Приседания со штангой',
-  'Leg Press':'Жим ногами','Deadlift':'Становая тяга',
-  'Bicep Curls':'Подъём на бицепс','Tricep Extensions':'Разгибания на блоке',
-  'Lateral Raise':'Махи гантелями в стороны','Calf Raise':'Подъём на икры',
-  'Lunges':'Выпады с гантелями','Romanian Deadlift':'Румынская тяга',
-  'Plank':'Планка','Crunches':'Скручивания','Dips':'Отжимания на брусьях',
-  'Hamstring Curl':'Сгибание ног','Leg Extension':'Разгибание ног',
-  'Dumbbell Row':'Тяга гантели одной рукой','Barbell Row':'Тяга штанги в наклоне',
-  'Lat Pulldown':'Тяга верхнего блока','Cable Row':'Тяга горизонтального блока',
-  'Incline Bench Press':'Жим штанги на наклонной','Dumbbell Flyes':'Разводка гантелей лёжа',
-  'Cable Crossover':'Кроссовер в блоке','Skull Crusher':'Французский жим лёжа',
-  'Close Grip Bench Press':'Жим узким хватом','Hammer Curl':'Молотки с гантелями',
-  'Hyperextension':'Гиперэкстензия','Leg Raise':'Подъём ног лёжа',
+  'triceps':'Трицепс','biceps':'Бицепс','core':'Кор','abs':'Пресс','cardio':'Кардио',
+  'glutes':'Ягодицы','hamstrings':'Бицепс бедра','quadriceps':'Квадрицепс','calves':'Икры','arms':'Руки',
+  'full body':'Всё тело','full_body':'Фулбоди','upper_lower':'Верх/Низ','push_pull_legs':'Жим/Тяга/Ноги',
 }
 function translateStr(str) {
   if (!str || typeof str !== 'string') return str
@@ -863,185 +785,168 @@ function WorkoutScreen({ state, dispatch, aiCall }) {
   const completeWorkout = () => { setRunning(false); setShowComplete(true) }
   const saveWorkout = (feedback) => {
     const calBurned = Math.round(timer / 60 * 7.5)
-    dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, workouts: [...(entry.workouts||[]), { id: Date.now(), name: wk.name || 'Тренировка', type: wk.name || 'Тренировка', exercises: wk.exercises.map(e => e.name), duration: Math.round(timer/60), caloriesBurned: calBurned, date: new Date().toLocaleDateString('ru', {day:'numeric', month:'short'}), ...feedback }] } })
+    dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, workouts: [...(entry.workouts||[]), { id: Date.now(), name: wk.name || 'Тренировка', exercises: wk.exercises.map(e => e.name), duration: Math.round(timer/60), caloriesBurned: calBurned, ...feedback }] } })
     setWk({ name: '', exercises: [] }); setTimer(0); setShowComplete(false); setView('list')
   }
   const removeWorkout = wId => dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, workouts: (entry.workouts||[]).filter(w => w.id !== wId) } })
 
   const M_COLORS = { Грудь:'#22c55e', Спина:'#3b82f6', Ноги:'#f59e0b', Плечи:'#8b5cf6', Трицепс:'#ec4899', Бицепс:'#f97316', Кор:'#06b6d4', Кардио:'#ef4444' }
 
-  if (view === 'list') return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {showRestTimer && <RestTimer duration={restInfo.duration} exerciseName={restInfo.exercise} setInfo={restInfo.setInfo} onClose={() => setShowRestTimer(false)} />}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+  if (view === 'list') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {showRestTimer && <RestTimer duration={restInfo.duration} exerciseName={restInfo.exercise} setInfo={restInfo.setInfo} onClose={() => setShowRestTimer(false)} />}
         <div>
           <div style={{ fontSize: 11, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>Тренировки</div>
           <div style={{ fontSize: 20, fontWeight: 700 }}>История</div>
         </div>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <button onClick={() => setView('builder')} style={{ background: '#4ade80', border: 'none', borderRadius: 16, padding: '18px 16px', display: 'flex', flexDirection: 'column', gap: 6, cursor: 'pointer', textAlign: 'left' }}>
-          <Plus size={22} color="#000" />
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#000' }}>Новая тренировка</div>
-        </button>
-        <button onClick={() => setView('plan')} style={{ background: '#1a1a1a', border: '1px solid #2e2e2e', borderRadius: 16, padding: '18px 16px', display: 'flex', flexDirection: 'column', gap: 6, cursor: 'pointer', textAlign: 'left' }}>
-          <span style={{ fontSize: 20, color: '#4ade80' }}>✦</span>
-          <div style={{ fontSize: 14, fontWeight: 600 }}>AI-план</div>
-        </button>
-      </div>
-      {allWorkouts.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: '#6b7280' }}>
-          <div style={{ fontSize: 40, marginBottom: 10 }}>💪</div>
-          <div>Тренировок пока нет</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <button onClick={() => setView('builder')} style={{ background: '#4ade80', border: 'none', borderRadius: 16, padding: '18px 16px', display: 'flex', flexDirection: 'column', gap: 6, cursor: 'pointer', textAlign: 'left' }}>
+            <Plus size={22} color="#000" />
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#000' }}>Новая тренировка</div>
+          </button>
+          <button onClick={() => setView('plan')} style={{ background: '#1a1a1a', border: '1px solid #2e2e2e', borderRadius: 16, padding: '18px 16px', display: 'flex', flexDirection: 'column', gap: 6, cursor: 'pointer', textAlign: 'left' }}>
+            <span style={{ fontSize: 20, color: '#4ade80' }}>✦</span>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>AI-план</div>
+          </button>
         </div>
-      ) : allWorkouts.map(w => (
-        <SwipeRow key={w.id} onDelete={() => removeWorkout(w.id)}>
-          <div style={{ background: '#1a1a1a', borderRadius: 18, padding: 18, border: '1px solid #2e2e2e', display: 'flex', alignItems: 'center', gap: 14 }}>
+        {allWorkouts.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#6b7280' }}>
+            <div style={{ fontSize: 40, marginBottom: 10 }}>💪</div>
+            <div>Тренировок пока нет</div>
+          </div>
+        ) : allWorkouts.map(w => (
+          <div key={w.id} style={{ background: '#1a1a1a', borderRadius: 18, padding: 18, border: '1px solid #2e2e2e', display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(74,222,128,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <span style={{ fontSize: 22 }}>💪</span>
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 3 }}>{w.name || w.type}</div>
-              <div style={{ fontSize: 12, color: '#6b7280', fontFamily: 'var(--mono)' }}>{w.duration} мин · {w.date || w.entryDate}</div>
-              {w.exercises?.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
-                  {(Array.isArray(w.exercises) ? w.exercises : []).slice(0, 3).map((e, i) => (
-                    <span key={i} style={{ padding: '2px 8px', background: '#222', border: '1px solid #2e2e2e', borderRadius: 50, fontSize: 11, color: '#9ca3af' }}>{typeof e === 'string' ? e : e.name}</span>
-                  ))}
+              <div style={{ fontSize: 12, color: '#6b7280', fontFamily: 'var(--mono)' }}>{w.duration} мин · {w.entryDate}</div>
+            </div>
+            <button onClick={() => removeWorkout(w.id)} style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', cursor: 'pointer' }}>
+              <Trash2 size={14} color="#ef4444" />
+            </button>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (view === 'builder') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {showRestTimer && <RestTimer duration={restInfo.duration} exerciseName={restInfo.exercise} setInfo={restInfo.setInfo} onClose={() => setShowRestTimer(false)} />}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button onClick={() => setView('list')} style={{ width: 36, height: 36, borderRadius: 10, background: '#1a1a1a', border: '1px solid #2e2e2e', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ChevronLeft size={18} color="#9ca3af" />
+          </button>
+          <span style={{ fontSize: 18, fontWeight: 700 }}>Конструктор</span>
+        </div>
+        <input style={{ width: '100%', padding: '13px 16px', background: '#1a1a1a', border: '1px solid #2e2e2e', borderRadius: 14, color: '#f5f5f5', fontSize: 15, fontWeight: 600, outline: 'none', boxSizing: 'border-box' }}
+          placeholder="Название тренировки" value={wk.name} onChange={e => setWk(w => ({...w, name: e.target.value}))} />
+        <div style={{ background: '#1a1a1a', borderRadius: 16, padding: 14, border: '1px solid #2e2e2e' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>База упражнений</div>
+          <input style={{ width: '100%', padding: '11px 14px', background: '#222', border: '1px solid #2e2e2e', borderRadius: 10, color: '#f5f5f5', fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10 }} placeholder="Поиск..." value={exSearch} onChange={e => setExSearch(e.target.value)} />
+          <div style={{ maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {filteredEx.map(ex => (
+              <button key={ex.id} onClick={() => addEx(ex)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: '#222', border: '1px solid #2a2a2a', borderRadius: 10, cursor: 'pointer', textAlign: 'left' }}>
+                <span style={{ padding: '2px 8px', borderRadius: 50, fontSize: 11, color: '#000', background: M_COLORS[ex.muscle] || '#4ade80', flexShrink: 0, fontWeight: 600 }}>{ex.muscle}</span>
+                <span style={{ fontSize: 13, color: '#f5f5f5', flex: 1 }}>{ex.name}</span>
+                <Plus size={16} color="#4ade80" />
+              </button>
+            ))}
+          </div>
+        </div>
+        {wk.exercises.map((ex, eI) => (
+          <div key={eI} style={{ background: '#1a1a1a', borderRadius: 16, padding: 16, border: '1px solid #2e2e2e' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <span style={{ padding: '3px 10px', borderRadius: 50, fontSize: 11, color: '#000', background: M_COLORS[ex.muscle] || '#4ade80', fontWeight: 600 }}>{ex.muscle}</span>
+              <span style={{ fontSize: 15, fontWeight: 600, flex: 1 }}>{ex.name}</span>
+              <button onClick={() => removeEx(eI)} style={{ width: 28, height: 28, borderRadius: 8, background: '#222', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 18 }}>×</button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 1fr', gap: 6, marginBottom: 6 }}>
+              <div style={{ fontSize: 11, color: '#6b7280', textAlign: 'center' }}>№</div>
+              <div style={{ fontSize: 11, color: '#6b7280', textAlign: 'center' }}>Повторы</div>
+              <div style={{ fontSize: 11, color: '#6b7280', textAlign: 'center' }}>Вес (кг)</div>
+              {ex.sets.map((set, sI) => (
+                <React.Fragment key={sI}>
+                  <div style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{sI+1}</div>
+                  <input style={{ padding: '8px', background: '#222', border: '1px solid #2e2e2e', borderRadius: 8, color: '#f5f5f5', fontSize: 14, fontFamily: 'var(--mono)', outline: 'none', textAlign: 'center' }} value={set.reps} onChange={e => updateSet(eI, sI, 'reps', e.target.value)} placeholder="10" />
+                  <input style={{ padding: '8px', background: '#222', border: '1px solid #2e2e2e', borderRadius: 8, color: '#f5f5f5', fontSize: 14, fontFamily: 'var(--mono)', outline: 'none', textAlign: 'center' }} value={set.weight} onChange={e => updateSet(eI, sI, 'weight', e.target.value)} placeholder="0" />
+                </React.Fragment>
+              ))}
+            </div>
+            <button onClick={() => addSet(eI)} style={{ padding: '8px', background: 'transparent', border: '1px dashed #2e2e2e', borderRadius: 8, color: '#6b7280', cursor: 'pointer', fontSize: 13, width: '100%' }}>+ Добавить подход</button>
+          </div>
+        ))}
+        {wk.exercises.length > 0 && (
+          <button onClick={() => { setTimer(0); setRunning(true); setView('active') }} style={{ background: '#4ade80', color: '#000', border: 'none', borderRadius: 14, padding: '15px', fontSize: 14, fontWeight: 700, width: '100%', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            Начать тренировку
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  if (view === 'active') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {showRestTimer && <RestTimer duration={restInfo.duration} exerciseName={restInfo.exercise} setInfo={restInfo.setInfo} onClose={() => setShowRestTimer(false)} />}
+        {showComplete && <WorkoutComplete workout={wk} duration={timer} onSave={saveWorkout} />}
+        <div style={{ background: '#1a1a1a', borderRadius: 20, padding: '20px 24px', border: '1px solid #2e2e2e', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 40, fontWeight: 700, color: '#4ade80' }}>{fmtTimeLong(timer)}</div>
+            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>Общее время</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>{wk.name || 'Тренировка'}</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setRunning(r => !r)} style={{ padding: '8px 14px', background: '#222', border: '1px solid #2e2e2e', borderRadius: 10, color: '#f5f5f5', cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>
+                {running ? 'Пауза' : 'Старт'}
+              </button>
+              <button onClick={completeWorkout} style={{ padding: '8px 14px', background: '#4ade80', border: 'none', borderRadius: 10, color: '#000', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>Завершить</button>
+            </div>
+          </div>
+        </div>
+        {wk.exercises.map((ex, eI) => (
+          <div key={eI} style={{ background: '#1a1a1a', borderRadius: 18, overflow: 'hidden', border: '1px solid #2e2e2e' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px' }}>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: '#4ade80', minWidth: 28 }}>{eI+1}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 600 }}>{ex.name}</div>
+              </div>
+              <span style={{ padding: '3px 10px', borderRadius: 50, fontSize: 11, color: '#000', background: M_COLORS[ex.muscle] || '#4ade80', fontWeight: 600 }}>{ex.muscle}</span>
+            </div>
+            <div style={{ padding: '8px 0' }}>
+              {ex.sets.map((set, sI) => (
+                <div key={sI} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', background: set.done ? 'rgba(74,222,128,0.04)' : 'transparent' }}>
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 13, color: '#6b7280', minWidth: 60 }}>{sI+1} подход</span>
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 15, fontWeight: 600, flex: 1 }}>{set.reps} пов.</span>
+                  <button onClick={() => toggleSet(eI, sI)} style={{ width: 32, height: 32, borderRadius: '50%', border: `2px solid ${set.done ? '#4ade80' : '#2e2e2e'}`, background: set.done ? '#4ade80' : 'transparent', cursor: 'pointer' }}>
+                    {set.done && <Check size={16} color="#000" />}
+                  </button>
                 </div>
-              )}
+              ))}
             </div>
-            {w.caloriesBurned > 0 && (
-              <div style={{ textAlign: 'center', flexShrink: 0 }}>
-                <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: '#4ade80' }}>{w.caloriesBurned}</div>
-                <div style={{ fontSize: 10, color: '#6b7280' }}>ккал</div>
-              </div>
-            )}
           </div>
-        </SwipeRow>
-      ))}
+        ))}
+      </div>
+    )
+  }
+
+  if (view === 'plan') {
+    return <PlanScreen onBack={() => setView('list')} aiCall={aiCall} profile={state.profile} />
+  }
+
+  // Fallback: возвращаемся к списку при неизвестном view
+  return (
+    <div style={{ padding: 20, textAlign: 'center' }}>
+      <button onClick={() => setView('list')} style={{ background: '#4ade80', color: '#000', border: 'none', borderRadius: 12, padding: '12px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+        ← К списку тренировок
+      </button>
     </div>
   )
-
-  if (view === 'builder') return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {showRestTimer && <RestTimer duration={restInfo.duration} exerciseName={restInfo.exercise} setInfo={restInfo.setInfo} onClose={() => setShowRestTimer(false)} />}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <button onClick={() => setView('list')} style={{ width: 36, height: 36, borderRadius: 10, background: '#1a1a1a', border: '1px solid #2e2e2e', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <ChevronLeft size={18} color="#9ca3af" />
-        </button>
-        <span style={{ fontSize: 18, fontWeight: 700 }}>Конструктор</span>
-      </div>
-      <input style={{ width: '100%', padding: '13px 16px', background: '#1a1a1a', border: '1px solid #2e2e2e', borderRadius: 14, color: '#f5f5f5', fontSize: 15, fontWeight: 600, outline: 'none', boxSizing: 'border-box' }}
-        placeholder="Название тренировки" value={wk.name} onChange={e => setWk(w => ({...w, name: e.target.value}))} />
-      <div style={{ background: '#1a1a1a', borderRadius: 16, padding: 14, border: '1px solid #2e2e2e' }}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>База упражнений</div>
-        <input style={{ width: '100%', padding: '11px 14px', background: '#222', border: '1px solid #2e2e2e', borderRadius: 10, color: '#f5f5f5', fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10 }} placeholder="Поиск..." value={exSearch} onChange={e => setExSearch(e.target.value)} />
-        <div style={{ maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {filteredEx.map(ex => (
-            <button key={ex.id} onClick={() => addEx(ex)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: '#222', border: '1px solid #2a2a2a', borderRadius: 10, cursor: 'pointer', textAlign: 'left' }}>
-              <span style={{ padding: '2px 8px', borderRadius: 50, fontSize: 11, color: '#000', background: M_COLORS[ex.muscle] || '#4ade80', flexShrink: 0, fontWeight: 600 }}>{ex.muscle}</span>
-              <span style={{ fontSize: 13, color: '#f5f5f5', flex: 1 }}>{ex.name}</span>
-              <Plus size={16} color="#4ade80" />
-            </button>
-          ))}
-        </div>
-      </div>
-      {wk.exercises.map((ex, eI) => (
-        <div key={eI} style={{ background: '#1a1a1a', borderRadius: 16, padding: 16, border: '1px solid #2e2e2e' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <span style={{ padding: '3px 10px', borderRadius: 50, fontSize: 11, color: '#000', background: M_COLORS[ex.muscle] || '#4ade80', fontWeight: 600 }}>{ex.muscle}</span>
-            <span style={{ fontSize: 15, fontWeight: 600, flex: 1 }}>{ex.name}</span>
-            <button onClick={() => removeEx(eI)} style={{ width: 28, height: 28, borderRadius: 8, background: '#222', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 1fr', gap: 6, marginBottom: 6 }}>
-            <div style={{ fontSize: 11, color: '#6b7280', textAlign: 'center' }}>№</div>
-            <div style={{ fontSize: 11, color: '#6b7280', textAlign: 'center' }}>Повторы</div>
-            <div style={{ fontSize: 11, color: '#6b7280', textAlign: 'center' }}>Вес (кг)</div>
-            {ex.sets.map((set, sI) => (
-              <React.Fragment key={sI}>
-                <div style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{sI+1}</div>
-                <input style={{ padding: '8px', background: '#222', border: '1px solid #2e2e2e', borderRadius: 8, color: '#f5f5f5', fontSize: 14, fontFamily: 'var(--mono)', outline: 'none', textAlign: 'center' }} value={set.reps} onChange={e => updateSet(eI, sI, 'reps', e.target.value)} placeholder="10" />
-                <input style={{ padding: '8px', background: '#222', border: '1px solid #2e2e2e', borderRadius: 8, color: '#f5f5f5', fontSize: 14, fontFamily: 'var(--mono)', outline: 'none', textAlign: 'center' }} value={set.weight} onChange={e => updateSet(eI, sI, 'weight', e.target.value)} placeholder="0" />
-              </React.Fragment>
-            ))}
-          </div>
-          <button onClick={() => addSet(eI)} style={{ padding: '8px', background: 'transparent', border: '1px dashed #2e2e2e', borderRadius: 8, color: '#6b7280', cursor: 'pointer', fontSize: 13, width: '100%' }}>+ Добавить подход</button>
-        </div>
-      ))}
-      {wk.exercises.length > 0 && (
-        <button onClick={() => { setTimer(0); setRunning(true); setView('active') }} style={{ background: '#4ade80', color: '#000', border: 'none', borderRadius: 14, padding: '15px', fontSize: 14, fontWeight: 700, width: '100%', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-          Начать тренировку
-        </button>
-      )}
-    </div>
-  )
-
-  if (view === 'active') return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {showRestTimer && <RestTimer duration={restInfo.duration} exerciseName={restInfo.exercise} setInfo={restInfo.setInfo} onClose={() => setShowRestTimer(false)} />}
-      {showComplete && <WorkoutComplete workout={wk} duration={timer} onSave={saveWorkout} />}
-      <div style={{ background: '#1a1a1a', borderRadius: 20, padding: '20px 24px', border: '1px solid #2e2e2e', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 40, fontWeight: 700, color: '#4ade80', letterSpacing: '0.02em' }}>{fmtTimeLong(timer)}</div>
-          <div style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>Общее время</div>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
-          <div style={{ fontSize: 13, fontWeight: 600 }}>{wk.name || 'Тренировка'}</div>
-          <div style={{ fontSize: 12, color: '#6b7280' }}>{wk.exercises.length} упражнений</div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => setRunning(r => !r)} style={{ padding: '8px 14px', background: '#222', border: '1px solid #2e2e2e', borderRadius: 10, color: '#f5f5f5', cursor: 'pointer', fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
-              {running ? <Pause size={14} /> : <Play size={14} />} {running ? 'Пауза' : 'Старт'}
-            </button>
-            <button onClick={completeWorkout} style={{ padding: '8px 14px', background: '#4ade80', border: 'none', borderRadius: 10, color: '#000', cursor: 'pointer', fontSize: 13, fontWeight: 700, textTransform: 'uppercase' }}>
-              Завершить
-            </button>
-          </div>
-        </div>
-      </div>
-      {wk.exercises.map((ex, eI) => (
-        <div key={eI} style={{ background: '#1a1a1a', borderRadius: 18, overflow: 'hidden', border: '1px solid #2e2e2e' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: '1px solid #2a2a2a' }}>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: '#4ade80', minWidth: 28 }}>{eI+1}</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 15, fontWeight: 600 }}>{ex.name}</div>
-              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{ex.sets.length} подходов</div>
-            </div>
-            <span style={{ padding: '3px 10px', borderRadius: 50, fontSize: 11, color: '#000', background: M_COLORS[ex.muscle] || '#4ade80', fontWeight: 600 }}>{ex.muscle}</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: '1px solid #222' }}>
-            <span style={{ fontSize: 12, color: '#6b7280' }}>Вес:</span>
-            <button onClick={() => { const w = parseFloat(ex.sets[0]?.weight||0); ex.sets.forEach((_, sI) => updateSet(eI, sI, 'weight', Math.max(0, w-2.5).toString())); }} style={{ width: 28, height: 28, borderRadius: 8, background: '#222', border: '1px solid #2e2e2e', color: '#f5f5f5', cursor: 'pointer', fontSize: 16 }}>−</button>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 16, fontWeight: 700, minWidth: 60, textAlign: 'center' }}>{ex.sets[0]?.weight || 0} кг</span>
-            <button onClick={() => { const w = parseFloat(ex.sets[0]?.weight||0); ex.sets.forEach((_, sI) => updateSet(eI, sI, 'weight', (w+2.5).toString())); }} style={{ width: 28, height: 28, borderRadius: 8, background: '#222', border: '1px solid #2e2e2e', color: '#f5f5f5', cursor: 'pointer', fontSize: 16 }}>+</button>
-            <button onClick={() => { const w = parseFloat(ex.sets[0]?.weight||0); ex.sets.forEach((_, sI) => updateSet(eI, sI, 'weight', (w+2.5).toString())); }} style={{ padding: '4px 10px', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 8, color: '#4ade80', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+2.5</button>
-            <button onClick={() => { const w = parseFloat(ex.sets[0]?.weight||0); ex.sets.forEach((_, sI) => updateSet(eI, sI, 'weight', (w+5).toString())); }} style={{ padding: '4px 10px', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 8, color: '#4ade80', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+5</button>
-          </div>
-          <div style={{ padding: '8px 0' }}>
-            {ex.sets.map((set, sI) => (
-              <div key={sI} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: sI < ex.sets.length-1 ? '1px solid #1e1e1e' : 'none', background: set.done ? 'rgba(74,222,128,0.04)' : 'transparent' }}>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 13, color: '#6b7280', minWidth: 60 }}>{sI+1} подход</span>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 15, fontWeight: 600, flex: 1 }}>{set.reps} пов.</span>
-                <button onClick={() => toggleSet(eI, sI)}
-                  style={{ width: 32, height: 32, borderRadius: '50%', border: `2px solid ${set.done ? '#4ade80' : '#2e2e2e'}`, background: set.done ? '#4ade80' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
-                  {set.done && <Check size={16} color="#000" />}
-                </button>
-              </div>
-            ))}
-          </div>
-          <div style={{ padding: '12px 16px', borderTop: '1px solid #2a2a2a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: '#6b7280' }}>Отдых: 90 сек</span>
-            <button onClick={() => { setRestInfo({ exercise: ex.name, setInfo: `${ex.sets.filter(s=>s.done).length} из ${ex.sets.length} подходов`, duration: 90 }); setShowRestTimer(true) }}
-              style={{ padding: '8px 14px', background: '#222', border: '1px solid #4ade80', borderRadius: 10, color: '#4ade80', fontSize: 12, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.3 }}>
-              Начать таймер
-            </button>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-
-  if (view === 'plan') return <PlanScreen onBack={() => setView('list')} aiCall={aiCall} profile={state.profile} />
 }
 
 // ─── PLAN SCREEN ─────────────────────────────────────────────────────────────
@@ -1052,9 +957,7 @@ function PlanScreen({ onBack, aiCall, profile }) {
       if (!raw) return null
       const p = JSON.parse(raw)
       if (!p?.plan?.days || !Array.isArray(p.plan.days)) { localStorage.removeItem(PLAN_KEY); return null }
-      p.plan.days.forEach(day => {
-        (day.exercises || []).forEach(ex => { ex.reps = normReps(ex.reps) })
-      })
+      p.plan.days.forEach(day => { (day.exercises || []).forEach(ex => { ex.reps = normReps(ex.reps) }) })
       return p
     } catch { localStorage.removeItem(PLAN_KEY); return null }
   })
@@ -1069,6 +972,12 @@ function PlanScreen({ onBack, aiCall, profile }) {
 
   const generatePlan = async () => {
     setLoading(true); setError(null)
+
+    // Timeout 35 секунд — если AI не ответил, показываем ошибку
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT')), 35000)
+    )
+
     try {
       const lvlKey = levelKey === 'professional' ? 'expert' : levelKey
       const levelParams = {
@@ -1081,57 +990,58 @@ function PlanScreen({ onBack, aiCall, profile }) {
       const repsRange = p.reps[goalKey] || '8-12'
       const daysPerWeek = lvlKey === 'beginner' ? 3 : lvlKey === 'amateur' ? 4 : 5
       const duration = lvlKey === 'beginner' ? 45 : 60
-      const expYears = lvlKey === 'beginner' ? 0 : lvlKey === 'amateur' ? 1 : lvlKey === 'advanced' ? 3 : 5
 
-      const prompt = `Ты — профессиональный фитнес-тренер и алгоритм генерации персональных тренировочных программ.
-НЕ используй шаблонные программы. Всегда генерируй план через правила и параметры.
+      // СОКРАЩЁННЫЙ промт — экономим токены
+      const prompt = `Ты профессиональный фитнес-тренер. Составь персональный план тренировок.
 
-ВХОДНЫЕ ДАННЫЕ ПОЛЬЗОВАТЕЛЯ:
-- Уровень подготовки: ${lvlKey}
-- Цель: ${goalKey}
-- Возраст: ${profile?.age || 25}
-- Пол: ${profile?.gender || 'male'}
-- Вес: ${profile?.weight || 80} кг
-- Рост: ${profile?.height || 175} см
-- Ограничения/травмы: ${injuries.length > 0 ? injuries.join(', ') : 'нет'}
-- Доступ к оборудованию: gym
-- Частота тренировок: ${daysPerWeek} в неделю
-- Длительность тренировки: ${duration} минут
-- Опыт тренировок: ${expYears} лет
-- Субъективная нагрузка: средне
+Пользователь: уровень ${lvlKey}, цель ${goalKey}, ${profile?.age || 25} лет, ${profile?.gender || 'male'}, ${profile?.weight || 80}кг, ${profile?.height || 175}см. Ограничения: ${injuries.length > 0 ? injuries.join(', ') : 'нет'}.
 
-ПАРАМЕТРЫ ПО УРОВНЮ (строго соблюдай):
-- Тип сплита: ${p.split}
-- Упражнений за тренировку: НЕ БОЛЕЕ ${p.exMax}
-- Подходов на упражнение: ${p.sets}
-- Повторений (цель ${goalKey}): ${repsRange}
-- Отдых между подходами: ${p.restSec} сек
+Параметры: сплит ${p.split}, ${daysPerWeek} раз/нед, ${duration} мин. На тренировку: до ${p.exMax} упражнений, ${p.sets} подходов, ${repsRange} повторов, отдых ${p.restSec} сек.
 
-ПРАВИЛА ГЕНЕРАЦИИ (строго соблюдай):
-1. МИНИМУМ 4 упражнения в тренировочный день, НЕ БОЛЕЕ ${p.exMax}
-2. НЕ БОЛЕЕ 20 подходов на мышечную группу в неделю
-3. На каждую мышечную группу: 1-2 базовых (compound) + 1-2 изолирующих (isolation)
-4. Обязательные дни отдыха
-5. Исключить упражнения при ограничениях/травмах
-6. ВСЕ текстовые поля — ТОЛЬКО на русском языке
-7. Названия дней: Понедельник, Вторник, Среда, Четверг, Пятница, Суббота, Воскресенье
-8. Мышечные группы: Грудь, Спина, Ноги, Плечи, Трицепс, Бицепс, Кор, Кардио
+Все названия по-русски (Понедельник..Воскресенье; Грудь, Спина, Ноги, Плечи, Трицепс, Бицепс, Кор, Кардио).
 
-ВЕРНИ ТОЛЬКО валидный JSON без markdown и комментариев:
-{"plan":{"split":"Фулбоди","days":[{"day_index":0,"name":"Понедельник","muscles":["Грудь","Спина"],"exercises":[{"id":"1","name":"Жим штанги лёжа","muscle":"Грудь","type":"compound","sets":3,"reps":{"min":8,"max":12},"rest_sec":90}]}]},"progression":{"type":"linear","rules":{"success":"increase_weight","failure":"reduce_or_repeat"},"increment_percent":{"min":2.5,"max":5},"rpe":{"low":"<7 increase","optimal":"7-9 keep","high":">9 decrease"}},"adaptation":{"too_easy":"increase_volume_or_weight","too_hard":"reduce_volume_or_weight","skipping":"reduce_frequency","pain":"replace_exercise"}}`
+Верни ТОЛЬКО JSON: {"plan":{"split":"...","days":[{"day_index":0,"name":"Понедельник","muscles":["Грудь"],"exercises":[{"name":"Жим штанги лёжа","muscle":"Грудь","type":"compound","sets":3,"reps":{"min":8,"max":12},"rest_sec":90}]}]},"progression":{"increment_percent":{"min":2.5,"max":5}}}`
 
-      const reply = await aiCall([{ role: 'user', content: prompt }], 2500)
+      const reply = await Promise.race([
+        aiCall([{ role: 'user', content: prompt }], 2000),
+        timeoutPromise
+      ])
+
       const clean = reply.replace(/```json|```/g, '').trim()
       const match = clean.match(/\{[\s\S]*\}/)
-      if (match) {
-        const parsed = JSON.parse(match[0])
-        if (parsed.plan?.days) {
-          const translated = translatePlan(parsed)
-          setPlan(translated); localStorage.setItem(PLAN_KEY, JSON.stringify(translated)); setExpandedDay(0)
-        } else setError('AI вернул некорректную структуру. Попробуй ещё раз.')
-      } else setError('AI вернул некорректный ответ. Попробуй ещё раз.')
-    } catch { setError('Ошибка соединения. Попробуй снова.') }
-    setLoading(false)
+      if (!match) {
+        setError('AI вернул некорректный ответ. Попробуй ещё раз.')
+        setLoading(false)
+        return
+      }
+
+      let parsed
+      try { parsed = JSON.parse(match[0]) }
+      catch (e) {
+        setError('AI вернул невалидный JSON. Попробуй ещё раз.')
+        setLoading(false)
+        return
+      }
+
+      if (!parsed.plan?.days || !Array.isArray(parsed.plan.days)) {
+        setError('AI вернул некорректную структуру. Попробуй ещё раз.')
+        setLoading(false)
+        return
+      }
+
+      const translated = translatePlan(parsed)
+      setPlan(translated)
+      localStorage.setItem(PLAN_KEY, JSON.stringify(translated))
+      setExpandedDay(0)
+    } catch (e) {
+      if (e.message === 'TIMEOUT') {
+        setError('AI слишком долго отвечает. Проверь интернет и попробуй ещё раз.')
+      } else {
+        setError('Ошибка соединения. Попробуй снова.')
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   const typeLabel = t => t === 'compound' ? 'Базовое' : 'Изоляция'
@@ -1149,7 +1059,7 @@ function PlanScreen({ onBack, aiCall, profile }) {
       <div style={{ background: '#1a1a1a', borderRadius: 14, padding: '12px 16px', display: 'flex', border: '1px solid #2e2e2e' }}>
         {[{ label:'Уровень', value:levelLabel, c:'#4ade80' }, { label:'Цель', value:goalKey, c:'#38bdf8' }, { label:'Ограничения', value:injuries.length>0?'Есть':'Нет', c:injuries.length>0?'#fbbf24':'#6b7280' }].map((item, i) => (
           <div key={i} style={{ flex: 1, padding:'4px 8px', borderRight: i<2?'1px solid #2e2e2e':'none' }}>
-            <div style={{ fontSize: 10, color:'#6b7280', marginBottom:3, textTransform:'uppercase', letterSpacing:'0.05em' }}>{item.label}</div>
+            <div style={{ fontSize: 10, color:'#6b7280', marginBottom:3, textTransform:'uppercase' }}>{item.label}</div>
             <div style={{ fontSize:12, color:item.c, fontWeight:600, textTransform:'capitalize' }}>{item.value}</div>
           </div>
         ))}
@@ -1169,27 +1079,27 @@ function PlanScreen({ onBack, aiCall, profile }) {
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:16, padding:'48px 0' }}>
           <div style={{ width:48, height:48, borderRadius:'50%', border:'3px solid rgba(74,222,128,0.2)', borderTop:'3px solid #4ade80', animation:'spin 1s linear infinite' }} />
           <div style={{ fontSize:14, fontWeight:600 }}>Составляю план...</div>
-          <div style={{ fontSize:12, color:'#6b7280' }}>15–20 секунд</div>
+          <div style={{ fontSize:12, color:'#6b7280' }}>15–30 секунд</div>
         </div>
       )}
 
-      {plan && (
+      {plan && plan.plan && Array.isArray(plan.plan.days) && (
         <>
           <div style={{ background:'#1a1a1a', borderRadius:14, padding:'10px 16px', display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid #2e2e2e' }}>
             <span style={{ fontSize:13, color:'#6b7280' }}>Сплит</span>
-            <span style={{ fontSize:13, fontWeight:700, color:'#4ade80' }}>{plan.plan.split}</span>
+            <span style={{ fontSize:13, fontWeight:700, color:'#4ade80' }}>{plan.plan.split || '—'}</span>
           </div>
           {plan.plan.days.map((day, i) => {
             const isRest = !day.exercises || day.exercises.length === 0
             const isOpen = expandedDay === i
             return (
               <div key={i} style={{ background:'#1a1a1a', borderRadius:18, overflow:'hidden', border:`1px solid ${isOpen?'rgba(74,222,128,0.3)':'#2e2e2e'}` }}>
-                <div onClick={() => setExpandedDay(isOpen ? null : i)} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', cursor:'pointer', borderBottom: isOpen&&!isRest?'1px solid #2a2a2a':'none' }}>
+                <div onClick={() => setExpandedDay(isOpen ? null : i)} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', cursor:'pointer' }}>
                   <div style={{ width:10, height:10, borderRadius:'50%', background:isRest?'#4b5563':DAY_COLORS_PLAN[i%7], flexShrink:0 }} />
                   <div style={{ flex:1 }}>
                     <div style={{ fontSize:14, fontWeight:600 }}>{day.name}</div>
                     {!isRest && day.muscles?.length>0 && <div style={{ fontSize:12, color:'#6b7280', marginTop:2 }}>{day.muscles.join(' + ')}</div>}
-                    {isRest && <div style={{ fontSize:12, color:'#6b7280', marginTop:2 }}>Отдых и восстановление</div>}
+                    {isRest && <div style={{ fontSize:12, color:'#6b7280', marginTop:2 }}>Отдых</div>}
                   </div>
                   {!isRest && (
                     <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -1199,7 +1109,7 @@ function PlanScreen({ onBack, aiCall, profile }) {
                   )}
                 </div>
                 {isOpen && !isRest && (
-                  <div>
+                  <div style={{ borderTop:'1px solid #2a2a2a' }}>
                     {day.exercises.map((ex, j) => {
                       const reps = normReps(ex.reps)
                       return (
@@ -1214,7 +1124,7 @@ function PlanScreen({ onBack, aiCall, profile }) {
                               <span style={{ color:'#6b7280' }}>отдых {ex.rest_sec}с</span>
                             </div>
                           </div>
-                          <span style={{ fontSize:11, padding:'3px 8px', background:'#222', borderRadius:6, color:'#9ca3af', flexShrink:0, marginTop:2 }}>{ex.muscle}</span>
+                          <span style={{ fontSize:11, padding:'3px 8px', background:'#222', borderRadius:6, color:'#9ca3af', flexShrink:0 }}>{ex.muscle}</span>
                         </div>
                       )
                     })}
@@ -1223,15 +1133,12 @@ function PlanScreen({ onBack, aiCall, profile }) {
               </div>
             )
           })}
-          {plan.progression && plan.progression.increment_percent && (
+          {plan.progression?.increment_percent && (
             <div style={{ background:'#1a1a1a', borderRadius:18, padding:16, border:'1px solid #2e2e2e' }}>
-              <div style={{ fontSize:13, fontWeight:700, marginBottom:12 }}>Прогрессия нагрузки</div>
-              {[{ l:'Выполнил все подходы', v:`+${plan.progression.increment_percent?.min ?? 2.5}–${plan.progression.increment_percent?.max ?? 5}% к весу`, c:'#4ade80' }, { l:'RPE < 7 (легко)', v:'Увеличить нагрузку', c:'#4ade80' }, { l:'RPE 7–9 (норма)', v:'Оставить как есть', c:'#fbbf24' }, { l:'RPE > 9 (тяжело)', v:'Снизить нагрузку', c:'#f87171' }].map((row, i) => (
-                <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 12px', background:'#222', borderRadius:10, marginBottom:6 }}>
-                  <span style={{ fontSize:12, color:'#9ca3af' }}>{row.l}</span>
-                  <span style={{ fontSize:12, fontWeight:700, color:row.c, fontFamily:'var(--mono)' }}>{row.v}</span>
-                </div>
-              ))}
+              <div style={{ fontSize:13, fontWeight:700, marginBottom:12 }}>Прогрессия</div>
+              <div style={{ fontSize:12, color:'#9ca3af' }}>
+                Выполнил все подходы → +{plan.progression.increment_percent.min ?? 2.5}–{plan.progression.increment_percent.max ?? 5}% к весу
+              </div>
             </div>
           )}
           <button onClick={() => { setPlan(null); localStorage.removeItem(PLAN_KEY); setError(null); setExpandedDay(null) }}
@@ -1253,8 +1160,19 @@ function ProfileScreen({ profile, saveProfile, signOut }) {
   const [section, setSection] = useState('plan')
   const [form, setForm] = useState({ age:profile?.age||'', weight:profile?.weight||'', height:profile?.height||'', gender:profile?.gender||'male', activity:profile?.activity||'moderate', level:profile?.level||'amateur', goals:profile?.goals||[], calorieGoal:profile?.calorieGoal||'', proteinGoal:profile?.proteinGoal||'', fatGoal:profile?.fatGoal||'', carbGoal:profile?.carbGoal||'' })
   const [saved, setSaved] = useState(false)
+  const [cacheCount, setCacheCount] = useState(() => getCachedFoods().length)
+  const [cacheCleared, setCacheCleared] = useState(false)
 
   const toggleGoal = g => setForm(f => ({ ...f, goals: f.goals.includes(g) ? f.goals.filter(x => x!==g) : [...f.goals, g] }))
+
+  const handleClearCache = () => {
+    if (confirm('Удалить все сохранённые AI-продукты? Это нельзя отменить.')) {
+      clearCachedFoods()
+      setCacheCount(0)
+      setCacheCleared(true)
+      setTimeout(() => setCacheCleared(false), 2000)
+    }
+  }
 
   const handleSave = async () => {
     const w = +form.weight, h = +form.height, a = +form.age
@@ -1287,31 +1205,12 @@ function ProfileScreen({ profile, saveProfile, signOut }) {
       </div>
       <div style={{ display:'flex', background:'#1a1a1a', borderRadius:12, padding:4, gap:4, border:'1px solid #2e2e2e' }}>
         {[['plan','Мой план'],['profile','Профиль'],['settings','Настройки']].map(([k,v]) => (
-          <button key={k} onClick={() => setSection(k)} style={{ flex:1, padding:'9px', borderRadius:9, border:'none', cursor:'pointer', fontSize:13, fontWeight:500, background:section===k?'#4ade80':'transparent', color:section===k?'#000':'#6b7280', transition:'all 0.15s' }}>{v}</button>
+          <button key={k} onClick={() => setSection(k)} style={{ flex:1, padding:'9px', borderRadius:9, border:'none', cursor:'pointer', fontSize:13, fontWeight:500, background:section===k?'#4ade80':'transparent', color:section===k?'#000':'#6b7280' }}>{v}</button>
         ))}
       </div>
+
       {section === 'plan' && (
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-          <div style={{ background:'#1a1a1a', borderRadius:16, padding:20, border:'1px solid #2e2e2e' }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
-              <div style={{ fontSize:15, fontWeight:700 }}>Твой план</div>
-              <span style={{ fontSize:13, color:'#4ade80', cursor:'pointer' }}>Изменить</span>
-            </div>
-            <div style={{ background:'rgba(74,222,128,0.08)', border:'1px solid rgba(74,222,128,0.2)', borderRadius:14, padding:16, marginBottom:14 }}>
-              <div style={{ fontSize:14, fontWeight:700, color:'#4ade80', marginBottom:4 }}>{GOAL_LABELS[form.goals[0]] || 'Цель не выбрана'}</div>
-              <div style={{ fontSize:13, color:'#6b7280' }}>Уровень: {LEVEL_LABELS[form.level] || 'Любитель'}</div>
-            </div>
-            <div style={{ display:'flex', gap:6 }}>
-              {['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map((d, i) => (
-                <div key={d} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
-                  <div style={{ width:32, height:32, borderRadius:10, background:i<5?'rgba(74,222,128,0.15)':'rgba(74,222,128,0.04)', border:`1px solid ${i<5?'rgba(74,222,128,0.4)':'#2e2e2e'}`, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                    {i<5 ? <Check size={14} color="#4ade80" /> : <span style={{ fontSize:10, color:'#4b5563' }}>—</span>}
-                  </div>
-                  <span style={{ fontSize:10, color:'#6b7280' }}>{d}</span>
-                </div>
-              ))}
-            </div>
-          </div>
           <div style={{ background:'#1a1a1a', borderRadius:16, padding:16, border:'1px solid #2e2e2e' }}>
             <div style={{ fontSize:14, fontWeight:600, marginBottom:12 }}>Цели тренировок</div>
             <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
@@ -1330,9 +1229,10 @@ function ProfileScreen({ profile, saveProfile, signOut }) {
           </div>
         </div>
       )}
+
       {section === 'profile' && (
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-          {[['Имя','name','text','Алексей'],['Рост (см)','height','number','180'],['Вес (кг)','weight','number','90'],['Возраст','age','number','28']].map(([label,key,type,ph]) => (
+          {[['Рост (см)','height','number','180'],['Вес (кг)','weight','number','90'],['Возраст','age','number','28']].map(([label,key,type,ph]) => (
             <div key={key} style={{ background:'#1a1a1a', borderRadius:14, padding:'14px 16px', border:'1px solid #2e2e2e', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
               <span style={{ fontSize:14, color:'#9ca3af' }}>{label}</span>
               <input style={{ background:'transparent', border:'none', color:'#f5f5f5', fontSize:14, fontWeight:600, textAlign:'right', width:120, outline:'none' }} type={type} placeholder={ph} value={form[key]||''} onChange={e => setForm(f => ({...f,[key]:e.target.value}))} />
@@ -1351,14 +1251,9 @@ function ProfileScreen({ profile, saveProfile, signOut }) {
               {Object.entries(ACTIVITY_LABELS).map(([v,l]) => <option key={v} value={v} style={{ background:'#222' }}>{l}</option>)}
             </select>
           </div>
-          {profile?.bmi && (
-            <div style={{ background:'rgba(74,222,128,0.05)', borderRadius:14, padding:'14px 16px', border:'1px solid rgba(74,222,128,0.2)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-              <span style={{ fontSize:14, color:'#9ca3af' }}>ИМТ</span>
-              <span style={{ fontSize:14, fontWeight:700, color:'#4ade80' }}>{profile.bmi}</span>
-            </div>
-          )}
         </div>
       )}
+
       {section === 'settings' && (
         <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
           <div style={{ background:'#1a1a1a', borderRadius:16, padding:16, border:'1px solid #2e2e2e' }}>
@@ -1372,18 +1267,25 @@ function ProfileScreen({ profile, saveProfile, signOut }) {
               ))}
             </div>
           </div>
-          {[{l:'Уведомления', v:'Включены'},{l:'Единицы измерения', v:'Кг, см'}].map(s => (
-            <div key={s.l} style={{ background:'#1a1a1a', borderRadius:14, padding:'15px 16px', border:'1px solid #2e2e2e', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-              <span style={{ fontSize:14 }}>{s.l}</span>
-              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <span style={{ fontSize:13, color:'#6b7280' }}>{s.v}</span>
-                <ChevronRight size={16} color="#4b5563" />
+          <div style={{ background:'#1a1a1a', borderRadius:16, padding:16, border:'1px solid #2e2e2e' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+              <div>
+                <div style={{ fontSize:14, fontWeight:600 }}>Кэш AI-продуктов</div>
+                <div style={{ fontSize:12, color:'#6b7280', marginTop:2 }}>Сохранённых: {cacheCount}</div>
               </div>
+              <button onClick={handleClearCache} disabled={cacheCount === 0}
+                style={{ padding:'8px 14px', borderRadius:10, background: cacheCleared ? '#22c55e' : 'rgba(239,68,68,0.1)', border:`1px solid ${cacheCleared ? '#22c55e' : 'rgba(239,68,68,0.3)'}`, color: cacheCleared ? '#000' : '#ef4444', cursor:'pointer', fontSize:12, fontWeight:600, opacity: cacheCount === 0 ? 0.4 : 1 }}>
+                {cacheCleared ? '✓ Очищено' : 'Очистить'}
+              </button>
             </div>
-          ))}
+            <div style={{ fontSize:11, color:'#6b7280', lineHeight:1.4 }}>
+              Удаляет все продукты, которые AI распознал и сохранил для быстрого поиска
+            </div>
+          </div>
         </div>
       )}
-      <button onClick={handleSave} style={{ background: saved ? '#22c55e' : '#4ade80', color:'#000', border:'none', borderRadius:14, padding:'15px', fontSize:15, fontWeight:700, cursor:'pointer', textTransform:'uppercase', letterSpacing:0.5, transition:'background 0.3s' }}>
+
+      <button onClick={handleSave} style={{ background: saved ? '#22c55e' : '#4ade80', color:'#000', border:'none', borderRadius:14, padding:'15px', fontSize:15, fontWeight:700, cursor:'pointer', textTransform:'uppercase', letterSpacing:0.5 }}>
         {saved ? '✓ Сохранено!' : 'Сохранить'}
       </button>
     </div>
