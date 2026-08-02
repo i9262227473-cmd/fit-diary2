@@ -16,6 +16,7 @@ imports = [
     "import VoiceButton from '../components/common/VoiceButton'\n",
     "import NumberStepper from '../components/common/NumberStepper'\n",
     "import SwipeToDelete from '../components/common/SwipeToDelete'\n",
+    "import { NavHome, NavWorkout, NavProgress, NavFood, NavUser } from '../components/layout/NavigationIcons'\n",
 ]
 for component_import in imports:
     if component_import not in text:
@@ -47,8 +48,16 @@ text, swipe_count = swipe_pattern.subn('', text, count=1)
 if swipe_count != 1 and 'function SwipeToDelete(' in text:
     raise SystemExit('Не удалось безопасно удалить встроенный SwipeToDelete')
 
+nav_pattern = re.compile(
+    r"// ─── NAV ICONS .*?(?=// ─── HELPERS)",
+    re.DOTALL,
+)
+text, nav_count = nav_pattern.subn('', text, count=1)
+if nav_count != 1 and 'function NavHome(' in text:
+    raise SystemExit('Не удалось безопасно удалить встроенные навигационные иконки')
+
 if text == original:
     print('Изменения уже применены')
 else:
     path.write_text(text, encoding='utf-8')
-    print('VoiceButton, NumberStepper и SwipeToDelete подключены из отдельных компонентов')
+    print('Общие компоненты и навигационные иконки подключены из отдельных модулей')
