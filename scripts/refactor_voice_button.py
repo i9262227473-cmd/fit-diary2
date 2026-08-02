@@ -18,8 +18,11 @@ imports = [
     "import NumberStepper from '../components/common/NumberStepper'\n",
     "import SwipeToDelete from '../components/common/SwipeToDelete'\n",
     "import WheelPicker, { buildWeightValues } from '../components/common/WheelPicker'\n",
+    "import CircularProgress, { getCalorieColor } from '../components/common/CircularProgress'\n",
     "import SetPickerModal from '../components/workouts/SetPickerModal'\n",
+    "import WeightTransferModal from '../components/workouts/WeightTransferModal'\n",
     "import BarcodeScanner, { lookupBarcode } from '../components/food/BarcodeScanner'\n",
+    "import EditFoodModal from '../components/food/EditFoodModal'\n",
     "import { buildReportData, generateReportPDF } from '../utils/pdfReport'\n",
     "import { NavHome, NavWorkout, NavProgress, NavFood, NavUser } from '../components/layout/NavigationIcons'\n",
     "import { createStableId as uid, formatLongTime as fmtTimeLong, getDefaultRestSeconds as getDefaultRestSec } from '../utils/workoutUi'\n",
@@ -39,6 +42,9 @@ patterns = [
     (r"// ─── SET PICKER MODAL .*?(?=function compressImage)", 'function SetPickerModal(', 'SetPickerModal'),
     (r"// ─── BARCODE SCANNER .*?(?=// ─── PDF REPORT EXPORT)", 'function BarcodeScanner(', 'BarcodeScanner'),
     (r"// ─── PDF REPORT EXPORT .*?(?=// Цвет кружка калорий)", 'function buildReportData(', 'PDF-отчёт'),
+    (r"// Цвет кружка калорий .*?(?=// ─── ПОДТВЕРЖДЕНИЕ ПЕРЕНОСА ВЕСОВ)", 'function CircularProgress(', 'CircularProgress'),
+    (r"// ─── ПОДТВЕРЖДЕНИЕ ПЕРЕНОСА ВЕСОВ .*?(?=// ─── EDIT FOOD MODAL)", 'function WeightTransferModal(', 'WeightTransferModal'),
+    (r"// ─── EDIT FOOD MODAL .*?(?=// ─── HOME SCREEN)", 'function EditFoodModal(', 'EditFoodModal'),
 ]
 for pattern, remaining_marker, label in patterns:
     text, count = re.compile(pattern, re.DOTALL).subn('', text, count=1)
@@ -64,4 +70,4 @@ if text == original:
     print('Изменения уже применены')
 else:
     path.write_text(text, encoding='utf-8')
-    print('Общие компоненты, сканер, PDF-отчёт, модальные окна, иконки и утилиты подключены из отдельных модулей')
+    print('Общие компоненты, индикаторы, модальные окна, сканер, PDF-отчёт, иконки и утилиты подключены из отдельных модулей')
