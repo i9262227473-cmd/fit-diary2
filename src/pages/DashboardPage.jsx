@@ -9,6 +9,7 @@ import { normReps } from './planUtils'
 import { getExerciseProgress, saveExerciseResult, suggestWeightFor, acceptProgression } from './progressTracking'
 import { EXERCISE_DB as FULL_EXERCISE_DB, MUSCLE_GROUPS, EFF_LABEL, EFF_ORDER, PLACE_LABEL, findAlternatives, getExercisesFor } from '../data/exerciseDatabase'
 import { getTechnique } from '../data/exerciseTechnique'
+import WheelPicker, { buildWeightValues } from '../components/common/WheelPicker'
 import { createStableId as uid, formatLongTime as fmtTimeLong, getDefaultRestSeconds as getDefaultRestSec } from '../utils/workoutUi'
 import { NavHome, NavWorkout, NavProgress, NavFood, NavUser } from '../components/layout/NavigationIcons'
 import SwipeToDelete from '../components/common/SwipeToDelete'
@@ -16,95 +17,6 @@ import NumberStepper from '../components/common/NumberStepper'
 import VoiceButton from '../components/common/VoiceButton'
 
 const WK_DRAFT_KEY = 'workout-draft-v1'
-
-// ─── WHEEL PICKER (как выбор года — крутишь пальцем вверх/вниз, значения щёлкают по центру) ─────────────────────
-function buildWeightValues() {
-  // 0–20 кг шагом 0.5, выше 20 — шагом 2.5
-  const vals = []
-  for (let v = 0; v <= 20; v += 0.5) vals.push(Math.round(v * 10) / 10)
-  for (let v = 22.5; v <= 300; v += 2.5) vals.push(Math.round(v * 10) / 10)
-  return vals
-}
-
-function WheelPicker({ value, onChange, min = 0, max = 100, step = 1, values: valuesProp, width = 80, itemHeight = 40, visibleCount = 5 }) {
-  const containerRef = useRef(null)
-  const scrollTimeout = useRef(null)
-  const isProgrammatic = useRef(false)
-  const [centerIdx, setCenterIdx] = useState(null)
-
-  const values = useMemo(() => {
-    if (valuesProp) return valuesProp
-    const arr = []
-    for (let v = min; v <= max + 1e-6; v += step) arr.push(Math.round(v * 100) / 100)
-    return arr
-  }, [valuesProp, min, max, step])
-
-  const fmt = v => Number.isInteger(v) ? String(v) : String(v.toFixed(1))
-
-  const closestIndex = (v) => {
-    let best = 0, bestDiff = Infinity
-    values.forEach((vv, i) => { const d = Math.abs(vv - v); if (d < bestDiff) { bestDiff = d; best = i } })
-    return best
-  }
-
-  useEffect(() => {
-    const idx = closestIndex(parseFloat(value) || min)
-    setCenterIdx(idx)
-    if (containerRef.current) {
-      isProgrammatic.current = true
-      containerRef.current.scrollTop = idx * itemHeight
-      setTimeout(() => { isProgrammatic.current = false }, 60)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const handleScroll = () => {
-    if (isProgrammatic.current) return
-    const el = containerRef.current
-    if (!el) return
-    const rawIdx = el.scrollTop / itemHeight
-    const idx = Math.max(0, Math.min(values.length - 1, Math.round(rawIdx)))
-    setCenterIdx(idx)
-    clearTimeout(scrollTimeout.current)
-    scrollTimeout.current = setTimeout(() => {
-      el.scrollTo({ top: idx * itemHeight, behavior: 'smooth' })
-      onChange(fmt(values[idx]))
-    }, 100)
-  }
-
-  const padCount = Math.floor(visibleCount / 2)
-  const height = itemHeight * visibleCount
-
-  return (
-    <div style={{ position: 'relative', width, height }}>
-      <style>{`.wheel-scroll-hide::-webkit-scrollbar{display:none}`}</style>
-      <div style={{ position: 'absolute', top: itemHeight * padCount, left: 0, right: 0, height: itemHeight, background: 'rgba(61,153,112,0.12)', border: '1px solid rgba(61,153,112,0.4)', borderRadius: 10, pointerEvents: 'none', zIndex: 1 }} />
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(#0e0e0e, transparent 30%, transparent 70%, #0e0e0e)', pointerEvents: 'none', zIndex: 2, opacity: 0.9 }} />
-      <div
-        ref={containerRef}
-        onScroll={handleScroll}
-        className="wheel-scroll-hide"
-        style={{ height: '100%', overflowY: 'scroll', scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}
-      >
-        <div style={{ height: itemHeight * padCount }} />
-        {values.map((v, i) => (
-          <div key={v} style={{
-            height: itemHeight, scrollSnapAlign: 'center',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: 'var(--mono)',
-            fontSize: i === centerIdx ? 20 : 15,
-            fontWeight: i === centerIdx ? 700 : 500,
-            color: i === centerIdx ? '#f5f5f5' : '#4b5563',
-            transition: 'font-size 0.15s, color 0.15s',
-          }}>
-            {fmt(v)}
-          </div>
-        ))}
-        <div style={{ height: itemHeight * padCount }} />
-      </div>
-    </div>
-  )
-}
 
 // ─── SET PICKER MODAL (боттом-шит с двумя колёсами: повторы + вес) ─────────────────────
 function SetPickerModal({ title, reps, weight, onSave, onClose }) {
