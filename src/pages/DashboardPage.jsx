@@ -9,6 +9,7 @@ import { normReps } from './planUtils'
 import { getExerciseProgress, saveExerciseResult, suggestWeightFor, acceptProgression } from './progressTracking'
 import { EXERCISE_DB as FULL_EXERCISE_DB, MUSCLE_GROUPS, EFF_LABEL, EFF_ORDER, PLACE_LABEL, findAlternatives, getExercisesFor } from '../data/exerciseDatabase'
 import { getTechnique } from '../data/exerciseTechnique'
+import SwipeToDelete from '../components/common/SwipeToDelete'
 import NumberStepper from '../components/common/NumberStepper'
 import VoiceButton from '../components/common/VoiceButton'
 
@@ -47,67 +48,6 @@ function fmtTimeLong(s) {
 const BIG_MUSCLES = ['Грудь', 'Спина', 'Ноги']
 function getDefaultRestSec(muscle) {
   return BIG_MUSCLES.includes(muscle) ? 150 : 75
-}
-
-// ─── SWIPE TO DELETE (свайп влево для удаления) ───────────────────────────
-function SwipeToDelete({ onDelete, children, disabled, confirmText, radius = 18 }) {
-  const [dx, setDx] = useState(0)
-  const [dragging, setDragging] = useState(false)
-  const start = useRef({ x: 0, y: 0 })
-  const axis = useRef(null)
-  const MAX = 88
-  const THRESHOLD = 60
-
-  const onStart = e => {
-    if (disabled) return
-    const t = e.touches[0]
-    start.current = { x: t.clientX, y: t.clientY }
-    axis.current = null
-    setDragging(true)
-  }
-  const onMove = e => {
-    if (disabled || !dragging) return
-    const t = e.touches[0]
-    const ddx = t.clientX - start.current.x
-    const ddy = t.clientY - start.current.y
-    if (axis.current === null && (Math.abs(ddx) > 6 || Math.abs(ddy) > 6)) {
-      axis.current = Math.abs(ddx) > Math.abs(ddy) ? 'x' : 'y'
-    }
-    if (axis.current === 'x') {
-      if (e.cancelable) e.preventDefault()
-      setDx(Math.max(-MAX, Math.min(0, ddx)))
-    }
-  }
-  const onEnd = () => {
-    if (disabled) return
-    setDragging(false)
-    if (-dx >= THRESHOLD) {
-      if (!confirmText || confirm(confirmText)) {
-        setDx(-500)
-        setTimeout(() => { onDelete() }, 180)
-      } else {
-        setDx(0)
-      }
-    } else {
-      setDx(0)
-    }
-    axis.current = null
-  }
-
-  return (
-    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: radius }}>
-      <div style={{ position: 'absolute', inset: 0, background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 22px' }}>
-        <Trash2 size={20} color="#fff" />
-      </div>
-      <div
-        onTouchStart={onStart}
-        onTouchMove={onMove}
-        onTouchEnd={onEnd}
-        style={{ transform: `translateX(${dx}px)`, transition: dragging ? 'none' : 'transform 0.25s ease', position: 'relative' }}>
-        {children}
-      </div>
-    </div>
-  )
 }
 
 // ─── WHEEL PICKER (как выбор года — крутишь пальцем вверх/вниз, значения щёлкают по центру) ─────────────────────
