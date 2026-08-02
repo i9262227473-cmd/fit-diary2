@@ -9,30 +9,13 @@ import { normReps } from './planUtils'
 import { getExerciseProgress, saveExerciseResult, suggestWeightFor, acceptProgression } from './progressTracking'
 import { EXERCISE_DB as FULL_EXERCISE_DB, MUSCLE_GROUPS, EFF_LABEL, EFF_ORDER, PLACE_LABEL, findAlternatives, getExercisesFor } from '../data/exerciseDatabase'
 import { getTechnique } from '../data/exerciseTechnique'
+import { createStableId as uid, formatLongTime as fmtTimeLong, getDefaultRestSeconds as getDefaultRestSec } from '../utils/workoutUi'
 import { NavHome, NavWorkout, NavProgress, NavFood, NavUser } from '../components/layout/NavigationIcons'
 import SwipeToDelete from '../components/common/SwipeToDelete'
 import NumberStepper from '../components/common/NumberStepper'
 import VoiceButton from '../components/common/VoiceButton'
 
 const WK_DRAFT_KEY = 'workout-draft-v1'
-
-// Стабильный ID для подходов/упражнений — не зависит от позиции в массиве, переживает удаление/перестановку соседей
-let _uidCounter = 0
-function uid() { return `${Date.now().toString(36)}-${(_uidCounter++).toString(36)}-${Math.random().toString(36).slice(2,7)}` }
-
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
-function fmtTimeLong(s) {
-  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60
-  if (h > 0) return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`
-  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`
-}
-
-// ─── ДЕФОЛТНОЕ ВРЕМЯ ОТДЫХА МЕЖДУ ПОДХОДАМИ ───────────────────────────────
-// Крупные группы: 2–3 мин (берём середину 150с). Мелкие: 1–1.5 мин (середина 75с).
-const BIG_MUSCLES = ['Грудь', 'Спина', 'Ноги']
-function getDefaultRestSec(muscle) {
-  return BIG_MUSCLES.includes(muscle) ? 150 : 75
-}
 
 // ─── WHEEL PICKER (как выбор года — крутишь пальцем вверх/вниз, значения щёлкают по центру) ─────────────────────
 function buildWeightValues() {
