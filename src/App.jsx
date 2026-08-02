@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useStore, SB_URL, SB_KEY } from './store'
+import { useStore, API_URL } from './store'
 
 import AuthPage from './pages/AuthPage'
 import OnboardingPage from './pages/OnboardingPage'
@@ -12,17 +12,19 @@ export default function App() {
 
   useEffect(() => {
     const init = async () => {
-      // Если есть сессия но нет профиля — загружаем из Supabase
+      // Если есть сессия но нет профиля — загружаем с нашего бэкенда
       if (user && session && !profile) {
         try {
-          const res = await fetch(
-            `${SB_URL}/rest/v1/user_profiles?user_id=eq.${user.id}&select=*`,
-            { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${session.access_token}` } }
-          )
-          const data = await res.json()
-          if (data && data.length > 0) {
-            const p = data[0]
+          const res = await fetch(`${API_URL}/profile`, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            }
+          })
+          const p = await res.json()
+          if (p) {
             useStore.setState({ profile: {
+              name: p.name,
               role: p.role,
               level: p.level,
               goals: p.goals,

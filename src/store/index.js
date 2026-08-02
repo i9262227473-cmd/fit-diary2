@@ -1,39 +1,50 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-const SB_URL = 'https://ijzfzvxhkpxogpqrsnzf.supabase.co'
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqemZ6dnhoa3B4b2dwcXJzbnpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyODEyOTQsImV4cCI6MjA5MDg1NzI5NH0.2wDtmzVDDfvY9iD08Q_SmeqwFsC4yuDCN2ZAGklSolg'
-const API_URL = 'https://fit-ai-tracker-production.up.railway.app'
+// ── Адрес собственного бэкенда (Timeweb, HTTPS через nginx) ──
+const API_URL = 'https://api.sudbase.ru'
 
-const sbHeaders = (token) => ({
-  'Content-Type': 'application/json',
-  'apikey': SB_KEY,
-  'Authorization': `Bearer ${token || SB_KEY}`
-})
+const jsonHeaders = (token) => {
+  const h = { 'Content-Type': 'application/json' }
+  if (token) h['Authorization'] = `Bearer ${token}`
+  return h
+}
 
-const loadProfile = async (userId, token) => {
+// ── Обновление access-токена по refresh ──
+const refreshSessionToken = async (refreshToken) => {
   try {
-    const res = await fetch(
-      `${SB_URL}/rest/v1/user_profiles?user_id=eq.${userId}&select=*`,
-      { headers: sbHeaders(token) }
-    )
+    const res = await fetch(`${API_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: jsonHeaders(),
+      body: JSON.stringify({ refresh_token: refreshToken })
+    })
+    if (!res.ok) return null
     const data = await res.json()
-    return data && data.length > 0 ? data[0] : null
+    if (data.error) return null
+    return data
+  } catch (e) {
+    console.warn('Token refresh error:', e)
+    return null
+  }
+}
+
+const loadProfile = async (token) => {
+  try {
+    const res = await fetch(`${API_URL}/profile`, { headers: jsonHeaders(token) })
+    if (!res.ok) return null
+    return await res.json()
   } catch (e) {
     console.warn('Profile load error:', e)
     return null
   }
 }
 
-// Загрузить дневник с Supabase
-const loadEntries = async (userId, token) => {
+const loadEntries = async (token) => {
   try {
-    const res = await fetch(
-      `${SB_URL}/rest/v1/diary_entries?user_id=eq.${userId}&select=*&order=date.desc`,
-      { headers: sbHeaders(token) }
-    )
+    const res = await fetch(`${API_URL}/entries`, { headers: jsonHeaders(token) })
     if (!res.ok) return null
     const data = await res.json()
+    if (!Array.isArray(data)) return null
     return data.map(row => ({
       date: row.date,
       foods: row.foods || [],
@@ -45,18 +56,15 @@ const loadEntries = async (userId, token) => {
   }
 }
 
-// Сохранить запись дневника в Supabase
-const syncEntry = async (userId, token, entry) => {
+const syncEntry = async (token, entry) => {
   try {
-    await fetch(`${SB_URL}/rest/v1/diary_entries`, {
+    await fetch(`${API_URL}/entries`, {
       method: 'POST',
-      headers: { ...sbHeaders(token), 'Prefer': 'resolution=merge-duplicates' },
+      headers: jsonHeaders(token),
       body: JSON.stringify({
-        user_id: userId,
         date: entry.date,
-        foods: entry.foods,
-        workouts: entry.workouts,
-        updated_at: new Date().toISOString()
+        foods: entry.foods || [],
+        workouts: entry.workouts || [],
       })
     })
   } catch (e) {
@@ -74,24 +82,41 @@ export const useStore = create(
       entries: [],
       weights: [],
 
+      // ── Получить актуальный токен (авто-обновление) ──
+      getValidToken: async () => {
+        const { session } = get()
+        if (!session) return null
+        const expiresAt = session.expires_at ? session.expires_at * 1000 : 0
+        const now = Date.now()
+        if (expiresAt && now < expiresAt - 120000) return session.access_token
+        if (session.refresh_token) {
+          const newSession = await refreshSessionToken(session.refresh_token)
+          if (newSession && newSession.access_token) {
+            set({ session: newSession, user: newSession.user })
+            return newSession.access_token
+          }
+        }
+        return session.access_token
+      },
+
       // ── Auth ──
       signUp: async (email, password, name) => {
-        const res = await fetch(`${SB_URL}/auth/v1/signup`, {
+        const res = await fetch(`${API_URL}/auth/register`, {
           method: 'POST',
-          headers: sbHeaders(),
-          body: JSON.stringify({ email, password, data: { name } })
+          headers: jsonHeaders(),
+          body: JSON.stringify({ email, password, name })
         })
         const data = await res.json()
-        if (data.error || data.msg?.includes('already')) throw new Error(data.error?.message || data.msg || 'Ошибка регистрации')
+        if (data.error) throw new Error(data.error.message || 'Ошибка регистрации')
         return data
       },
 
       signIn: async (email, password) => {
         set({ isLoggingIn: true })
         try {
-          const res = await fetch(`${SB_URL}/auth/v1/token?grant_type=password`, {
+          const res = await fetch(`${API_URL}/auth/login`, {
             method: 'POST',
-            headers: sbHeaders(),
+            headers: jsonHeaders(),
             body: JSON.stringify({ email, password })
           })
           const data = await res.json()
@@ -100,7 +125,7 @@ export const useStore = create(
           set({ user: data.user, session: data })
 
           // Загружаем профиль
-          const profileRaw = await loadProfile(data.user.id, data.access_token)
+          const profileRaw = await loadProfile(data.access_token)
           if (profileRaw) {
             set({
               profile: {
@@ -125,8 +150,8 @@ export const useStore = create(
             })
           }
 
-          // Загружаем дневник с Supabase (перезаписывает localStorage)
-          const remoteEntries = await loadEntries(data.user.id, data.access_token)
+          // Загружаем дневник с сервера
+          const remoteEntries = await loadEntries(data.access_token)
           if (remoteEntries && remoteEntries.length > 0) {
             set({ entries: remoteEntries })
           }
@@ -143,15 +168,15 @@ export const useStore = create(
 
       // ── Profile ──
       saveProfile: async (profileData) => {
-        const { session } = get()
+        const { session, getValidToken } = get()
         set({ profile: profileData })
         if (!session) return
         try {
-          await fetch(`${SB_URL}/rest/v1/user_profiles`, {
-            method: 'POST',
-            headers: { ...sbHeaders(session.access_token), 'Prefer': 'resolution=merge-duplicates' },
+          const token = await getValidToken()
+          await fetch(`${API_URL}/profile`, {
+            method: 'PUT',
+            headers: jsonHeaders(token),
             body: JSON.stringify({
-              user_id: session.user.id,
               name: profileData.name,
               role: profileData.role,
               level: profileData.level,
@@ -169,7 +194,6 @@ export const useStore = create(
               carb_goal: profileData.carbGoal,
               bmi: profileData.bmi ? +profileData.bmi : null,
               completed_at: profileData.completedAt,
-              updated_at: new Date().toISOString()
             })
           })
         } catch (e) {
@@ -183,7 +207,7 @@ export const useStore = create(
       aiCall: async (messages, maxTokens = 600) => {
         const res = await fetch(`${API_URL}/ai`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: jsonHeaders(),
           body: JSON.stringify({ messages, max_tokens: maxTokens })
         })
         const data = await res.json()
@@ -196,15 +220,15 @@ export const useStore = create(
         return entries.find(e => e.date === date) || { date, foods: [], workouts: [] }
       },
 
-      saveEntry: (entry) => {
+      saveEntry: async (entry) => {
         set(state => {
           const entries = state.entries.filter(e => e.date !== entry.date)
           return { entries: [entry, ...entries].sort((a, b) => b.date.localeCompare(a.date)) }
         })
-        // Синхронизируем с Supabase
-        const { session } = get()
-        if (session?.user?.id) {
-          syncEntry(session.user.id, session.access_token, entry)
+        const { session, getValidToken } = get()
+        if (session) {
+          const token = await getValidToken()
+          await syncEntry(token, entry)
         }
       },
 
@@ -229,4 +253,4 @@ export const useStore = create(
   )
 )
 
-export { SB_URL, SB_KEY, API_URL }
+export { API_URL }

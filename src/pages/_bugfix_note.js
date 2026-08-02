@@ -30,7 +30,7 @@ function WorkoutComplete({ workout, duration, onSave }) {
     Array.from({ length: 20 }).map((_, i) => ({
       left: `${5 + Math.random() * 90}%`,
       top: `${Math.random() * 60}px`,
-      color: ['#4ade80','#fbbf24','#38bdf8','#f87171','#a78bfa'][i % 5],
+      color: ['#3d9970','#fbbf24','#38bdf8','#f87171','#a78bfa'][i % 5],
       anim: `${0.8 + Math.random()}s`,
       delay: `${i * 0.05}s`,
     }))
