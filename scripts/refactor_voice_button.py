@@ -17,6 +17,7 @@ imports = [
     "import HomeScreen from '../components/home/HomeScreen'\n",
     "import FoodDayDetail from '../components/food/FoodDayDetail'\n",
     "import FoodCalendar from '../components/food/FoodCalendar'\n",
+    "import RecipeBuilder from '../components/food/RecipeBuilder'\n",
     "import VoiceButton from '../components/common/VoiceButton'\n",
     "import NumberStepper from '../components/common/NumberStepper'\n",
     "import SwipeToDelete from '../components/common/SwipeToDelete'\n",
@@ -51,6 +52,7 @@ patterns = [
     (r"// ─── HOME SCREEN .*?(?=// ─── FOOD SCREEN)", 'function HomeScreen(', 'HomeScreen'),
     (r"// ─── FOOD DAY DETAIL .*?(?=// ─── FOOD CALENDAR)", 'function FoodDayDetail(', 'FoodDayDetail'),
     (r"// ─── FOOD CALENDAR .*?(?=// ─── RECIPE BUILDER)", 'function FoodCalendar(', 'FoodCalendar'),
+    (r"// ─── RECIPE BUILDER .*?(?=function FoodScreen)", 'function RecipeBuilder(', 'RecipeBuilder'),
 ]
 for pattern, remaining_marker, label in patterns:
     text, count = re.compile(pattern, re.DOTALL).subn('', text, count=1)
@@ -87,4 +89,4 @@ if text == original:
     print('Изменения уже применены')
 else:
     path.write_text(text, encoding='utf-8')
-    print('HomeScreen, FoodDayDetail, FoodCalendar и общие компоненты подключены из отдельных модулей')
+    print('HomeScreen, FoodDayDetail, FoodCalendar, RecipeBuilder и общие компоненты подключены из отдельных модулей')
