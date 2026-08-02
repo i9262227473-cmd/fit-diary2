@@ -3,12 +3,13 @@ import { createPortal } from 'react-dom'
 import { useStore } from '../store'
 import { searchFoodSmart } from '../data/searchUtils'
 import { saveCachedFood, getCachedFoods, clearCachedFoods } from '../data/userFoodCache'
-import { LogOut, Camera, Bell, ChevronRight, Plus, Check, X, ChevronLeft, Play, Pause, Flame, Droplets, Dumbbell, Edit2, Trash2, AlertTriangle, Sparkles, Calendar, Mic, ScanLine } from 'lucide-react'
+import { LogOut, Camera, Bell, ChevronRight, Plus, Check, X, ChevronLeft, Play, Pause, Flame, Droplets, Dumbbell, Edit2, Trash2, AlertTriangle, Sparkles, Calendar, ScanLine } from 'lucide-react'
 import styles from './DashboardPage.module.css'
 import { normReps } from './planUtils'
 import { getExerciseProgress, saveExerciseResult, suggestWeightFor, acceptProgression } from './progressTracking'
 import { EXERCISE_DB as FULL_EXERCISE_DB, MUSCLE_GROUPS, EFF_LABEL, EFF_ORDER, PLACE_LABEL, findAlternatives, getExercisesFor } from '../data/exerciseDatabase'
 import { getTechnique } from '../data/exerciseTechnique'
+import VoiceButton from '../components/common/VoiceButton'
 
 const WK_DRAFT_KEY = 'workout-draft-v1'
 
@@ -45,68 +46,6 @@ function fmtTimeLong(s) {
 const BIG_MUSCLES = ['Грудь', 'Спина', 'Ноги']
 function getDefaultRestSec(muscle) {
   return BIG_MUSCLES.includes(muscle) ? 150 : 75
-}
-
-// ─── VOICE INPUT (голосовой ввод через браузерный Web Speech API — бесплатно, без запросов к серверу) ───────────────────────────
-// Поддерживается в Chrome (вкл. Android) и в iOS Safari ≥ 14.5. Требует HTTPS.
-function useVoiceInput(onResult) {
-  const [listening, setListening] = useState(false)
-  const recRef = useRef(null)
-  const onResultRef = useRef(onResult)
-  onResultRef.current = onResult
-
-  const supported = typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition)
-
-  const stop = () => {
-    if (recRef.current) { try { recRef.current.stop() } catch {} }
-  }
-
-  const start = () => {
-    if (!supported || listening) return
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-    const rec = new SR()
-    rec.lang = 'ru-RU'
-    rec.interimResults = false
-    rec.continuous = false
-    rec.maxAlternatives = 1
-    rec.onstart = () => setListening(true)
-    rec.onend = () => setListening(false)
-    rec.onerror = () => setListening(false)
-    rec.onresult = (e) => {
-      const text = Array.from(e.results).map(r => r[0].transcript).join(' ').trim()
-      if (text) onResultRef.current(text)
-    }
-    recRef.current = rec
-    try { rec.start() } catch {}
-  }
-
-  useEffect(() => () => stop(), [])
-
-  return { supported, listening, start, stop }
-}
-
-// Кнопка-микрофон 2в1: показывает состояние записи, сама управляет useVoiceInput
-function VoiceButton({ onResult, size = 46, compact }) {
-  const { supported, listening, start, stop } = useVoiceInput(onResult)
-  if (!supported) return null
-  const dim = compact ? 38 : size
-  return (
-    <button
-      type="button"
-      onClick={() => listening ? stop() : start()}
-      title={listening ? 'Слушаю...' : 'Наговорить'}
-      style={{
-        width: dim, height: dim, flexShrink: 0, borderRadius: 12,
-        background: listening ? '#ef4444' : '#222',
-        border: `1px solid ${listening ? '#ef4444' : '#2e2e2e'}`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'pointer', position: 'relative',
-        animation: listening ? 'micPulse 1.2s ease-in-out infinite' : 'none',
-      }}>
-      <style>{`@keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.45)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}`}</style>
-      <Mic size={compact ? 16 : 18} color={listening ? '#fff' : '#9ca3af'} />
-    </button>
-  )
 }
 
 // ─── SWIPE TO DELETE (свайп влево для удаления) ───────────────────────────
