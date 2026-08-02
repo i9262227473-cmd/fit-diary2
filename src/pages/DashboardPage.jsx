@@ -9,6 +9,7 @@ import { normReps } from './planUtils'
 import { getExerciseProgress, saveExerciseResult, suggestWeightFor, acceptProgression } from './progressTracking'
 import { EXERCISE_DB as FULL_EXERCISE_DB, MUSCLE_GROUPS, EFF_LABEL, EFF_ORDER, PLACE_LABEL, findAlternatives, getExercisesFor } from '../data/exerciseDatabase'
 import { getTechnique } from '../data/exerciseTechnique'
+import { buildReportData, generateReportPDF } from '../utils/pdfReport'
 import BarcodeScanner, { lookupBarcode } from '../components/food/BarcodeScanner'
 import SetPickerModal from '../components/workouts/SetPickerModal'
 import WheelPicker, { buildWeightValues } from '../components/common/WheelPicker'
@@ -40,129 +41,6 @@ function compressImage(file, maxSize = 1024, quality = 0.85) {
     }
     r.onerror = rej; r.readAsDataURL(file)
   })
-}
-
-// ─── PDF REPORT EXPORT (отчёт в PDF через jsPDF с CDN — бесплатно, без npm-зависимости) ───────────────────────────
-let _jsPDFPromise = null
-function loadJsPDF() {
-  if (window.jspdf?.jsPDF) return Promise.resolve(window.jspdf.jsPDF)
-  if (_jsPDFPromise) return _jsPDFPromise
-  _jsPDFPromise = new Promise((resolve, reject) => {
-    const script = document.createElement('script')
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
-    script.onload = () => resolve(window.jspdf.jsPDF)
-    script.onerror = () => reject(new Error('CDN_LOAD_FAILED'))
-    document.head.appendChild(script)
-  })
-  return _jsPDFPromise
-}
-
-// Собирает данные за период (кол-во дней назад от сегодня, включая сегодня)
-function buildReportData(entries, days, goals) {
-  const today = new Date()
-  const dateKeys = []
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(today); d.setDate(d.getDate() - i)
-    dateKeys.push(d.toISOString().split('T')[0])
-  }
-  const byDate = entries.reduce((acc, e) => { acc[e.date] = e; return acc }, {})
-
-  const dayRows = dateKeys.map(dateKey => {
-    const e = byDate[dateKey] || { foods: [], workouts: [] }
-    const foodTotals = (e.foods || []).reduce((a, f) => ({
-      cal: a.cal + (f.calories||0), p: a.p + (f.protein||0), fat: a.fat + (f.fat||0), c: a.c + (f.carbs||0),
-    }), { cal: 0, p: 0, fat: 0, c: 0 })
-    return {
-      date: dateKey,
-      cal: Math.round(foodTotals.cal), p: Math.round(foodTotals.p), fat: Math.round(foodTotals.fat), c: Math.round(foodTotals.c),
-      foodsCount: (e.foods || []).length,
-      workouts: (e.workouts || []).map(w => ({
-        name: w.name || 'Тренировка', duration: w.duration || 0, exercisesCount: (w.exercisesDetail || w.exercises || []).length,
-      })),
-    }
-  })
-
-  const daysWithFood = dayRows.filter(d => d.foodsCount > 0)
-  const avgCal = daysWithFood.length ? Math.round(daysWithFood.reduce((a, d) => a + d.cal, 0) / daysWithFood.length) : 0
-  const avgP = daysWithFood.length ? Math.round(daysWithFood.reduce((a, d) => a + d.p, 0) / daysWithFood.length) : 0
-  const avgFat = daysWithFood.length ? Math.round(daysWithFood.reduce((a, d) => a + d.fat, 0) / daysWithFood.length) : 0
-  const avgC = daysWithFood.length ? Math.round(daysWithFood.reduce((a, d) => a + d.c, 0) / daysWithFood.length) : 0
-  const totalWorkouts = dayRows.reduce((a, d) => a + d.workouts.length, 0)
-  const totalWorkoutMin = dayRows.reduce((a, d) => a + d.workouts.reduce((b, w) => b + w.duration, 0), 0)
-
-  return { dayRows, avgCal, avgP, avgFat, avgC, totalWorkouts, totalWorkoutMin, daysTracked: daysWithFood.length, goals }
-}
-
-async function generateReportPDF(data, periodLabel, userName) {
-  const jsPDF = await loadJsPDF()
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' })
-  const pageWidth = doc.internal.pageSize.getWidth()
-  const marginX = 40
-  let y = 50
-
-  doc.setFontSize(18); doc.setFont(undefined, 'bold')
-  doc.text('Фитнес Дневник — отчёт', marginX, y)
-  y += 22
-  doc.setFontSize(11); doc.setFont(undefined, 'normal')
-  doc.text(`${userName || 'Пользователь'} · ${periodLabel} · сформирован отчёт: ${new Date().toLocaleDateString('ru-RU')}`, marginX, y)
-  y += 30
-
-  doc.setDrawColor(220); doc.line(marginX, y, pageWidth - marginX, y)
-  y += 24
-
-  doc.setFontSize(14); doc.setFont(undefined, 'bold')
-  doc.text('Питание — средние показатели', marginX, y)
-  y += 20
-  doc.setFontSize(11); doc.setFont(undefined, 'normal')
-  doc.text(`Калории: ${data.avgCal} / цель ${data.goals.calories} ккал`, marginX, y); y += 16
-  doc.text(`Белки: ${data.avgP}г  ·  Жиры: ${data.avgFat}г  ·  Углеводы: ${data.avgC}г`, marginX, y); y += 16
-  doc.text(`Дней с записями питания: ${data.daysTracked} из ${data.dayRows.length}`, marginX, y); y += 26
-
-  doc.setFontSize(14); doc.setFont(undefined, 'bold')
-  doc.text('Тренировки — сводка', marginX, y)
-  y += 20
-  doc.setFontSize(11); doc.setFont(undefined, 'normal')
-  doc.text(`Всего тренировок: ${data.totalWorkouts}  ·  Суммарное время: ${data.totalWorkoutMin} мин`, marginX, y)
-  y += 30
-
-  doc.setDrawColor(220); doc.line(marginX, y, pageWidth - marginX, y)
-  y += 24
-
-  doc.setFontSize(14); doc.setFont(undefined, 'bold')
-  doc.text('Детализация по дням', marginX, y)
-  y += 8
-
-  const rowH = 16
-  const colX = { date: marginX, cal: marginX + 90, pfc: marginX + 150, workout: marginX + 290 }
-  const checkPageBreak = () => {
-    if (y > 780) { doc.addPage(); y = 50 }
-  }
-
-  y += 16
-  doc.setFontSize(9); doc.setFont(undefined, 'bold'); doc.setTextColor(120)
-  doc.text('Дата', colX.date, y)
-  doc.text('Ккал', colX.cal, y)
-  doc.text('Б/Ж/У, г', colX.pfc, y)
-  doc.text('Тренировки', colX.workout, y)
-  y += 10
-  doc.setDrawColor(230); doc.line(marginX, y, pageWidth - marginX, y)
-  y += 12
-  doc.setTextColor(30)
-
-  data.dayRows.forEach(d => {
-    checkPageBreak()
-    doc.setFontSize(9); doc.setFont(undefined, 'normal')
-    const dateFmt = new Date(d.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
-    doc.text(dateFmt, colX.date, y)
-    doc.text(d.foodsCount > 0 ? String(d.cal) : '—', colX.cal, y)
-    doc.text(d.foodsCount > 0 ? `${d.p}/${d.fat}/${d.c}` : '—', colX.pfc, y)
-    const wkText = d.workouts.length ? d.workouts.map(w => `${w.name} (${w.duration}мин)`).join(', ') : '—'
-    const wkLines = doc.splitTextToSize(wkText, pageWidth - marginX - colX.workout)
-    doc.text(wkLines, colX.workout, y)
-    y += rowH * Math.max(1, wkLines.length)
-  })
-
-  return doc
 }
 
 // Цвет кружка калорий в зависимости от заполнения (постепенный градиент)
