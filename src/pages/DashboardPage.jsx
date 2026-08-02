@@ -9,6 +9,9 @@ import { normReps } from './planUtils'
 import { getExerciseProgress, saveExerciseResult, suggestWeightFor, acceptProgression } from './progressTracking'
 import { EXERCISE_DB as FULL_EXERCISE_DB, MUSCLE_GROUPS, EFF_LABEL, EFF_ORDER, PLACE_LABEL, findAlternatives, getExercisesFor } from '../data/exerciseDatabase'
 import { getTechnique } from '../data/exerciseTechnique'
+import EditFoodModal from '../components/food/EditFoodModal'
+import WeightTransferModal from '../components/workouts/WeightTransferModal'
+import CircularProgress, { getCalorieColor } from '../components/common/CircularProgress'
 import { buildReportData, generateReportPDF } from '../utils/pdfReport'
 import BarcodeScanner, { lookupBarcode } from '../components/food/BarcodeScanner'
 import SetPickerModal from '../components/workouts/SetPickerModal'
@@ -41,119 +44,6 @@ function compressImage(file, maxSize = 1024, quality = 0.85) {
     }
     r.onerror = rej; r.readAsDataURL(file)
   })
-}
-
-// Цвет кружка калорий в зависимости от заполнения (постепенный градиент)
-function getCalorieColor(pct) {
-  if (pct < 0.6) return '#3d9970'   // зелёный
-  if (pct < 0.85) return '#a3e635'  // зелёно-жёлтый
-  if (pct < 0.95) return '#fbbf24'  // жёлтый
-  if (pct < 1.05) return '#fb923c'  // оранжевый
-  return '#ef4444'                   // красный (превышение)
-}
-
-// ─── CIRCULAR PROGRESS (тоньше + динамический цвет) ──────────────────────────
-function CircularProgress({ value, max, size = 120, stroke = 5, color, dynamicColor = false, children, onClick }) {
-  const r = (size - stroke) / 2
-  const circ = 2 * Math.PI * r
-  const pct = Math.min(value / max, 1.2)
-  const dash = Math.min(pct, 1) * circ
-  const finalColor = dynamicColor ? getCalorieColor(value / max) : (color || '#3d9970')
-  return (
-    <div onClick={onClick} style={{ position: 'relative', width: size, height: size, flexShrink: 0, cursor: onClick ? 'pointer' : 'default' }}>
-      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#2a2a2a" strokeWidth={stroke} />
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={finalColor} strokeWidth={stroke} strokeLinecap="round"
-          strokeDasharray={`${dash} ${circ - dash}`} style={{ transition: 'stroke-dasharray 0.6s ease, stroke 0.4s ease' }} />
-      </svg>
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        {children}
-      </div>
-    </div>
-  )
-}
-
-// ─── ПОДТВЕРЖДЕНИЕ ПЕРЕНОСА ВЕСОВ ────────────────────────────────────────────
-function WeightTransferModal({ onConfirm, onDecline, onClose }) {
-  return createPortal(
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 700, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: '#1a1a1a', borderRadius: '20px 20px 0 0', padding: 24, width: '100%', maxWidth: 500 }}>
-        <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 8 }}>Перенести веса с прошлого раза?</div>
-        <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.5, marginBottom: 20 }}>Для части упражнений есть сохранённые рабочие веса. Подставить их в подходы или начать с нуля?</p>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={onDecline} style={{ flex: 1, background: 'transparent', color: '#9ca3af', border: '1px solid #2e2e2e', borderRadius: 12, padding: '13px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Нет</button>
-          <button onClick={onConfirm} style={{ flex: 1.3, background: '#3d9970', color: '#000', border: 'none', borderRadius: 12, padding: '13px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Да, перенести</button>
-        </div>
-      </div>
-    </div>,
-    document.body
-  )
-}
-
-// ─── EDIT FOOD MODAL ─────────────────────────────────────────────────────────
-function EditFoodModal({ food, onSave, onClose }) {
-  const [name, setName] = useState(food.name)
-  const [weight, setWeight] = useState(String(food.weight || 100))
-  const [meal, setMeal] = useState(food.meal || 'breakfast')
-
-  const w = food.weight || 100
-  const cal100 = w ? (food.calories||0) * 100 / w : 0
-  const prot100 = w ? (food.protein||0) * 100 / w : 0
-  const fat100 = w ? (food.fat||0) * 100 / w : 0
-  const carbs100 = w ? (food.carbs||0) * 100 / w : 0
-
-  const newW = parseFloat(weight) || 100
-  const inp = { padding:'10px 14px', background:'#222', border:'1px solid #2e2e2e', borderRadius:10, color:'#f5f5f5', fontSize:14, outline:'none', boxSizing:'border-box', width:'100%' }
-  const MEALS = { breakfast:'Завтрак', lunch:'Обед', dinner:'Ужин', snack:'Перекус' }
-
-  return createPortal(
-    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', zIndex:600, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
-      <div onClick={e => e.stopPropagation()} style={{ background:'#1a1a1a', borderRadius:'20px 20px 0 0', padding:24, width:'100%', maxWidth:500, maxHeight:'80vh', overflowY:'auto' }}>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:18 }}>
-          <span style={{ fontSize:17, fontWeight:700 }}>Редактировать</span>
-          <button onClick={onClose} style={{ width:32, height:32, borderRadius:8, background:'#222', border:'none', color:'#9ca3af', cursor:'pointer', fontSize:18 }}>×</button>
-        </div>
-        <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-          <div>
-            <div style={{ fontSize:11, color:'#6b7280', marginBottom:5, textTransform:'uppercase', letterSpacing:0.5 }}>Название</div>
-            <input style={inp} value={name} onChange={e => setName(e.target.value)} />
-          </div>
-          <div>
-            <div style={{ fontSize:11, color:'#6b7280', marginBottom:5, textTransform:'uppercase', letterSpacing:0.5 }}>Вес (г)</div>
-            <input style={inp} type="number" value={weight} onChange={e => setWeight(e.target.value)} />
-          </div>
-          <div>
-            <div style={{ fontSize:11, color:'#6b7280', marginBottom:5, textTransform:'uppercase', letterSpacing:0.5 }}>Приём пищи</div>
-            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-              {Object.entries(MEALS).map(([k,v]) => (
-                <button key={k} onClick={() => setMeal(k)} style={{ padding:'8px 12px', borderRadius:8, border:`1px solid ${meal===k?'#3d9970':'#2e2e2e'}`, background:meal===k?'rgba(61,153,112,0.1)':'#222', color:meal===k?'#3d9970':'#9ca3af', cursor:'pointer', fontSize:12 }}>{v}</button>
-              ))}
-            </div>
-          </div>
-          <div style={{ background:'#222', borderRadius:10, padding:'12px 14px' }}>
-            <div style={{ fontSize:11, color:'#6b7280', marginBottom:6, textTransform:'uppercase', letterSpacing:0.5 }}>Расчёт за {newW}г</div>
-            <div style={{ fontFamily:'var(--mono)', fontSize:13, color:'#9ca3af' }}>
-              <span style={{ color:'#3d9970', fontWeight:700 }}>{Math.round(cal100*newW/100)} ккал</span>
-              {' · '}
-              Б{Math.round(prot100*newW/100)} Ж{Math.round(fat100*newW/100)} У{Math.round(carbs100*newW/100)}
-            </div>
-          </div>
-          <button onClick={() => onSave({
-            ...food,
-            name: name.trim() || food.name,
-            weight: newW,
-            meal,
-            calories: cal100*newW/100,
-            protein: prot100*newW/100,
-            fat: fat100*newW/100,
-            carbs: carbs100*newW/100,
-          })} style={{ background:'#3d9970', color:'#000', border:'none', borderRadius:12, padding:'13px', fontSize:14, fontWeight:700, cursor:'pointer', textTransform:'uppercase', letterSpacing:0.5, marginTop:6 }}>
-            Сохранить
-          </button>
-        </div>
-      </div>
-    </div>, document.body
-  )
 }
 
 // ─── HOME SCREEN ─────────────────────────────────────────────────────────────
