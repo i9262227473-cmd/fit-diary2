@@ -9,6 +9,7 @@ import { normReps } from './planUtils'
 import { getExerciseProgress, saveExerciseResult, suggestWeightFor, acceptProgression } from './progressTracking'
 import { EXERCISE_DB as FULL_EXERCISE_DB, MUSCLE_GROUPS, EFF_LABEL, EFF_ORDER, PLACE_LABEL, findAlternatives, getExercisesFor } from '../data/exerciseDatabase'
 import { getTechnique } from '../data/exerciseTechnique'
+import SetPickerModal from '../components/workouts/SetPickerModal'
 import WheelPicker, { buildWeightValues } from '../components/common/WheelPicker'
 import { createStableId as uid, formatLongTime as fmtTimeLong, getDefaultRestSeconds as getDefaultRestSec } from '../utils/workoutUi'
 import { NavHome, NavWorkout, NavProgress, NavFood, NavUser } from '../components/layout/NavigationIcons'
@@ -17,31 +18,6 @@ import NumberStepper from '../components/common/NumberStepper'
 import VoiceButton from '../components/common/VoiceButton'
 
 const WK_DRAFT_KEY = 'workout-draft-v1'
-
-// ─── SET PICKER MODAL (боттом-шит с двумя колёсами: повторы + вес) ─────────────────────
-function SetPickerModal({ title, reps, weight, onSave, onClose }) {
-  const [r, setR] = useState(String(reps || 0))
-  const [w, setW] = useState(String(weight || 0))
-  const weightValues = useMemo(() => buildWeightValues(), [])
-  return createPortal(
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 650, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: '#0e0e0e', borderRadius: '20px 20px 0 0', padding: '20px 20px calc(20px + env(safe-area-inset-bottom, 0px))', width: '100%', maxWidth: 500 }}>
-        <div style={{ textAlign: 'center', fontSize: 13, fontWeight: 600, color: '#9ca3af', marginBottom: 18 }}>{title}</div>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 28, marginBottom: 20 }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Повторы</div>
-            <WheelPicker value={r} onChange={setR} min={0} max={50} step={1} width={80} />
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Вес, кг</div>
-            <WheelPicker value={w} onChange={setW} values={weightValues} width={92} />
-          </div>
-        </div>
-        <button onClick={() => onSave(r, w)} style={{ background: '#3d9970', color: '#000', border: 'none', borderRadius: 12, padding: '14px', fontSize: 14, fontWeight: 700, width: '100%', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}>Готово</button>
-      </div>
-    </div>, document.body
-  )
-}
 
 function compressImage(file, maxSize = 1024, quality = 0.85) {
   return new Promise((res, rej) => {
