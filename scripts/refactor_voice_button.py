@@ -20,6 +20,7 @@ imports = [
     "import WheelPicker, { buildWeightValues } from '../components/common/WheelPicker'\n",
     "import SetPickerModal from '../components/workouts/SetPickerModal'\n",
     "import BarcodeScanner, { lookupBarcode } from '../components/food/BarcodeScanner'\n",
+    "import { buildReportData, generateReportPDF } from '../utils/pdfReport'\n",
     "import { NavHome, NavWorkout, NavProgress, NavFood, NavUser } from '../components/layout/NavigationIcons'\n",
     "import { createStableId as uid, formatLongTime as fmtTimeLong, getDefaultRestSeconds as getDefaultRestSec } from '../utils/workoutUi'\n",
 ]
@@ -37,6 +38,7 @@ patterns = [
     (r"// ─── WHEEL PICKER .*?(?=// ─── SET PICKER MODAL)", 'function WheelPicker(', 'WheelPicker'),
     (r"// ─── SET PICKER MODAL .*?(?=function compressImage)", 'function SetPickerModal(', 'SetPickerModal'),
     (r"// ─── BARCODE SCANNER .*?(?=// ─── PDF REPORT EXPORT)", 'function BarcodeScanner(', 'BarcodeScanner'),
+    (r"// ─── PDF REPORT EXPORT .*?(?=// Цвет кружка калорий)", 'function buildReportData(', 'PDF-отчёт'),
 ]
 for pattern, remaining_marker, label in patterns:
     text, count = re.compile(pattern, re.DOTALL).subn('', text, count=1)
@@ -62,4 +64,4 @@ if text == original:
     print('Изменения уже применены')
 else:
     path.write_text(text, encoding='utf-8')
-    print('Общие компоненты, сканер, модальные окна, иконки и утилиты подключены из отдельных модулей')
+    print('Общие компоненты, сканер, PDF-отчёт, модальные окна, иконки и утилиты подключены из отдельных модулей')
