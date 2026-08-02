@@ -1,6 +1,7 @@
 from pathlib import Path
 import re
 
+# Идемпотентный скрипт: повторный запуск не меняет уже обработанный файл.
 path = Path('src/pages/DashboardPage.jsx')
 text = path.read_text(encoding='utf-8')
 original = text
