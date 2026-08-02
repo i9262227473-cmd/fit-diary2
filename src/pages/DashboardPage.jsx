@@ -9,6 +9,7 @@ import { normReps } from './planUtils'
 import { getExerciseProgress, saveExerciseResult, suggestWeightFor, acceptProgression } from './progressTracking'
 import { EXERCISE_DB as FULL_EXERCISE_DB, MUSCLE_GROUPS, EFF_LABEL, EFF_ORDER, PLACE_LABEL, findAlternatives, getExercisesFor } from '../data/exerciseDatabase'
 import { getTechnique } from '../data/exerciseTechnique'
+import BarcodeScanner, { lookupBarcode } from '../components/food/BarcodeScanner'
 import SetPickerModal from '../components/workouts/SetPickerModal'
 import WheelPicker, { buildWeightValues } from '../components/common/WheelPicker'
 import { createStableId as uid, formatLongTime as fmtTimeLong, getDefaultRestSeconds as getDefaultRestSec } from '../utils/workoutUi'
@@ -39,133 +40,6 @@ function compressImage(file, maxSize = 1024, quality = 0.85) {
     }
     r.onerror = rej; r.readAsDataURL(file)
   })
-}
-
-// ─── BARCODE SCANNER (штрихкод-сканер через нативный BarcodeDetector + Open Food Facts — бесплатно, без ИИ) ───────────────────────────
-// Open Food Facts (world.openfoodfacts.org) — открытая бесплатная база данных о продуктах по штрихкодам, API-ключ не нужен.
-async function lookupBarcode(code) {
-  const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json?fields=product_name,product_name_ru,nutriments`)
-  if (!res.ok) throw new Error('HTTP_ERROR')
-  const data = await res.json()
-  if (data.status !== 1 || !data.product) return null
-  const p = data.product
-  const n = p.nutriments || {}
-  const name = p.product_name_ru || p.product_name || `Штрихкод ${code}`
-  return {
-    name,
-    cal100: Math.round(n['energy-kcal_100g'] || n['energy-kcal'] || 0),
-    prot100: Math.round((n.proteins_100g || 0) * 10) / 10,
-    fat100: Math.round((n.fat_100g || 0) * 10) / 10,
-    carbs100: Math.round((n.carbohydrates_100g || 0) * 10) / 10,
-  }
-}
-
-function BarcodeScanner({ onDetect, onClose }) {
-  const videoRef = useRef(null)
-  const streamRef = useRef(null)
-  const detectorRef = useRef(null)
-  const rafRef = useRef(null)
-  const [error, setError] = useState(null)
-  const [manualCode, setManualCode] = useState('')
-  const [manualMode, setManualMode] = useState(false)
-  const supported = typeof window !== 'undefined' && 'BarcodeDetector' in window
-
-  useEffect(() => {
-    let cancelled = false
-    if (!supported) { setError('Браузер не поддерживает автосканирование — введите штрихкод вручную'); return }
-    const start = async () => {
-      try {
-        detectorRef.current = new window.BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] })
-        // Запрашиваем высокое разрешение и непрерывный автофокус — без этого браузер часто отдаёт размытое изображение с фиксированным фокусом — что катастрофично для чтения штрихкодов вблизи.
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: 'environment',
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-            advanced: [{ focusMode: 'continuous' }],
-          },
-        })
-        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return }
-        streamRef.current = stream
-        // На части устройств focusMode не применяется через constraints при getUserMedia — дожимаем явно через applyConstraints на треке
-        try {
-          const [track] = stream.getVideoTracks()
-          const caps = track.getCapabilities ? track.getCapabilities() : {}
-          if (caps.focusMode && caps.focusMode.includes('continuous')) {
-            await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] })
-          }
-        } catch {}
-        if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play() }
-        const tick = async () => {
-          if (cancelled || !videoRef.current || !detectorRef.current) return
-          try {
-            const codes = await detectorRef.current.detect(videoRef.current)
-            if (codes.length > 0) { onDetect(codes[0].rawValue); return }
-          } catch {}
-          rafRef.current = requestAnimationFrame(tick)
-        }
-        tick()
-      } catch (e) {
-        setError('Не удалось получить доступ к камере — введите штрихкод вручную')
-      }
-    }
-    start()
-    return () => {
-      cancelled = true
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
-      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop())
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // Тап по видео — ручной триггер перефокусировки на тех, где continuous не поддерживается автоматически
-  const handleTapFocus = async () => {
-    try {
-      const [track] = streamRef.current?.getVideoTracks() || []
-      if (!track) return
-      const caps = track.getCapabilities ? track.getCapabilities() : {}
-      if (caps.focusMode && caps.focusMode.includes('single-shot')) {
-        await track.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] })
-      }
-    } catch {}
-  }
-
-  return createPortal(
-    <div style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 700, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px', background: '#0e0e0e' }}>
-        <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, background: '#1a1a1a', border: '1px solid #2e2e2e', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <X size={18} color="#9ca3af" />
-        </button>
-        <span style={{ fontSize: 16, fontWeight: 700, color: '#f5f5f5', flex: 1 }}>Сканер штрихкода</span>
-        {supported && !error && (
-          <button onClick={() => setManualMode(m => !m)} style={{ padding: '7px 12px', borderRadius: 8, background: manualMode ? '#3d9970' : '#1a1a1a', border: '1px solid #2e2e2e', color: manualMode ? '#000' : '#9ca3af', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
-            {manualMode ? 'Камера' : 'Ввести вручную'}
-          </button>
-        )}
-      </div>
-      {supported && !error && !manualMode ? (
-        <div onClick={handleTapFocus} style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-          <video ref={videoRef} playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '70%', height: 120, border: '2px solid #3d9970', borderRadius: 12, boxShadow: '0 0 0 2000px rgba(0,0,0,0.5)' }} />
-          <div style={{ position: 'absolute', bottom: 24, left: 0, right: 0, textAlign: 'center', color: '#f5f5f5', fontSize: 13 }}>Наведите штрихкод на рамку · коснитесь экрана, чтобы перефокусировать</div>
-        </div>
-      ) : (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 }}>
-          {error && <div style={{ fontSize: 13, color: '#f87171', textAlign: 'center' }}>{error}</div>}
-          <div style={{ fontSize: 13, color: '#9ca3af', textAlign: 'center' }}>Введите штрихкод вручную (цифры под штрих-кодом на упаковке)</div>
-          <input
-            type="text" inputMode="numeric" value={manualCode} onChange={e => setManualCode(e.target.value.replace(/\D/g, ''))}
-            placeholder="4607034470155"
-            style={{ width: '100%', maxWidth: 280, padding: '13px 16px', background: '#1a1a1a', border: '1px solid #2e2e2e', borderRadius: 12, color: '#f5f5f5', fontSize: 16, textAlign: 'center', fontFamily: 'var(--mono)', outline: 'none', boxSizing: 'border-box' }}
-          />
-          <button onClick={() => manualCode.length >= 6 && onDetect(manualCode)} disabled={manualCode.length < 6}
-            style={{ background: '#3d9970', color: '#000', border: 'none', borderRadius: 12, padding: '13px 28px', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: manualCode.length < 6 ? 0.4 : 1, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            Найти
-          </button>
-        </div>
-      )}
-    </div>, document.body
-  )
 }
 
 // ─── PDF REPORT EXPORT (отчёт в PDF через jsPDF с CDN — бесплатно, без npm-зависимости) ───────────────────────────
