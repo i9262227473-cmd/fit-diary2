@@ -14,6 +14,7 @@ text = text.replace(
 
 anchor = "import { getTechnique } from '../data/exerciseTechnique'\n"
 imports = [
+    "import HomeScreen from '../components/home/HomeScreen'\n",
     "import VoiceButton from '../components/common/VoiceButton'\n",
     "import NumberStepper from '../components/common/NumberStepper'\n",
     "import SwipeToDelete from '../components/common/SwipeToDelete'\n",
@@ -45,11 +46,23 @@ patterns = [
     (r"// Цвет кружка калорий .*?(?=// ─── ПОДТВЕРЖДЕНИЕ ПЕРЕНОСА ВЕСОВ)", 'function CircularProgress(', 'CircularProgress'),
     (r"// ─── ПОДТВЕРЖДЕНИЕ ПЕРЕНОСА ВЕСОВ .*?(?=// ─── EDIT FOOD MODAL)", 'function WeightTransferModal(', 'WeightTransferModal'),
     (r"// ─── EDIT FOOD MODAL .*?(?=// ─── HOME SCREEN)", 'function EditFoodModal(', 'EditFoodModal'),
+    (r"// ─── HOME SCREEN .*?(?=// ─── FOOD SCREEN)", 'function HomeScreen(', 'HomeScreen'),
 ]
 for pattern, remaining_marker, label in patterns:
     text, count = re.compile(pattern, re.DOTALL).subn('', text, count=1)
     if count != 1 and remaining_marker in text:
         raise SystemExit(f'Не удалось безопасно удалить встроенный {label}')
+
+# Передаём календарь в вынесенный HomeScreen, пока сам календарь остаётся в DashboardPage.
+if '<HomeScreen CalendarView={CombinedCalendar}' not in text:
+    text, home_usage_count = re.subn(
+        r'<HomeScreen\s+',
+        '<HomeScreen CalendarView={CombinedCalendar} ',
+        text,
+        count=1,
+    )
+    if home_usage_count != 1:
+        raise SystemExit('Не удалось безопасно обновить использование HomeScreen')
 
 uid_pattern = re.compile(r"// Стабильный ID.*?function uid\(\) \{.*?\}\n\n", re.DOTALL)
 text, uid_count = uid_pattern.subn('', text, count=1)
@@ -70,4 +83,4 @@ if text == original:
     print('Изменения уже применены')
 else:
     path.write_text(text, encoding='utf-8')
-    print('Общие компоненты, индикаторы, модальные окна, сканер, PDF-отчёт, иконки и утилиты подключены из отдельных модулей')
+    print('HomeScreen и общие компоненты подключены из отдельных модулей')
