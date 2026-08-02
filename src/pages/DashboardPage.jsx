@@ -9,6 +9,7 @@ import { normReps } from './planUtils'
 import { getExerciseProgress, saveExerciseResult, suggestWeightFor, acceptProgression } from './progressTracking'
 import { EXERCISE_DB as FULL_EXERCISE_DB, MUSCLE_GROUPS, EFF_LABEL, EFF_ORDER, PLACE_LABEL, findAlternatives, getExercisesFor } from '../data/exerciseDatabase'
 import { getTechnique } from '../data/exerciseTechnique'
+import NumberStepper from '../components/common/NumberStepper'
 import VoiceButton from '../components/common/VoiceButton'
 
 const WK_DRAFT_KEY = 'workout-draft-v1'
@@ -105,32 +106,6 @@ function SwipeToDelete({ onDelete, children, disabled, confirmText, radius = 18 
         style={{ transform: `translateX(${dx}px)`, transition: dragging ? 'none' : 'transform 0.25s ease', position: 'relative' }}>
         {children}
       </div>
-    </div>
-  )
-}
-
-// ─── NUMBER STEPPER (крутилка +/− для веса и повторов) ─────────────────────
-function NumberStepper({ value, onChange, step = 1, min = 0, max = 999, placeholder, compact }) {
-  const fmt = n => {
-    const r = Math.round(n * 10) / 10
-    return Number.isInteger(r) ? String(r) : String(r.toFixed(1))
-  }
-  const num = parseFloat(value) || 0
-  const dec = () => onChange(fmt(Math.max(min, num - step)))
-  const inc = () => onChange(fmt(Math.min(max, num + step)))
-  const btnSize = compact ? 24 : 30
-  const fontSize = compact ? 13 : 15
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: compact ? 2 : 4, background: '#222', border: '1px solid #2e2e2e', borderRadius: 8, padding: compact ? '2px' : '3px' }}>
-      <button type="button" onClick={dec} style={{ width: btnSize, height: btnSize, borderRadius: 6, background: '#2a2a2a', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize, lineHeight: 1, flexShrink: 0 }}>−</button>
-      <input
-        inputMode={step % 1 === 0 ? 'numeric' : 'decimal'}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        style={{ flex: 1, minWidth: 0, width: '100%', background: 'transparent', border: 'none', color: '#f5f5f5', fontSize, fontWeight: 600, fontFamily: 'var(--mono)', outline: 'none', textAlign: 'center', padding: 0 }}
-      />
-      <button type="button" onClick={inc} style={{ width: btnSize, height: btnSize, borderRadius: 6, background: '#2a2a2a', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize, lineHeight: 1, flexShrink: 0 }}>+</button>
     </div>
   )
 }
