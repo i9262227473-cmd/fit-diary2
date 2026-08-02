@@ -18,6 +18,7 @@ imports = [
     "import FoodDayDetail from '../components/food/FoodDayDetail'\n",
     "import FoodCalendar from '../components/food/FoodCalendar'\n",
     "import RecipeBuilder from '../components/food/RecipeBuilder'\n",
+    "import FoodSearchPanel from '../components/food/FoodSearchPanel'\n",
     "import VoiceButton from '../components/common/VoiceButton'\n",
     "import NumberStepper from '../components/common/NumberStepper'\n",
     "import SwipeToDelete from '../components/common/SwipeToDelete'\n",
@@ -70,6 +71,33 @@ if '<HomeScreen CalendarView={CombinedCalendar}' not in text:
     if home_usage_count != 1:
         raise SystemExit('Не удалось безопасно обновить использование HomeScreen')
 
+# Выносим только изолированный блок поиска и выбора продукта внутри FoodScreen.
+if '<FoodSearchPanel' not in text:
+    search_panel = """<FoodSearchPanel
+              inp={inp}
+              query={query}
+              onQueryChange={handleSearch}
+              scanLoading={scanLoading}
+              onOpenBarcodeScanner={() => setShowBarcodeScanner(true)}
+              onPhotoSelected={handleScan}
+              results={results}
+              selectedFood={selectedFood}
+              onSelectFood={food => { setSelectedFood(food); setResults([]) }}
+              onChangeSelectedFood={setSelectedFood}
+              grams={grams}
+              onChangeGrams={setGrams}
+              onClearSelection={() => { setSelectedFood(null); setQuery('') }}
+              onAddFood={addFoodItem}
+            />"""
+    text, panel_count = re.subn(
+        r"<div style=\{\{ display: 'flex', flexDirection: 'column', gap: 10 \}\}>\s*<div style=\{\{ display: 'flex', gap: 8 \}\}>\s*<input style=\{\{ \.\.\.inp, flex: 1 \}\} placeholder=\"Найти продукт\.\.\.\"[\s\S]*?</div>\s*\)\}\s*(?=\{manualMode && \()",
+        search_panel + "\n          )}\n          ",
+        text,
+        count=1,
+    )
+    if panel_count != 1:
+        raise SystemExit('Не удалось безопасно заменить блок поиска продукта')
+
 uid_pattern = re.compile(r"// Стабильный ID.*?function uid\(\) \{.*?\}\n\n", re.DOTALL)
 text, uid_count = uid_pattern.subn('', text, count=1)
 if uid_count != 1 and 'function uid()' in text:
@@ -89,4 +117,4 @@ if text == original:
     print('Изменения уже применены')
 else:
     path.write_text(text, encoding='utf-8')
-    print('HomeScreen, FoodDayDetail, FoodCalendar, RecipeBuilder и общие компоненты подключены из отдельных модулей')
+    print('FoodSearchPanel и ранее вынесенные компоненты подключены из отдельных модулей')
