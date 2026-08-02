@@ -1,0 +1,1 @@
+BarcodeScanner extracted and connected. This file triggers a full frontend build check for the current test branch state.
