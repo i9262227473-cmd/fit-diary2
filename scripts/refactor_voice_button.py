@@ -15,6 +15,7 @@ text = text.replace(
 anchor = "import { getTechnique } from '../data/exerciseTechnique'\n"
 imports = [
     "import HomeScreen from '../components/home/HomeScreen'\n",
+    "import FoodDayDetail from '../components/food/FoodDayDetail'\n",
     "import VoiceButton from '../components/common/VoiceButton'\n",
     "import NumberStepper from '../components/common/NumberStepper'\n",
     "import SwipeToDelete from '../components/common/SwipeToDelete'\n",
@@ -47,6 +48,7 @@ patterns = [
     (r"// ─── ПОДТВЕРЖДЕНИЕ ПЕРЕНОСА ВЕСОВ .*?(?=// ─── EDIT FOOD MODAL)", 'function WeightTransferModal(', 'WeightTransferModal'),
     (r"// ─── EDIT FOOD MODAL .*?(?=// ─── HOME SCREEN)", 'function EditFoodModal(', 'EditFoodModal'),
     (r"// ─── HOME SCREEN .*?(?=// ─── FOOD SCREEN)", 'function HomeScreen(', 'HomeScreen'),
+    (r"// ─── FOOD DAY DETAIL .*?(?=// ─── FOOD CALENDAR)", 'function FoodDayDetail(', 'FoodDayDetail'),
 ]
 for pattern, remaining_marker, label in patterns:
     text, count = re.compile(pattern, re.DOTALL).subn('', text, count=1)
@@ -83,4 +85,4 @@ if text == original:
     print('Изменения уже применены')
 else:
     path.write_text(text, encoding='utf-8')
-    print('HomeScreen и общие компоненты подключены из отдельных модулей')
+    print('HomeScreen, FoodDayDetail и общие компоненты подключены из отдельных модулей')
