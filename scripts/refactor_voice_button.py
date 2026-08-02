@@ -15,6 +15,7 @@ anchor = "import { getTechnique } from '../data/exerciseTechnique'\n"
 imports = [
     "import VoiceButton from '../components/common/VoiceButton'\n",
     "import NumberStepper from '../components/common/NumberStepper'\n",
+    "import SwipeToDelete from '../components/common/SwipeToDelete'\n",
 ]
 for component_import in imports:
     if component_import not in text:
@@ -38,8 +39,16 @@ text, number_count = number_pattern.subn('', text, count=1)
 if number_count != 1 and 'function NumberStepper(' in text:
     raise SystemExit('Не удалось безопасно удалить встроенный NumberStepper')
 
+swipe_pattern = re.compile(
+    r"// ─── SWIPE TO DELETE .*?(?=// ─── WHEEL PICKER)",
+    re.DOTALL,
+)
+text, swipe_count = swipe_pattern.subn('', text, count=1)
+if swipe_count != 1 and 'function SwipeToDelete(' in text:
+    raise SystemExit('Не удалось безопасно удалить встроенный SwipeToDelete')
+
 if text == original:
     print('Изменения уже применены')
 else:
     path.write_text(text, encoding='utf-8')
-    print('VoiceButton и NumberStepper подключены из отдельных компонентов')
+    print('VoiceButton, NumberStepper и SwipeToDelete подключены из отдельных компонентов')
