@@ -30,3 +30,10 @@ jobs:
 
       - name: Build frontend
         run: npm run build
+
+      - name: Save test build
+        uses: actions/upload-artifact@v4
+        with:
+          name: fit-diary-test-build
+          path: dist
+          retention-days: 14
