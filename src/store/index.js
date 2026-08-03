@@ -1,8 +1,8 @@
-import { create } from 'zustand'
+﻿import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-// ── Адрес собственного бэкенда (Timeweb, HTTPS через nginx) ──
-const API_URL = 'https://api.sudbase.ru'
+// в”Ђв”Ђ РђРґСЂРµСЃ СЃРѕР±СЃС‚РІРµРЅРЅРѕРіРѕ Р±СЌРєРµРЅРґР° (Timeweb, HTTPS С‡РµСЂРµР· nginx) в”Ђв”Ђ
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.sudbase.ru'
 
 const jsonHeaders = (token) => {
   const h = { 'Content-Type': 'application/json' }
@@ -10,7 +10,7 @@ const jsonHeaders = (token) => {
   return h
 }
 
-// ── Обновление access-токена по refresh ──
+// в”Ђв”Ђ РћР±РЅРѕРІР»РµРЅРёРµ access-С‚РѕРєРµРЅР° РїРѕ refresh в”Ђв”Ђ
 const refreshSessionToken = async (refreshToken) => {
   try {
     const res = await fetch(`${API_URL}/auth/refresh`, {
@@ -82,7 +82,7 @@ export const useStore = create(
       entries: [],
       weights: [],
 
-      // ── Получить актуальный токен (авто-обновление) ──
+      // в”Ђв”Ђ РџРѕР»СѓС‡РёС‚СЊ Р°РєС‚СѓР°Р»СЊРЅС‹Р№ С‚РѕРєРµРЅ (Р°РІС‚Рѕ-РѕР±РЅРѕРІР»РµРЅРёРµ) в”Ђв”Ђ
       getValidToken: async () => {
         const { session } = get()
         if (!session) return null
@@ -99,7 +99,7 @@ export const useStore = create(
         return session.access_token
       },
 
-      // ── Auth ──
+      // в”Ђв”Ђ Auth в”Ђв”Ђ
       signUp: async (email, password, name) => {
         const res = await fetch(`${API_URL}/auth/register`, {
           method: 'POST',
@@ -107,7 +107,7 @@ export const useStore = create(
           body: JSON.stringify({ email, password, name })
         })
         const data = await res.json()
-        if (data.error) throw new Error(data.error.message || 'Ошибка регистрации')
+        if (data.error) throw new Error(data.error.message || 'РћС€РёР±РєР° СЂРµРіРёСЃС‚СЂР°С†РёРё')
         return data
       },
 
@@ -120,11 +120,11 @@ export const useStore = create(
             body: JSON.stringify({ email, password })
           })
           const data = await res.json()
-          if (data.error) throw new Error(data.error.message || 'Неверный email или пароль')
+          if (data.error) throw new Error(data.error.message || 'РќРµРІРµСЂРЅС‹Р№ email РёР»Рё РїР°СЂРѕР»СЊ')
 
           set({ user: data.user, session: data })
 
-          // Загружаем профиль
+          // Р—Р°РіСЂСѓР¶Р°РµРј РїСЂРѕС„РёР»СЊ
           const profileRaw = await loadProfile(data.access_token)
           if (profileRaw) {
             set({
@@ -150,7 +150,7 @@ export const useStore = create(
             })
           }
 
-          // Загружаем дневник с сервера
+          // Р—Р°РіСЂСѓР¶Р°РµРј РґРЅРµРІРЅРёРє СЃ СЃРµСЂРІРµСЂР°
           const remoteEntries = await loadEntries(data.access_token)
           if (remoteEntries && remoteEntries.length > 0) {
             set({ entries: remoteEntries })
@@ -166,7 +166,7 @@ export const useStore = create(
         set({ user: null, session: null, profile: null, entries: [], weights: [] })
       },
 
-      // ── Profile ──
+      // в”Ђв”Ђ Profile в”Ђв”Ђ
       saveProfile: async (profileData) => {
         const { session, getValidToken } = get()
         set({ profile: profileData })
@@ -203,7 +203,7 @@ export const useStore = create(
 
       resetProfile: () => set({ profile: null }),
 
-      // ── AI ──
+      // в”Ђв”Ђ AI в”Ђв”Ђ
       aiCall: async (messages, maxTokens = 600) => {
         const res = await fetch(`${API_URL}/ai`, {
           method: 'POST',
@@ -214,7 +214,7 @@ export const useStore = create(
         return data.choices?.[0]?.message?.content || ''
       },
 
-      // ── Diary ──
+      // в”Ђв”Ђ Diary в”Ђв”Ђ
       getEntry: (date) => {
         const { entries } = get()
         return entries.find(e => e.date === date) || { date, foods: [], workouts: [] }
@@ -232,7 +232,7 @@ export const useStore = create(
         }
       },
 
-      // ── Weights ──
+      // в”Ђв”Ђ Weights в”Ђв”Ђ
       addWeight: (date, kg) => {
         set(state => {
           const weights = state.weights.filter(w => w.date !== date)
@@ -254,3 +254,6 @@ export const useStore = create(
 )
 
 export { API_URL }
+
+
+
