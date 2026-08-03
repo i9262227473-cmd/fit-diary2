@@ -10,6 +10,7 @@ import { getExerciseProgress, saveExerciseResult, suggestWeightFor, acceptProgre
 import { EXERCISE_DB as FULL_EXERCISE_DB, MUSCLE_GROUPS, EFF_LABEL, EFF_ORDER, PLACE_LABEL, findAlternatives, getExercisesFor } from '../data/exerciseDatabase'
 import { getTechnique } from '../data/exerciseTechnique'
 import FoodSearchPanel from '../components/food/FoodSearchPanel'
+import ManualFoodForm from '../components/food/ManualFoodForm'
 import RecipeBuilder from '../components/food/RecipeBuilder'
 import FoodCalendar from '../components/food/FoodCalendar'
 import FoodDayDetail from '../components/food/FoodDayDetail'
@@ -322,15 +323,12 @@ function FoodScreen({ state, dispatch, aiCall }) {
             />
           )}
           {manualMode && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[['Название', 'name', 'text', 'Борщ домашний'], ['Порция (г)', 'grams', 'number', '100'], ['Ккал/100г', 'cal', 'number', '200'], ['Белки/100г', 'p', 'number', '0'], ['Жиры/100г', 'f', 'number', '0'], ['Углев/100г', 'c', 'number', '0']].map(([label, key, type, ph]) => (
-                <div key={key}>
-                  <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-                  <input style={inp} type={type} placeholder={ph} value={manual[key]} onChange={e => setManual({ ...manual, [key]: e.target.value })} />
-                </div>
-              ))}
-              <button onClick={addManual} disabled={!manual.name || !manual.cal} style={{ background: '#3d9970', color: '#000', border: 'none', borderRadius: 12, padding: '13px', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: !manual.name || !manual.cal ? 0.4 : 1, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4 }}>Добавить продукт</button>
-            </div>
+            <ManualFoodForm
+              manual={manual}
+              onChange={setManual}
+              onAdd={addManual}
+              inputStyle={inp}
+            />
           )}
         </div>
       )}
