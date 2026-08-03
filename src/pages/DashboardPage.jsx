@@ -11,6 +11,7 @@ import { EXERCISE_DB as FULL_EXERCISE_DB, MUSCLE_GROUPS, EFF_LABEL, EFF_ORDER, P
 import { getTechnique } from '../data/exerciseTechnique'
 import FoodSearchPanel from '../components/food/FoodSearchPanel'
 import ManualFoodForm from '../components/food/ManualFoodForm'
+import AiFoodSearch from '../components/food/AiFoodSearch'
 import RecipeBuilder from '../components/food/RecipeBuilder'
 import FoodCalendar from '../components/food/FoodCalendar'
 import FoodDayDetail from '../components/food/FoodDayDetail'
@@ -334,50 +335,62 @@ function FoodScreen({ state, dispatch, aiCall }) {
       )}
 
       {tab === 'ai' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ background: '#1a1a1a', borderRadius: 16, padding: 18, border: '1px solid #2e2e2e' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-              <span style={{ fontSize: 20, color: '#3d9970' }}>✦</span>
-              <span style={{ fontSize: 15, fontWeight: 600 }}>AI-распознавание еды</span>
-            </div>
-            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 12 }}>Опиши что съел — AI определит КБЖУ. Распознанные продукты сохраняются — в следующий раз поиск найдёт их без AI</p>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-              <textarea style={{ ...inp, flex: 1, resize: 'none', minHeight: 80, lineHeight: 1.5 }} placeholder="«200г куриной грудки с гречкой»" value={aiText} onChange={e => setAiText(e.target.value)} rows={3} />
-              <VoiceButton onResult={text => setAiText(t => (t ? t + ' ' : '') + text)} />
-            </div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '10px 0' }}>
-              {Object.entries(MEALS_MAP).map(([k, v]) => (
-                <button key={k} onClick={() => setMeal(k)} style={{ padding: '7px 12px', borderRadius: 8, border: `1px solid ${meal === k ? '#3d9970' : '#2e2e2e'}`, background: meal === k ? 'rgba(61,153,112,0.1)' : 'transparent', color: meal === k ? '#3d9970' : '#6b7280', fontSize: 12, cursor: 'pointer' }}>{v}</button>
-              ))}
-            </div>
-            <button onClick={runAI} disabled={!aiText.trim() || aiLoading} style={{ background: '#3d9970', color: '#000', border: 'none', borderRadius: 12, padding: '13px', fontSize: 14, fontWeight: 700, cursor: 'pointer', width: '100%', opacity: !aiText.trim() || aiLoading ? 0.5 : 1, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              {aiLoading ? '⏳ Анализирую...' : '✦ Распознать'}
-            </button>
-          </div>
-          {aiResults !== null && !aiLoading && (
-            <div style={{ background: '#1a1a1a', borderRadius: 16, padding: 16, border: '1px solid #2e2e2e', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {aiResults.length === 0 ? (
-                <p style={{ color: '#6b7280', fontSize: 14, textAlign: 'center' }}>Не удалось распознать</p>
-              ) : (
-                <>
-                  {aiResults.map((item, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px', background: '#222', borderRadius: 12 }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: 500 }}>{item.food.name}</div>
-                        <div style={{ fontSize: 12, color: '#6b7280', fontFamily: 'var(--mono)', marginTop: 2 }}>{item.grams}г · {Math.round((item.food.cal100||0)*item.grams/100)} ккал</div>
-                      </div>
-                      <button onClick={() => addFoodItem(item.food, item.grams)} style={{ padding: '8px 14px', borderRadius: 8, background: '#3d9970', border: 'none', color: '#000', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>+</button>
-                    </div>
-                  ))}
-                  <button style={{ background: '#3d9970', color: '#000', border: 'none', borderRadius: 12, padding: '12px', fontSize: 14, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase' }}
-                    onClick={() => { const today2 = new Date().toISOString().split('T')[0]; const e2 = state.entries.find(e => e.date === today2) || { date: today2, foods: [], workouts: [] }; const newFoods = aiResults.map(item => { const w = parseFloat(item.grams) || 100; return { id: Date.now() + Math.random(), name: item.food.name, weight: w, meal, calories: (item.food.cal100||0)*w/100, protein: (item.food.prot100||0)*w/100, fat: (item.food.fat100||0)*w/100, carbs: (item.food.carbs100||0)*w/100, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' }) }; }); dispatch({ type: 'SAVE_ENTRY', entry: { ...e2, foods: [...e2.foods, ...newFoods] } }); showToast(newFoods.length + ' продуктов добавлено'); setAiText(''); setAiResults(null); setTab('log'); }}>
-                    Добавить всё
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-        </div>
+        <AiFoodSearch
+          text={aiText}
+          onTextChange={setAiText}
+          onVoiceResult={(text) =>
+            setAiText((current) => (current ? current + ' ' : '') + text)
+          }
+          loading={aiLoading}
+          results={aiResults}
+          onRecognize={runAI}
+          meals={MEALS_MAP}
+          selectedMeal={meal}
+          onMealChange={setMeal}
+          inputStyle={inp}
+          onAddOne={(item) => addFoodItem(item.food, item.grams)}
+          onAddAll={() => {
+            const today = new Date().toISOString().split('T')[0]
+            const currentEntry =
+              state.entries.find((entry) => entry.date === today) || {
+                date: today,
+                foods: [],
+                workouts: [],
+              }
+
+            const newFoods = aiResults.map((item) => {
+              const weight = parseFloat(item.grams) || 100
+
+              return {
+                id: Date.now() + Math.random(),
+                name: item.food.name,
+                weight,
+                meal,
+                calories: ((item.food.cal100 || 0) * weight) / 100,
+                protein: ((item.food.prot100 || 0) * weight) / 100,
+                fat: ((item.food.fat100 || 0) * weight) / 100,
+                carbs: ((item.food.carbs100 || 0) * weight) / 100,
+                time: new Date().toLocaleTimeString('ru', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                }),
+              }
+            })
+
+            dispatch({
+              type: 'SAVE_ENTRY',
+              entry: {
+                ...currentEntry,
+                foods: [...currentEntry.foods, ...newFoods],
+              },
+            })
+
+            showToast(newFoods.length + ' продуктов добавлено')
+            setAiText('')
+            setAiResults(null)
+            setTab('log')
+          }}
+        />
       )}
 
       {tab === 'builder' && (
