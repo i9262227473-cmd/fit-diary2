@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from '../store'
 import { getCachedFoods, clearCachedFoods } from '../data/userFoodCache'
 import { LogOut, Camera, Bell, ChevronRight, Plus, Check, X, ChevronLeft, Play, Pause, Flame, Droplets, Dumbbell, Edit2, Trash2, AlertTriangle, Sparkles, Calendar, ScanLine } from 'lucide-react'
 import styles from './DashboardPage.module.css'
 import { normReps } from './planUtils'
-import { getExerciseProgress, saveExerciseResult, suggestWeightFor, acceptProgression } from './progressTracking'
-import { EXERCISE_DB as FULL_EXERCISE_DB, MUSCLE_GROUPS, EFF_LABEL, EFF_ORDER, PLACE_LABEL, findAlternatives, getExercisesFor } from '../data/exerciseDatabase'
+import { getExerciseProgress } from './progressTracking'
+import { EXERCISE_DB as FULL_EXERCISE_DB, EFF_LABEL, PLACE_LABEL, findAlternatives, getExercisesFor } from '../data/exerciseDatabase'
 import FoodDayDetail from '../components/food/FoodDayDetail'
 import FoodScreen from '../components/food/FoodScreen'
 import HomeScreen from '../components/home/HomeScreen'
@@ -20,12 +20,11 @@ import WorkoutCalendar from '../components/workouts/WorkoutCalendar'
 import CircularProgress, { getCalorieColor } from '../components/common/CircularProgress'
 import SetPickerModal from '../components/workouts/SetPickerModal'
 import WheelPicker, { buildWeightValues } from '../components/common/WheelPicker'
-import { createStableId as uid, formatLongTime as fmtTimeLong, getDefaultRestSeconds as getDefaultRestSec } from '../utils/workoutUi'
+import { formatLongTime as fmtTimeLong, getDefaultRestSeconds as getDefaultRestSec } from '../utils/workoutUi'
 import { NavHome, NavWorkout, NavProgress, NavFood, NavUser } from '../components/layout/NavigationIcons'
 import SwipeToDelete from '../components/common/SwipeToDelete'
 import VoiceButton from '../components/common/VoiceButton'
-
-const WK_DRAFT_KEY = 'workout-draft-v1'
+import useWorkout from '../hooks/useWorkout'
 
 
 // ─── EXERCISE DB ─────────────────────────────────────────────────────────────
@@ -67,20 +66,6 @@ const EXERCISE_DB = [
 
 // ─── PLAN CONSTANTS ───────────────────────────────────────────────────────────
 const PLAN_KEY = 'workout-plan-v4-pro'
-const TEMPLATES_KEY = 'workout-templates-v1'
-
-// Чтение/запись пользовательских шаблонов тренировок
-function getTemplates() {
-  try {
-    const raw = localStorage.getItem(TEMPLATES_KEY)
-    if (!raw) return []
-    const arr = JSON.parse(raw)
-    return Array.isArray(arr) ? arr : []
-  } catch { return [] }
-}
-function saveTemplatesList(list) {
-  try { localStorage.setItem(TEMPLATES_KEY, JSON.stringify(list)) } catch (e) { console.warn('saveTemplates error', e) }
-}
 const LEVEL_RU = { beginner: 'новичок', amateur: 'любитель', advanced: 'продвинутый', professional: 'профессионал' }
 const GOAL_RU = { weight_loss: 'fat_loss', muscle_gain: 'muscle_gain', maintenance: 'maintenance', endurance: 'maintenance', strength: 'strength', health: 'maintenance' }
 const DAY_COLORS_PLAN = ['#3d9970', '#38bdf8', '#fbbf24', '#3d9970', '#38bdf8', '#6b7280', '#6b7280']
@@ -139,72 +124,6 @@ function validatePlanQuality(plan, minExercisesPerDay) {
 }
 
 // ─── WORKOUT SCREEN ───────────────────────────────────────────────────────────
-// Фоновый хук: таймер на основе реальных меток времени (переживает сворачивание вкладки/экрана)
-function useBackgroundTimer(running, resetKey) {
-  const [elapsed, setElapsed] = useState(0)
-  const anchor = useRef({ startedAt: null, base: 0 })
-
-  useEffect(() => {
-    anchor.current = { startedAt: null, base: 0 }
-    setElapsed(0)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resetKey])
-
-  useEffect(() => {
-    if (!running) {
-      if (anchor.current.startedAt) {
-        anchor.current.base += Math.floor((Date.now() - anchor.current.startedAt) / 1000)
-        anchor.current.startedAt = null
-      }
-      return
-    }
-    anchor.current.startedAt = Date.now()
-    const tick = () => {
-      setElapsed(anchor.current.base + Math.floor((Date.now() - anchor.current.startedAt) / 1000))
-    }
-    tick()
-    const id = setInterval(tick, 1000)
-    const onVis = () => { if (document.visibilityState === 'visible') tick() }
-    document.addEventListener('visibilitychange', onVis)
-    window.addEventListener('focus', tick)
-    return () => {
-      clearInterval(id)
-      document.removeEventListener('visibilitychange', onVis)
-      window.removeEventListener('focus', tick)
-    }
-  }, [running])
-
-  const setManual = (sec) => {
-    anchor.current = { startedAt: running ? Date.now() : null, base: sec }
-    setElapsed(sec)
-  }
-
-  return [elapsed, setManual]
-}
-
-// Фоновый хук: держит экран включённым, пока active===true (например, пока открыт экран активной тренировки)
-function useWakeLock(active) {
-  const lockRef = useRef(null)
-  useEffect(() => {
-    if (!active || typeof navigator === 'undefined' || !('wakeLock' in navigator)) return
-    let released = false
-    const request = async () => {
-      try {
-        const lock = await navigator.wakeLock.request('screen')
-        if (released) { lock.release().catch(() => {}); return }
-        lockRef.current = lock
-      } catch {}
-    }
-    request()
-    const onVis = () => { if (document.visibilityState === 'visible' && !lockRef.current) request() }
-    document.addEventListener('visibilitychange', onVis)
-    return () => {
-      released = true
-      document.removeEventListener('visibilitychange', onVis)
-      if (lockRef.current) { lockRef.current.release().catch(() => {}); lockRef.current = null }
-    }
-  }, [active])
-}
 
 // ─── REMINDERS (локальные уведомления через Notification API — бесплатно, без сервера) ───────────────────────────
 // Работает, пока открыта вкладка/приложение свёрнуто (не полностью закрыто). Требует HTTPS и разрешения пользователя.
@@ -421,302 +340,16 @@ function CombinedCalendar({ state, dispatch, aiCall, onClose }) {
 }
 
 function WorkoutScreen({ state, dispatch, aiCall }) {
-  const [view, setView] = useState('list')
-  const [wk, setWk] = useState({ name: '', exercises: [] })
-  const [exSearch, setExSearch] = useState('')
-  const [timerResetKey, setTimerResetKey] = useState(0)
-  const [running, setRunning] = useState(false)
-  const [timer, setTimer] = useBackgroundTimer(running, timerResetKey)
-  const resetTimer = () => { setTimerResetKey(k => k + 1); setTimer(0) }
-  useWakeLock(view === 'active')
-
-  // ─── Автосохранение черновика тренировки: переживает обновление страницы/сворачивание ────────────
-  const draftRestoredRef = useRef(false)
-  useEffect(() => {
-    if (draftRestoredRef.current) return
-    draftRestoredRef.current = true
-    try {
-      const raw = localStorage.getItem(WK_DRAFT_KEY)
-      if (!raw) return
-      const draft = JSON.parse(raw)
-      if (!draft?.wk?.exercises?.length) return
-      if (Date.now() - (draft.savedAt || 0) > 24 * 60 * 60 * 1000) { localStorage.removeItem(WK_DRAFT_KEY); return }
-      setWk(draft.wk)
-      if (draft.view === 'active') {
-        setTimer(draft.elapsedSec || 0)
-        setRunning(true)
-        setView('active')
-      } else {
-        setView('builder')
-      }
-    } catch {}
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  useEffect(() => {
-    if (view !== 'builder' && view !== 'active') return
-    if (!wk.exercises.length) { clearDraft(); return }
-    try { localStorage.setItem(WK_DRAFT_KEY, JSON.stringify({ wk, view, elapsedSec: timer, savedAt: Date.now() })) } catch {}
-  }, [wk, view, timer])
-
-  const clearDraft = () => { try { localStorage.removeItem(WK_DRAFT_KEY) } catch {} }
-  const [showRestTimer, setShowRestTimer] = useState(false)
-  const [restInfo, setRestInfo] = useState({ exercise: '', setInfo: '', duration: 90 })
-  const [showComplete, setShowComplete] = useState(false)
-  const [swapFor, setSwapFor] = useState(null)
-  const [planDayIdx, setPlanDayIdx] = useState(null)
-  const [planSaved, setPlanSaved] = useState(false)
-  const [viewWorkout, setViewWorkout] = useState(null)
-  const [techFor, setTechFor] = useState(null) // {name, muscle} — показ техники
-  const [histMode, setHistMode] = useState('list') // 'list' | 'calendar'
-  const [templates, setTemplates] = useState(() => getTemplates())
-  const [tplSaved, setTplSaved] = useState(false)
-  const [pickerFor, setPickerFor] = useState(null) // { eI, sI } — какой подход сейчас редактируется в колёсах
-  const [pendingLoad, setPendingLoad] = useState(null) // { type: 'template'|'plan', tpl?, day?, dayIdx?, mode } — ждём ответа "перенести веса?"
-  const timerRef = useRef(null)
-
-  const today = new Date().toISOString().split('T')[0]
-  const entry = state.entries.find(e => e.date === today) || { date: today, foods: [], workouts: [] }
-  const allWorkouts = state.entries.flatMap(e => (e.workouts||[]).map(w => ({ ...w, entryDate: e.date }))).sort((a,b) => b.entryDate.localeCompare(a.entryDate))
-  const workoutsByDate = allWorkouts.reduce((acc, w) => { (acc[w.entryDate] = acc[w.entryDate] || []).push(w); return acc }, {})
-  const workoutPlace = (() => { try { return localStorage.getItem('workout-place-v1') || 'gym' } catch { return 'gym' } })()
-  const filteredEx = FULL_EXERCISE_DB
-    .filter(e => workoutPlace === 'both' || e.place === 'both' || e.place === workoutPlace)
-    .filter(e => e.name.toLowerCase().includes(exSearch.toLowerCase()) || e.muscle.toLowerCase().includes(exSearch.toLowerCase()))
-    .sort((a, b) => {
-      if (a.muscle !== b.muscle) return MUSCLE_GROUPS.indexOf(a.muscle) - MUSCLE_GROUPS.indexOf(b.muscle)
-      return EFF_ORDER[a.eff] - EFF_ORDER[b.eff]
-    })
-
-  const addEx = ex => setWk(w => {
-    const saved = suggestWeightFor(ex.name)
-    const startWeight = saved?.weight ? String(saved.weight) : '0'
-    return { ...w, exercises: [...w.exercises, { uid: uid(), exerciseId: ex.id, name: ex.name, muscle: ex.muscle, type: ex.type, targetReps: '8-12', restSec: getDefaultRestSec(ex.muscle), suggestedWeight: saved?.suggestedWeight || null, sets: [{ id: uid(), reps: '8-12', weight: startWeight, done: false }] }] }
-  })
-  const updateRest = (eI, delta) => setWk(w => {
-    const exs = [...w.exercises]
-    const cur = exs[eI].restSec || getDefaultRestSec(exs[eI].muscle)
-    const next = Math.max(15, Math.min(300, cur + delta))
-    exs[eI] = { ...exs[eI], restSec: next }
-    return { ...w, exercises: exs }
-  })
-  const updateSet = (eI, sI, field, val) => setWk(w => { const exs = [...w.exercises]; exs[eI] = { ...exs[eI], sets: exs[eI].sets.map((s,i) => i===sI ? {...s,[field]:val} : s) }; return {...w, exercises: exs} })
-  const removeSet = (eI, sI) => setWk(w => {
-    const exs = [...w.exercises]
-    if (exs[eI].sets.length <= 1) return w // не даём удалить последний подход
-    exs[eI] = { ...exs[eI], sets: exs[eI].sets.filter((_, i) => i !== sI) }
-    return { ...w, exercises: exs }
-  })
-  const moveExercise = (eI, dir) => setWk(w => {
-    const exs = [...w.exercises]
-    const j = eI + dir
-    if (j < 0 || j >= exs.length) return w
-    ;[exs[eI], exs[j]] = [exs[j], exs[eI]]
-    return { ...w, exercises: exs }
-  })
-  const updateComment = (eI, val) => setWk(w => { const exs = [...w.exercises]; exs[eI] = { ...exs[eI], comment: val }; return { ...w, exercises: exs } })
-  const addSet = eI => setWk(w => { const exs = [...w.exercises]; const prev = exs[eI].sets[exs[eI].sets.length-1]; exs[eI] = { ...exs[eI], sets: [...exs[eI].sets, {...prev, id: uid(), done:false}] }; return {...w, exercises: exs} })
-  const removeEx = eI => setWk(w => ({ ...w, exercises: w.exercises.filter((_,i) => i!==eI) }))
-  const replaceEx = (eI, newExercise) => setWk(w => {
-    const exs = [...w.exercises]
-    exs[eI] = { ...exs[eI], exerciseId: newExercise.id, name: newExercise.name, muscle: newExercise.muscle, type: newExercise.type }
-    return { ...w, exercises: exs }
-  })
-  // Принять предложение поднять вес: проставить новый вес во все подходы
-  const applyProgression = (eI) => setWk(w => {
-    const exs = [...w.exercises]
-    const ex = exs[eI]
-    if (!ex.suggestedWeight) return w
-    const nw = acceptProgression(ex.name) || ex.suggestedWeight
-    exs[eI] = { ...ex, suggestedWeight: null, sets: ex.sets.map(s => ({ ...s, weight: String(nw) })) }
-    return { ...w, exercises: exs }
-  })
-  // Сохранить текущие упражнения буджета обратно в AI-план (в тот же день)
-  const saveToPlan = () => {
-    if (planDayIdx === null) return
-    try {
-      const raw = localStorage.getItem(PLAN_KEY)
-      if (!raw) return
-      const plan = JSON.parse(raw)
-      if (!plan?.plan?.days?.[planDayIdx]) return
-      // Пересобираем упражнения дня из текущего буджета, сохраняя sets/reps
-      const oldDay = plan.plan.days[planDayIdx]
-      plan.plan.days[planDayIdx] = {
-        ...oldDay,
-        exercises: wk.exercises.map((e, i) => {
-          const old = oldDay.exercises?.[i] || {}
-          const repsStr = e.sets?.[0]?.reps || '8-12'
-          const [mn, mx] = String(repsStr).split('-').map(n => parseInt(n) || 10)
-          return {
-            ...old,
-            name: e.name,
-            muscle: e.muscle,
-            type: e.type,
-            sets: e.sets?.length || old.sets || 3,
-            reps: { min: mn, max: mx || mn },
-          }
-        })
-      }
-      localStorage.setItem(PLAN_KEY, JSON.stringify(plan))
-      setPlanSaved(true)
-      setTimeout(() => setPlanSaved(false), 2000)
-    } catch (e) { console.warn('saveToPlan error', e) }
-  }
-  // ── ШАБЛОНЫ СВОИХ ТРЕНИРОВОК ──
-  // Сохранить текущий конструктор как шаблон (структура без отметок done)
-  const saveAsTemplate = () => {
-    if (!wk.exercises.length) return
-    const name = (wk.name || '').trim() || 'Моя тренировка'
-    const tpl = {
-      id: Date.now(),
-      name,
-      createdAt: new Date().toISOString().split('T')[0],
-      exercises: wk.exercises.map(e => ({
-        exerciseId: e.exerciseId,
-        name: e.name,
-        muscle: e.muscle,
-        type: e.type,
-        targetReps: e.targetReps || e.sets?.[0]?.reps || '8-12',
-        restSec: e.restSec || getDefaultRestSec(e.muscle),
-        sets: e.sets.map(s => ({ reps: s.reps, weight: s.weight })),
-      })),
-    }
-    const list = getTemplates()
-    // если шаблон с таким именем есть — обновляем его, иначе добавляем
-    const idx = list.findIndex(t => t.name.toLowerCase() === name.toLowerCase())
-    let next
-    if (idx >= 0) { next = [...list]; next[idx] = { ...tpl, id: list[idx].id } }
-    else next = [tpl, ...list]
-    saveTemplatesList(next)
-    setTemplates(next)
-    setTplSaved(true)
-    setTimeout(() => setTplSaved(false), 2000)
-  }
-  const deleteTemplate = (id) => {
-    const next = getTemplates().filter(t => t.id !== id)
-    saveTemplatesList(next)
-    setTemplates(next)
-  }
-  // Строит список упражнений из шаблона. transferWeights=true — подставляет вес из прошлого раза, false — вес '0'
-  const buildExercisesFromTemplate = (tpl, transferWeights) => {
-    return (tpl.exercises || []).map(ex => {
-      const saved = suggestWeightFor(ex.name)
-      return {
-        uid: uid(),
-        exerciseId: ex.exerciseId || Date.now() + Math.random(),
-        name: ex.name,
-        muscle: ex.muscle || 'Кор',
-        type: ex.type || 'compound',
-        targetReps: ex.targetReps || ex.sets?.[0]?.reps || '8-12',
-        restSec: ex.restSec || getDefaultRestSec(ex.muscle || 'Кор'),
-        suggestedWeight: saved?.suggestedWeight || null,
-        sets: (ex.sets || [{ reps: '8-12', weight: '0' }]).map(s => ({ id: uid(), reps: s.reps, weight: transferWeights ? s.weight : '0', done: false })),
-      }
-    })
-  }
-  const applyTemplateLoad = (tpl, mode, transferWeights) => {
-    const exercises = buildExercisesFromTemplate(tpl, transferWeights)
-    setWk({ name: tpl.name, exercises })
-    setPlanDayIdx(null)
-    resetTimer()
-    if (mode === 'builder') { setRunning(false); setView('builder') }
-    else { setRunning(true); setView('active') }
-  }
-  // Загрузить шаблон. mode: 'active' — сразу тренировка; 'builder' — редактирование
-  const startFromTemplate = (tpl, mode = 'active') => {
-    const hasSavedWeights = (tpl.exercises || []).some(ex => suggestWeightFor(ex.name)?.weight)
-    if (hasSavedWeights) { setPendingLoad({ type: 'template', tpl, mode }); return }
-    applyTemplateLoad(tpl, mode, false)
-  }
-
-  const toggleSet = (eI, sI) => {
-    const ex = wk.exercises[eI]
-    const set = ex.sets[sI]
-    if (!set.done) { setRestInfo({ exercise: ex.name, setInfo: `${sI+1} подход из ${ex.sets.length}`, duration: ex.restSec || getDefaultRestSec(ex.muscle) }); setShowRestTimer(true) }
-    setWk(w => { const exs = [...w.exercises]; exs[eI] = { ...exs[eI], sets: exs[eI].sets.map((s,i) => i===sI ? {...s,done:!s.done} : s) }; return {...w, exercises: exs} })
-  }
-  const completeWorkout = () => { setRunning(false); setShowComplete(true) }
-  const saveWorkout = (feedback) => {
-    const { durationOverrideMin, ...restFeedback } = feedback || {}
-    const finalMin = durationOverrideMin || Math.round(timer / 60)
-    const calBurned = Math.round(finalMin * 7.5)
-    const today2 = new Date().toISOString().split('T')[0]
-    // Сохраняем рабочие веса и определяем прогрессию по каждому упражнению
-    wk.exercises.forEach(ex => saveExerciseResult({ name: ex.name, sets: ex.sets, targetReps: ex.targetReps || ex.sets?.[0]?.reps }, today2))
-    dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, workouts: [...(entry.workouts||[]), { id: Date.now(), name: wk.name || 'Тренировка', exercises: wk.exercises.map(e => e.name), exercisesDetail: wk.exercises.map(e => ({ name: e.name, muscle: e.muscle, comment: e.comment || '', sets: e.sets.map(s => ({ reps: s.reps, weight: s.weight, done: s.done })) })), duration: finalMin, caloriesBurned: calBurned, ...restFeedback }] } })
-    clearDraft()
-    setWk({ name: '', exercises: [] }); resetTimer(); setShowComplete(false); setView('list')
-  }
-  const removeWorkout = (wId, entryDate) => {
-    const targetDate = entryDate || today
-    const targetEntry = state.entries.find(e => e.date === targetDate)
-    if (!targetEntry) return
-    dispatch({ type: 'SAVE_ENTRY', entry: { ...targetEntry, workouts: (targetEntry.workouts||[]).filter(w => w.id !== wId) } })
-  }
-
-  // Сохранить AI-анализ в запись тренировки (кэш — считается один раз, потом берётся готовый)
-  const saveWorkoutAnalysis = (workout, text) => {
-    const dateKey = workout.entryDate
-    const targetEntry = state.entries.find(e => e.date === dateKey)
-    if (!targetEntry) return
-    const updated = { ...targetEntry, workouts: (targetEntry.workouts || []).map(w => w.id === workout.id ? { ...w, aiAnalysis: text } : w) }
-    dispatch({ type: 'SAVE_ENTRY', entry: updated })
-    // обновляем открытую карточку, чтобы при повторном открытии анализ уже был в объекте
-    if (viewWorkout && viewWorkout.id === workout.id) setViewWorkout({ ...viewWorkout, aiAnalysis: text })
-  }
-
-  // Строит список упражнений из дня AI-плана. transferWeights=true — подставляет вес из прошлого раза, false — вес '0'
-  const buildExercisesFromPlanDay = (day, transferWeights) => {
-    return (day.exercises || []).map(ex => {
-      const reps = normReps(ex.reps)
-      const repsValue = `${reps.min}-${reps.max}`
-      const setsCount = parseInt(ex.sets) || 3
-      // Ищем в EXERCISE_DB совпадение по имени для muscle/type
-      const dbEx = FULL_EXERCISE_DB.find(e => e.name.toLowerCase() === (ex.name || '').toLowerCase())
-      const saved = suggestWeightFor(ex.name)
-      const startWeight = (transferWeights && saved?.weight) ? String(saved.weight) : '0'
-      const muscleForRest = ex.muscle || dbEx?.muscle || 'Кор'
-      const restFromPlan = parseInt(ex.rest_sec) || null
-      return {
-        uid: uid(),
-        exerciseId: dbEx?.id || Date.now() + Math.random(),
-        name: ex.name,
-        muscle: muscleForRest,
-        type: ex.type || dbEx?.type || 'compound',
-        targetReps: repsValue,
-        restSec: restFromPlan || getDefaultRestSec(muscleForRest),
-        suggestedWeight: saved?.suggestedWeight || null,
-        sets: Array.from({ length: setsCount }, () => ({ id: uid(), reps: repsValue, weight: startWeight, done: false }))
-      }
-    })
-  }
-  const applyPlanLoad = (day, dayIdx, mode, transferWeights) => {
-    const exercises = buildExercisesFromPlanDay(day, transferWeights)
-    setWk({ name: day.name + ' (AI)', exercises })
-    setPlanDayIdx(dayIdx)
-    resetTimer()
-    if (mode === 'builder') {
-      // Конструктор: можно заменить упражнения, поправить подходы, потом «Начать»
-      setRunning(false)
-      setView('builder')
-    } else {
-      setRunning(true)
-      setView('active')
-    }
-  }
-  // Загружает день из AI-плана. mode: 'active' — сразу тренировка; 'builder' — конструктор для правки
-  const startFromPlan = (day, dayIdx = null, mode = 'active') => {
-    const hasSavedWeights = (day.exercises || []).some(ex => suggestWeightFor(ex.name)?.weight)
-    if (hasSavedWeights) { setPendingLoad({ type: 'plan', day, dayIdx, mode }); return }
-    applyPlanLoad(day, dayIdx, mode, false)
-  }
-  // Ответ пользователя на модалку "Перенести веса с прошлого раза?"
-  const resolveWeightTransfer = (transfer) => {
-    if (!pendingLoad) return
-    if (pendingLoad.type === 'template') applyTemplateLoad(pendingLoad.tpl, pendingLoad.mode, transfer)
-    else applyPlanLoad(pendingLoad.day, pendingLoad.dayIdx, pendingLoad.mode, transfer)
-    setPendingLoad(null)
-  }
+  const {
+    view, setView, wk, setWk, exSearch, setExSearch, running, setRunning, timer, resetTimer,
+    showRestTimer, setShowRestTimer, restInfo, showComplete, swapFor, setSwapFor,
+    planDayIdx, setPlanDayIdx, planSaved, viewWorkout, setViewWorkout, techFor, setTechFor,
+    histMode, setHistMode, templates, tplSaved, pickerFor, setPickerFor, pendingLoad, setPendingLoad,
+    allWorkouts, workoutsByDate, workoutPlace, filteredEx, addEx, updateRest, updateSet, removeSet,
+    moveExercise, updateComment, addSet, removeEx, replaceEx, applyProgression, saveToPlan,
+    saveAsTemplate, deleteTemplate, startFromTemplate, toggleSet, completeWorkout, saveWorkout,
+    removeWorkout, saveWorkoutAnalysis, startFromPlan, resolveWeightTransfer,
+  } = useWorkout({ state, dispatch })
 
   const M_COLORS = { Грудь:'#329063', Спина:'#3b82f6', Ноги:'#f59e0b', Плечи:'#8b5cf6', Трицепс:'#ec4899', Бицепс:'#f97316', Кор:'#06b6d4', Кардио:'#ef4444' }
 
