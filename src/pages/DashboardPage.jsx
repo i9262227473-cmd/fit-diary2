@@ -12,6 +12,7 @@ import { getTechnique } from '../data/exerciseTechnique'
 import FoodSearchPanel from '../components/food/FoodSearchPanel'
 import ManualFoodForm from '../components/food/ManualFoodForm'
 import AiFoodSearch from '../components/food/AiFoodSearch'
+import MealSelector from '../components/food/MealSelector'
 import RecipeBuilder from '../components/food/RecipeBuilder'
 import FoodCalendar from '../components/food/FoodCalendar'
 import FoodDayDetail from '../components/food/FoodDayDetail'
@@ -293,13 +294,12 @@ function FoodScreen({ state, dispatch, aiCall }) {
 
       {tab === 'add' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
-            {Object.entries(MEALS_MAP).map(([k, v]) => (
-              <button key={k} onClick={() => setMeal(k)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: `1px solid ${meal === k ? '#3d9970' : '#2e2e2e'}`, background: meal === k ? 'rgba(61,153,112,0.1)' : '#1a1a1a', color: meal === k ? '#3d9970' : '#9ca3af', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 13, fontWeight: 500 }}>
-                <span>{MEAL_ICONS[k]}</span>{v}
-              </button>
-            ))}
-          </div>
+          <MealSelector
+            meals={MEALS_MAP}
+            icons={MEAL_ICONS}
+            selectedMeal={meal}
+            onMealChange={setMeal}
+          />
           <div style={{ display: 'flex', background: '#1a1a1a', borderRadius: 12, padding: 3, gap: 3, border: '1px solid #2e2e2e' }}>
             {[['search', 'Поиск'], ['manual', 'Вручную']].map(([k, v]) => (
               <button key={k} onClick={() => setManualMode(k === 'manual')} style={{ flex: 1, padding: '9px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 13, background: (k === 'manual' ? manualMode : !manualMode) ? '#2a2a2a' : 'transparent', color: (k === 'manual' ? manualMode : !manualMode) ? '#f5f5f5' : '#6b7280' }}>{v}</button>
