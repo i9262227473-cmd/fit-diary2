@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from '../store'
-import { searchFoodSmart } from '../data/searchUtils'
-import { saveCachedFood, getCachedFoods, clearCachedFoods } from '../data/userFoodCache'
+import { getCachedFoods, clearCachedFoods } from '../data/userFoodCache'
 import { LogOut, Camera, Bell, ChevronRight, Plus, Check, X, ChevronLeft, Play, Pause, Flame, Droplets, Dumbbell, Edit2, Trash2, AlertTriangle, Sparkles, Calendar, ScanLine } from 'lucide-react'
 import styles from './DashboardPage.module.css'
 import { normReps } from './planUtils'
@@ -17,7 +16,7 @@ import EditFoodModal from '../components/food/EditFoodModal'
 import WeightTransferModal from '../components/workouts/WeightTransferModal'
 import CircularProgress, { getCalorieColor } from '../components/common/CircularProgress'
 import { buildReportData, generateReportPDF } from '../utils/pdfReport'
-import BarcodeScanner, { lookupBarcode } from '../components/food/BarcodeScanner'
+import BarcodeScanner from '../components/food/BarcodeScanner'
 import SetPickerModal from '../components/workouts/SetPickerModal'
 import WheelPicker, { buildWeightValues } from '../components/common/WheelPicker'
 import { createStableId as uid, formatLongTime as fmtTimeLong, getDefaultRestSeconds as getDefaultRestSec } from '../utils/workoutUi'
@@ -25,168 +24,25 @@ import { NavHome, NavWorkout, NavProgress, NavFood, NavUser } from '../component
 import SwipeToDelete from '../components/common/SwipeToDelete'
 import NumberStepper from '../components/common/NumberStepper'
 import VoiceButton from '../components/common/VoiceButton'
+import useFood from '../hooks/useFood'
 
 const WK_DRAFT_KEY = 'workout-draft-v1'
-
-function compressImage(file, maxSize = 1024, quality = 0.85) {
-  return new Promise((res, rej) => {
-    const r = new FileReader()
-    r.onload = e => {
-      const img = new Image()
-      img.onload = () => {
-        const canvas = document.createElement('canvas')
-        let w = img.width, h = img.height
-        if (w > maxSize || h > maxSize) {
-          if (w > h) { h = Math.round(h * maxSize / w); w = maxSize }
-          else { w = Math.round(w * maxSize / h); h = maxSize }
-        }
-        canvas.width = w; canvas.height = h
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h)
-        res(canvas.toDataURL('image/jpeg', quality).split(',')[1])
-      }
-      img.onerror = rej; img.src = e.target.result
-    }
-    r.onerror = rej; r.readAsDataURL(file)
-  })
-}
 
 // ─── FOOD SCREEN ─────────────────────────────────────────────────────────────
 const MEALS_MAP = { breakfast: 'Завтрак', lunch: 'Обед', dinner: 'Ужин', snack: 'Перекус' }
 const MEAL_ICONS = { breakfast: '•', lunch: '•', dinner: '•', snack: '•' }
 const MEAL_TIMES = { breakfast: '08:00', lunch: '13:00', dinner: '19:00', snack: '16:00' }
 
-// Автовыбор приёма пищи по времени суток (можно всегда переключить вручную)
-function getMealByTime() {
-  const h = new Date().getHours()
-  if (h >= 5 && h < 11) return 'breakfast'
-  if (h >= 11 && h < 16) return 'lunch'
-  if (h >= 16 && h < 22) return 'dinner'
-  return 'snack'
-}
-
 function FoodScreen({ state, dispatch, aiCall }) {
-  const [tab, setTab] = useState('log')
-  const [logMode, setLogMode] = useState('list') // 'list' | 'calendar'
-  const [meal, setMeal] = useState(getMealByTime)
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState([])
-  const [selectedFood, setSelectedFood] = useState(null)
-  const [grams, setGrams] = useState('100')
-  const [manualMode, setManualMode] = useState(false)
-  const [manual, setManual] = useState({ name: '', cal: '', p: '', f: '', c: '', grams: '100' })
-  const [aiText, setAiText] = useState('')
-  const [aiResults, setAiResults] = useState(null)
-  const [aiLoading, setAiLoading] = useState(false)
-  const [scanLoading, setScanLoading] = useState(false)
-  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false)
-  const [toast, setToast] = useState(null)
-  const [editingFood, setEditingFood] = useState(null)
-
-  const today = new Date().toISOString().split('T')[0]
-  const entry = state.entries.find(e => e.date === today) || { date: today, foods: [], workouts: [] }
-  const totals = entry.foods.reduce((a, f) => ({ cal: a.cal + (f.calories||0), p: a.p + (f.protein||0), fat: a.fat + (f.fat||0), c: a.c + (f.carbs||0) }), { cal: 0, p: 0, fat: 0, c: 0 })
-
-  const showToast = msg => { setToast(msg); setTimeout(() => setToast(null), 2000) }
-
-  const handleSearch = q => {
-    setQuery(q); setSelectedFood(null)
-    if (q.length > 1) setResults(searchFoodSmart(q).slice(0, 8))
-    else setResults([])
-  }
-
-  const addFoodItem = (food, g, mealKey) => {
-    const w = parseFloat(g) || 100
-    dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, foods: [...entry.foods, { id: Date.now(), name: food.name, weight: w, meal: mealKey || meal, calories: (food.cal100||0)*w/100, protein: (food.prot100||0)*w/100, fat: (food.fat100||0)*w/100, carbs: (food.carbs100||0)*w/100, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' }) }] } })
-    showToast(food.name + ' добавлено')
-    setSelectedFood(null); setQuery(''); setResults([]); setGrams('100'); setTab('log')
-  }
-
-  const addManual = () => {
-    if (!manual.name || !manual.cal) return
-    const g = parseFloat(manual.grams) || 100
-    saveCachedFood({ name: manual.name, cal100: parseFloat(manual.cal)||0, prot100: parseFloat(manual.p)||0, fat100: parseFloat(manual.f)||0, carbs100: parseFloat(manual.c)||0 })
-    dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, foods: [...entry.foods, { id: Date.now(), name: manual.name, weight: g, meal, calories: parseFloat(manual.cal)*g/100, protein: parseFloat(manual.p||0)*g/100, fat: parseFloat(manual.f||0)*g/100, carbs: parseFloat(manual.c||0)*g/100, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' }) }] } })
-    showToast(manual.name + ' добавлено')
-    setManual({ name: '', cal: '', p: '', f: '', c: '', grams: '100' }); setTab('log')
-  }
-
-  const removeFood = id => dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, foods: entry.foods.filter(f => f.id !== id) } })
-
-  const updateFood = (updatedFood) => {
-    dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, foods: entry.foods.map(f => f.id === updatedFood.id ? updatedFood : f) } })
-    showToast('Изменения сохранены')
-    setEditingFood(null)
-  }
-
-  const handleScan = async file => {
-    setScanLoading(true)
-    try {
-      const b64 = await compressImage(file)
-      const res = await fetch('https://api.sudbase.ru/ai-vision', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ b64 }) })
-      if (!res.ok) {
-        console.error('ai-vision HTTP error:', res.status)
-        alert(`Сервер вернул ошибку (${res.status}). Попробуйте ещё раз или добавьте вручную.`)
-        return
-      }
-      const d = await res.json()
-      if (d.name) {
-        const food = { name: d.name, cal100: d.calories||0, prot100: d.protein||0, fat100: d.fat||0, carbs100: d.carbs||0 }
-        saveCachedFood(food)
-        setSelectedFood(food); setQuery(d.name)
-      } else {
-        console.warn('ai-vision: пустой ответ или нет поля name:', d)
-        alert(d.error || 'Не удалось распознать продукт на фото. Попробуйте сделать фото чётче или добавьте вручную.')
-      }
-    } catch (e) {
-      console.error('ai-vision fetch error:', e)
-      alert('Не удалось отправить фото. Проверьте соединение и попробуйте снова.')
-    } finally { setScanLoading(false) }
-  }
-
-  const handleBarcodeDetect = async (code) => {
-    setShowBarcodeScanner(false)
-    setScanLoading(true)
-    try {
-      const food = await lookupBarcode(code)
-      if (food && food.cal100 > 0) {
-        saveCachedFood(food)
-        setSelectedFood(food); setQuery(food.name)
-      } else {
-        alert('Продукт по этому штрихкоду не найден в базе. Попробуйте фото или добавьте вручную.')
-      }
-    } catch (e) {
-      console.error('barcode lookup error:', e)
-      alert('Не удалось проверить штрихкод. Проверьте соединение и попробуйте снова.')
-    } finally { setScanLoading(false) }
-  }
-
-  const runAI = async () => {
-    if (!aiText.trim()) return
-    setAiLoading(true); setAiResults(null)
-    try {
-      const prompt = `Ты нутрициолог. Твоя задача — по описанию еды вернуть точные значения КБЖУ, используя стандартные табличные данные о составе продуктов (как в справочниках USDA / базах пищевой ценности).
-
-ПРАВИЛА РАСЧЁТА:
-- cal100, prot100, fat100, carbs100 — это значения на 100 грамм продукта (НЕ на порцию). Бери реальные табличные значения, не округляй грубо и не выдумывай.
-- grams — вес именно этой порции в граммах. Если в тексте указан вес/объём ("200 мл", "2 яйца", "тарелка") — оцени реальный вес порции. Если не указан — поставь типичную порцию продукта.
-- Вода, чай без сахара, чёрный кофе без сахара, специи — это 0 ккал, 0 белков, 0 жиров, 0 углеводов. Ставь именно нули, не выдумывай калорийность.
-- Для готовых/варёных блюд бери значения именно в готовом виде (варёная гречка ≠ сухая гречка).
-- Каждый отдельный продукт из описания — отдельный элемент массива.
-
-Верни ТОЛЬКО JSON-массив без markdown, без пояснений. Все поля — числа.
-Формат: [{"name":"Название продукта","cal100":число,"prot100":число,"fat100":число,"carbs100":число,"grams":число}]
-
-Описание еды: "${aiText}"`
-      const reply = await aiCall([{ role: 'user', content: prompt }], 700)
-      const match = reply.replace(/```json|```/g, '').trim().match(/\[[\s\S]*\]/)
-      if (match) {
-        const parsed = JSON.parse(match[0]).map(item => ({ food: { name: item.name, cal100: parseFloat(item.cal100)||0, prot100: parseFloat(item.prot100)||0, fat100: parseFloat(item.fat100)||0, carbs100: parseFloat(item.carbs100)||0 }, grams: parseFloat(item.grams)||100 }))
-        parsed.forEach(item => saveCachedFood(item.food))
-        setAiResults(parsed)
-      } else setAiResults([])
-    } catch { setAiResults([]) }
-    setAiLoading(false)
-  }
+  const food = useFood({ state, dispatch, aiCall })
+  const {
+    tab, setTab, logMode, setLogMode, meal, setMeal, query, results,
+    selectedFood, setSelectedFood, grams, setGrams, manualMode, setManualMode,
+    manual, setManual, aiText, setAiText, aiResults, aiLoading, scanLoading,
+    showBarcodeScanner, setShowBarcodeScanner, toast, editingFood, setEditingFood,
+    entry, totals, handleSearch, addFoodItem, addManual, removeFood, updateFood,
+    handleScan, handleBarcodeDetect, runAI, addAllAiItems, saveRecipe, appendAiText,
+  } = food
 
   const inp = { width: '100%', padding: '13px 16px', background: '#222', border: '1px solid #2e2e2e', borderRadius: 12, color: '#f5f5f5', fontSize: 15, outline: 'none', boxSizing: 'border-box' }
   const goals = { calories: state.profile?.calorieGoal || 2200, protein: state.profile?.proteinGoal || 150, fat: state.profile?.fatGoal || 70, carbs: state.profile?.carbGoal || 250 }
@@ -315,55 +171,13 @@ function FoodScreen({ state, dispatch, aiCall }) {
         onAddManual={addManual}
         aiText={aiText}
         onAiTextChange={setAiText}
-        onVoiceResult={(text) => setAiText((current) => (current ? current + ' ' : '') + text)}
+        onVoiceResult={appendAiText}
         aiLoading={aiLoading}
         aiResults={aiResults}
         onRecognize={runAI}
         onAddAiItem={(item) => addFoodItem(item.food, item.grams)}
-        onAddAllAiItems={() => {
-          const currentEntry =
-            state.entries.find((item) => item.date === today) || {
-              date: today,
-              foods: [],
-              workouts: [],
-            }
-
-          const newFoods = aiResults.map((item) => {
-            const weight = parseFloat(item.grams) || 100
-
-            return {
-              id: Date.now() + Math.random(),
-              name: item.food.name,
-              weight,
-              meal,
-              calories: ((item.food.cal100 || 0) * weight) / 100,
-              protein: ((item.food.prot100 || 0) * weight) / 100,
-              fat: ((item.food.fat100 || 0) * weight) / 100,
-              carbs: ((item.food.carbs100 || 0) * weight) / 100,
-              time: new Date().toLocaleTimeString('ru', {
-                hour: '2-digit',
-                minute: '2-digit',
-              }),
-            }
-          })
-
-          dispatch({
-            type: 'SAVE_ENTRY',
-            entry: {
-              ...currentEntry,
-              foods: [...currentEntry.foods, ...newFoods],
-            },
-          })
-
-          showToast(newFoods.length + ' продуктов добавлено')
-          setAiText('')
-          setAiResults(null)
-          setTab('log')
-        }}
-        onSaveRecipe={(recipe) => {
-          saveCachedFood({ name: recipe.name, cal100: recipe.cal100, prot100: recipe.prot100, fat100: recipe.fat100, carbs100: recipe.carbs100 })
-          showToast(recipe.name + ' сохранён в базу продуктов')
-        }}
+        onAddAllAiItems={addAllAiItems}
+        onSaveRecipe={saveRecipe}
         aiCall={aiCall}
       />
     </div>
