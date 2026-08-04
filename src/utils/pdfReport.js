@@ -1,18 +1,54 @@
-let jsPDFPromise = null
+import regularFontUrl from 'dejavu-fonts-ttf/ttf/DejaVuSans.ttf?url'
+import boldFontUrl from 'dejavu-fonts-ttf/ttf/DejaVuSans-Bold.ttf?url'
 
-function loadJsPDF() {
-  if (window.jspdf?.jsPDF) return Promise.resolve(window.jspdf.jsPDF)
-  if (jsPDFPromise) return jsPDFPromise
+const PDF_FONT_NAME = 'DejaVuSans'
+let fontFilesPromise = null
+let jsPdfModulePromise = null
 
-  jsPDFPromise = new Promise((resolve, reject) => {
-    const script = document.createElement('script')
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
-    script.onload = () => resolve(window.jspdf.jsPDF)
-    script.onerror = () => reject(new Error('CDN_LOAD_FAILED'))
-    document.head.appendChild(script)
-  })
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer)
+  const chunkSize = 0x8000
+  let binary = ''
 
-  return jsPDFPromise
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize))
+  }
+
+  return btoa(binary)
+}
+
+async function loadFontFile(url) {
+  const response = await fetch(url)
+  if (!response.ok) throw new Error('PDF_FONT_LOAD_FAILED')
+  return arrayBufferToBase64(await response.arrayBuffer())
+}
+
+function loadPdfFonts() {
+  if (!fontFilesPromise) {
+    fontFilesPromise = Promise.all([
+      loadFontFile(regularFontUrl),
+      loadFontFile(boldFontUrl),
+    ])
+  }
+
+  return fontFilesPromise
+}
+
+async function createPdfDocument() {
+  if (!jsPdfModulePromise) jsPdfModulePromise = import('jspdf')
+
+  const [{ jsPDF }, [regularFont, boldFont]] = await Promise.all([
+    jsPdfModulePromise,
+    loadPdfFonts(),
+  ])
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' })
+
+  doc.addFileToVFS('DejaVuSans.ttf', regularFont)
+  doc.addFont('DejaVuSans.ttf', PDF_FONT_NAME, 'normal')
+  doc.addFileToVFS('DejaVuSans-Bold.ttf', boldFont)
+  doc.addFont('DejaVuSans-Bold.ttf', PDF_FONT_NAME, 'bold')
+
+  return doc
 }
 
 export function buildReportData(entries, days, goals) {
@@ -84,19 +120,18 @@ export function buildReportData(entries, days, goals) {
 }
 
 export async function generateReportPDF(data, periodLabel, userName) {
-  const jsPDF = await loadJsPDF()
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' })
+  const doc = await createPdfDocument()
   const pageWidth = doc.internal.pageSize.getWidth()
   const marginX = 40
   let y = 50
 
   doc.setFontSize(18)
-  doc.setFont(undefined, 'bold')
+  doc.setFont(PDF_FONT_NAME, 'bold')
   doc.text('Фитнес Дневник — отчёт', marginX, y)
   y += 22
 
   doc.setFontSize(11)
-  doc.setFont(undefined, 'normal')
+  doc.setFont(PDF_FONT_NAME, 'normal')
   doc.text(`${userName || 'Пользователь'} · ${periodLabel} · сформирован отчёт: ${new Date().toLocaleDateString('ru-RU')}`, marginX, y)
   y += 30
 
@@ -105,12 +140,12 @@ export async function generateReportPDF(data, periodLabel, userName) {
   y += 24
 
   doc.setFontSize(14)
-  doc.setFont(undefined, 'bold')
+  doc.setFont(PDF_FONT_NAME, 'bold')
   doc.text('Питание — средние показатели', marginX, y)
   y += 20
 
   doc.setFontSize(11)
-  doc.setFont(undefined, 'normal')
+  doc.setFont(PDF_FONT_NAME, 'normal')
   doc.text(`Калории: ${data.avgCal} / цель ${data.goals.calories} ккал`, marginX, y)
   y += 16
   doc.text(`Белки: ${data.avgP}г  ·  Жиры: ${data.avgFat}г  ·  Углеводы: ${data.avgC}г`, marginX, y)
@@ -119,12 +154,12 @@ export async function generateReportPDF(data, periodLabel, userName) {
   y += 26
 
   doc.setFontSize(14)
-  doc.setFont(undefined, 'bold')
+  doc.setFont(PDF_FONT_NAME, 'bold')
   doc.text('Тренировки — сводка', marginX, y)
   y += 20
 
   doc.setFontSize(11)
-  doc.setFont(undefined, 'normal')
+  doc.setFont(PDF_FONT_NAME, 'normal')
   doc.text(`Всего тренировок: ${data.totalWorkouts}  ·  Суммарное время: ${data.totalWorkoutMin} мин`, marginX, y)
   y += 30
 
@@ -133,7 +168,7 @@ export async function generateReportPDF(data, periodLabel, userName) {
   y += 24
 
   doc.setFontSize(14)
-  doc.setFont(undefined, 'bold')
+  doc.setFont(PDF_FONT_NAME, 'bold')
   doc.text('Детализация по дням', marginX, y)
   y += 8
 
@@ -154,7 +189,7 @@ export async function generateReportPDF(data, periodLabel, userName) {
 
   y += 16
   doc.setFontSize(9)
-  doc.setFont(undefined, 'bold')
+  doc.setFont(PDF_FONT_NAME, 'bold')
   doc.setTextColor(120)
   doc.text('Дата', columns.date, y)
   doc.text('Ккал', columns.cal, y)
@@ -170,7 +205,7 @@ export async function generateReportPDF(data, periodLabel, userName) {
   data.dayRows.forEach((day) => {
     checkPageBreak()
     doc.setFontSize(9)
-    doc.setFont(undefined, 'normal')
+    doc.setFont(PDF_FONT_NAME, 'normal')
 
     const formattedDate = new Date(day.date).toLocaleDateString('ru-RU', {
       day: '2-digit',
