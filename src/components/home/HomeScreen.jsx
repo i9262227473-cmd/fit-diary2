@@ -1,9 +1,31 @@
 import React, { useState } from 'react'
-import { Bell, CalendarDays, ChevronRight, Dumbbell, Droplets, Plus, Utensils } from 'lucide-react'
-import CircularProgress, { getCalorieColor } from '../common/CircularProgress'
+import {
+  Barcode,
+  Bell,
+  CalendarDays,
+  Camera,
+  ChevronRight,
+  Droplets,
+  Dumbbell,
+  Plus,
+  QrCode,
+} from 'lucide-react'
 import styles from './HomeScreen.module.css'
 
-export default function HomeScreen({ state, dispatch, goTo, name, aiCall, CalendarView }) {
+const MEALS = {
+  breakfast: { label: 'Завтрак', image: '/assets/meals/oatmeal-berries.webp' },
+  lunch: { label: 'Обед', image: '/assets/meals/chicken-rice.webp' },
+  dinner: { label: 'Ужин', image: '/assets/meals/cottage-cheese-fruit.webp' },
+  snack: { label: 'Перекус', image: '/assets/meals/cottage-cheese-fruit.webp' },
+}
+
+const QUICK_ACTIONS = [
+  { label: 'Штрих-код', caption: 'Сканировать', Icon: Barcode, tone: 'green', action: 'barcode' },
+  { label: 'QR-код', caption: 'Сканировать', Icon: QrCode, tone: 'purple', action: 'qr' },
+  { label: 'Фото еды', caption: 'Распознать', Icon: Camera, tone: 'orange', action: 'photo' },
+]
+
+export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall, CalendarView }) {
   const [showCalendar, setShowCalendar] = useState(false)
   const today = new Date().toISOString().split('T')[0]
   const entry = state.entries.find(item => item.date === today) || { date: today, foods: [], workouts: [] }
@@ -20,142 +42,105 @@ export default function HomeScreen({ state, dispatch, goTo, name, aiCall, Calend
     carbs: sum.carbs + (food.carbs || 0),
   }), { calories: 0, protein: 0, fat: 0, carbs: 0 })
   const eaten = Math.round(totals.calories)
-  const remaining = Math.max(0, goals.calories - eaten)
-  const water = state.water
+  const caloriePercent = goals.calories > 0 ? Math.min(eaten / goals.calories * 100, 100) : 0
+  const macroCalories = totals.protein * 4 + totals.fat * 9 + totals.carbs * 4
+  const proteinShare = macroCalories > 0 ? totals.protein * 4 / macroCalories : .34
+  const fatShare = macroCalories > 0 ? totals.fat * 9 / macroCalories : .33
+  const proteinEnd = caloriePercent * proteinShare
+  const fatEnd = proteinEnd + caloriePercent * fatShare
+  const ringStyle = {
+    background: `conic-gradient(from -90deg, var(--protein) 0 ${proteinEnd}%, var(--amber) ${proteinEnd}% ${fatEnd}%, var(--purple) ${fatEnd}% ${caloriePercent}%, var(--surface3) ${caloriePercent}% 100%)`,
+  }
+  const dayTitle = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
   const currentWorkout = entry.workouts?.[entry.workouts.length - 1]
-  const dayName = new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })
-  const calColor = getCalorieColor(eaten / goals.calories)
-  const caloriePercent = goals.calories > 0 ? Math.min(Math.round(eaten / goals.calories * 100), 100) : 0
-  const firstName = name?.trim().split(' ')[0] || 'спортсмен'
+  const water = state.water
 
-  const macros = [
-    { label: 'Белки', value: totals.protein, max: goals.protein, color: 'var(--protein)' },
-    { label: 'Жиры', value: totals.fat, max: goals.fat, color: 'var(--amber)' },
-    { label: 'Углеводы', value: totals.carbs, max: goals.carbs, color: 'var(--teal)' },
-  ]
+  const mealRows = Object.entries(MEALS).map(([key, meta]) => {
+    const foods = entry.foods.filter(item => item.meal === key)
+    if (!foods.length) return null
+    const calories = Math.round(foods.reduce((sum, item) => sum + (item.calories || 0), 0))
+    return { key, ...meta, foods, calories }
+  }).filter(Boolean)
 
   return (
     <div className={styles.screen}>
       <header className={styles.header}>
-        <div>
-          <div className={styles.date}>{dayName}</div>
-          <h1 className={styles.title}>В ритме, {firstName}</h1>
-        </div>
-        <div className={styles.headerActions}>
-          <button className={styles.iconButton} onClick={() => setShowCalendar(true)} aria-label="Открыть календарь">
-            <CalendarDays size={19} />
-          </button>
-          <button className={styles.iconButton} aria-label="Уведомления">
-            <Bell size={19} />
-          </button>
-        </div>
+        <button className={styles.headerButton} onClick={() => setShowCalendar(true)} aria-label="Открыть календарь"><CalendarDays size={18} /></button>
+        <div className={styles.headerTitle}><strong>Сегодня</strong><span>{dayTitle}</span></div>
+        <button className={styles.headerButton} aria-label="Уведомления"><Bell size={18} /></button>
       </header>
 
-      {showCalendar && CalendarView && (
-        <CalendarView state={state} dispatch={dispatch} aiCall={aiCall} onClose={() => setShowCalendar(false)} />
-      )}
+      {showCalendar && CalendarView && <CalendarView state={state} dispatch={dispatch} aiCall={aiCall} onClose={() => setShowCalendar(false)} />}
 
-      <section className={styles.workoutCard} onClick={() => goTo('workout')}>
-        <div className={styles.workoutGlow} />
-        <div className={styles.cardTopline}>
-          <span className={styles.sectionLabel}>{currentWorkout ? 'Последняя тренировка' : 'Тренировка дня'}</span>
-          <span className={styles.status}><span className={styles.statusDot} />Сегодня</span>
-        </div>
-        <div className={styles.workoutBody}>
-          <div className={styles.workoutIcon}><Dumbbell size={25} /></div>
-          <div className={styles.workoutCopy}>
-            <h2>{currentWorkout?.name || 'Готов к тренировке?'}</h2>
-            <p>
-              {currentWorkout
-                ? `${currentWorkout.exercises?.length || 0} упражнений · ${currentWorkout.duration || 0} мин`
-                : 'Открой план или начни свою тренировку'}
-            </p>
+      <section className={styles.balanceCard}>
+        <div className={styles.ringColumn}>
+          <div className={styles.macroRing} style={ringStyle}>
+            <div className={styles.ringInner}><strong>{eaten}</strong><span>ккал</span></div>
           </div>
-          <div className={styles.workoutArrow}><ChevronRight size={20} /></div>
+          <span className={styles.goal}>Цель: {goals.calories} ккал</span>
         </div>
-        <div className={styles.workoutFooter}>
-          <span>{currentWorkout ? 'Открыть тренировку' : 'Начать тренировку'}</span>
-          <ChevronRight size={16} />
-        </div>
-      </section>
-
-      <div className={styles.quickGrid}>
-        <button className={styles.quickAction} onClick={() => goTo('food')}>
-          <span className={`${styles.quickIcon} ${styles.foodIcon}`}><Utensils size={19} /></span>
-          <span><strong>Добавить еду</strong><small>Записать приём пищи</small></span>
-          <Plus size={17} className={styles.quickPlus} />
-        </button>
-        <button className={styles.quickAction} onClick={() => goTo('workout')}>
-          <span className={`${styles.quickIcon} ${styles.trainingIcon}`}><Dumbbell size={19} /></span>
-          <span><strong>Тренировка</strong><small>План и история</small></span>
-          <ChevronRight size={17} className={styles.quickPlus} />
-        </button>
-      </div>
-
-      <section className={styles.nutritionCard} onClick={() => goTo('food')}>
-        <div className={styles.cardHeading}>
-          <div>
-            <span className={styles.sectionLabel}>Питание сегодня</span>
-            <h2>Энергия и баланс</h2>
-          </div>
-          <div className={styles.percentBadge}>{caloriePercent}%</div>
-        </div>
-
-        <div className={styles.nutritionMain}>
-          <CircularProgress value={eaten} max={goals.calories} size={112} stroke={7} dynamicColor>
-            <div className={styles.calorieValue} style={{ color: calColor }}>{eaten}</div>
-            <div className={styles.calorieUnit}>ккал</div>
-          </CircularProgress>
-          <div className={styles.energyStats}>
-            <div><span>Цель</span><strong>{goals.calories}</strong></div>
-            <div><span>Осталось</span><strong className={styles.remaining}>{remaining}</strong></div>
-          </div>
-        </div>
-
-        <div className={styles.macros}>
-          {macros.map(macro => {
-            const percent = macro.max > 0 ? Math.min(macro.value / macro.max * 100, 100) : 0
-            const color = macro.max > 0 && macro.value > macro.max ? '#f87171' : macro.color
-
-            return (
-              <div className={styles.macro} key={macro.label}>
-                <div className={styles.macroMeta}>
-                  <span>{macro.label}</span>
-                  <strong style={{ color }}>{Math.round(macro.value)} <small>/ {macro.max} г</small></strong>
-                </div>
-                <div className={styles.track}>
-                  <div className={styles.fill} style={{ width: `${percent}%`, background: color }} />
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </section>
-
-      <section className={styles.waterCard}>
-        <div className={styles.waterHeader}>
-          <div className={styles.waterTitle}>
-            <span className={styles.waterIcon}><Droplets size={20} /></span>
-            <div><span className={styles.sectionLabel}>Гидратация</span><h2>Вода</h2></div>
-          </div>
-          <div className={styles.waterValue}><strong>{water.consumed}</strong><span>/ {water.goal} стаканов</span></div>
-        </div>
-        <div className={styles.waterSteps}>
-          {Array.from({ length: water.goal }).map((_, index) => (
-            <button
-              key={index}
-              onClick={() => dispatch({ type: 'SET_WATER', val: index < water.consumed ? index : index + 1 })}
-              className={`${styles.waterStep} ${index < water.consumed ? styles.waterStepActive : ''}`}
-              aria-label={`${index + 1} стакан`}
-            >
-              <span />
-            </button>
+        <div className={styles.macroList}>
+          {[
+            ['Белки', totals.protein, goals.protein, 'var(--protein)'],
+            ['Жиры', totals.fat, goals.fat, 'var(--amber)'],
+            ['Углеводы', totals.carbs, goals.carbs, 'var(--purple)'],
+          ].map(([label, value, max, color]) => (
+            <div className={styles.macroRow} key={label}>
+              <span style={{ color }}>{label}</span>
+              <strong>{Math.round(value)} <small>/ {max} г</small></strong>
+            </div>
           ))}
         </div>
-        <div className={styles.waterTrack}>
-          <div style={{ width: `${water.goal > 0 ? Math.min(water.consumed / water.goal * 100, 100) : 0}%` }} />
-        </div>
       </section>
+
+      <section className={styles.quickActions}>
+        {QUICK_ACTIONS.map(({ label, caption, Icon, tone, action }) => (
+          <button key={label} onClick={() => onFoodAction?.(action)}>
+            <span className={`${styles.actionIcon} ${styles[tone]}`}><Icon size={21} /></span>
+            <strong>{label}</strong><small>{caption}</small>
+          </button>
+        ))}
+      </section>
+
+      <section className={styles.mealsSection}>
+        <div className={styles.sectionHeading}>
+          <div><span>Питание</span><h2>Приёмы пищи</h2></div>
+          <button onClick={() => onFoodAction?.('add')}><Plus size={17} /> Добавить</button>
+        </div>
+
+        {mealRows.length > 0 ? (
+          <div className={styles.mealRows}>
+            {mealRows.map(meal => (
+              <button className={styles.mealRow} key={meal.key} onClick={() => onFoodAction?.('log')}>
+                <img src={meal.image} alt="" />
+                <span className={styles.mealCopy}>
+                  <strong>{meal.label}</strong>
+                  <small>{meal.foods.map(food => food.name).join(', ')}</small>
+                </span>
+                <span className={styles.mealCalories}>{meal.calories}<small>ккал</small></span>
+                <ChevronRight size={16} />
+              </button>
+            ))}
+          </div>
+        ) : (
+          <button className={styles.emptyMeal} onClick={() => onFoodAction?.('add')}>
+            <span><Plus size={20} /></span><strong>Добавить первый приём пищи</strong><small>Вручную, по фото или штрих-коду</small>
+          </button>
+        )}
+      </section>
+
+      <div className={styles.compactGrid}>
+        <button className={styles.compactCard} onClick={() => goTo('workout')}>
+          <span className={styles.compactIcon}><Dumbbell size={20} /></span>
+          <span><small>Тренировка</small><strong>{currentWorkout?.name || 'Открыть план'}</strong></span>
+          <ChevronRight size={17} />
+        </button>
+        <section className={styles.compactCard}>
+          <span className={`${styles.compactIcon} ${styles.waterIcon}`}><Droplets size={20} /></span>
+          <span><small>Вода</small><strong>{water.consumed} / {water.goal}</strong></span>
+          <button className={styles.waterAdd} onClick={() => dispatch({ type: 'SET_WATER', val: Math.min(water.consumed + 1, water.goal) })} aria-label="Добавить стакан"><Plus size={17} /></button>
+        </section>
+      </div>
     </div>
   )
 }

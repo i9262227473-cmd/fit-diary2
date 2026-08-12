@@ -69,31 +69,31 @@
 }
 
 [data-theme='sport'] {
-  --bg: #080b0a;
-  --bg-raised: #0d1210;
-  --surface: #121816;
-  --surface2: #18201d;
-  --surface3: #202a26;
-  --card: rgba(18,24,22,.9);
-  --card-solid: #121816;
-  --nav-bg: rgba(18,24,22,.9);
+  --bg: #07101a;
+  --bg-raised: #0b1520;
+  --surface: #111c28;
+  --surface2: #172330;
+  --surface3: #22303e;
+  --card: rgba(17,28,40,.9);
+  --card-solid: #101a25;
+  --nav-bg: rgba(12,23,34,.9);
   --border: rgba(255,255,255,.085);
   --border-strong: rgba(255,255,255,.14);
-  --accent: #2bc477;
-  --accent-bright: #43d98d;
-  --accent-strong: #19945a;
-  --accent-dim: rgba(43,196,119,.12);
-  --accent-glow: 0 12px 30px rgba(43,196,119,.18);
-  --accent-contrast: #07140d;
-  --protein: #2bc477;
-  --teal: #38bdf8;
-  --amber: #fbbf24;
+  --accent: #69c854;
+  --accent-bright: #82df69;
+  --accent-strong: #4ca43b;
+  --accent-dim: rgba(105,200,84,.13);
+  --accent-glow: 0 12px 30px rgba(105,200,84,.18);
+  --accent-contrast: #08120a;
+  --protein: #73cf5c;
+  --teal: #6a7cff;
+  --amber: #f5b73b;
   --red: #f87171;
   --purple: #a78bfa;
-  --text: #f7faf8;
-  --text-muted: #68756f;
-  --text-secondary: #a3aea9;
-  --page-glow: rgba(43,196,119,.08);
+  --text: #f5f7fa;
+  --text-muted: #6f7d8c;
+  --text-secondary: #a9b4c0;
+  --page-glow: rgba(62,108,164,.11);
   --shadow: 0 18px 50px rgba(0,0,0,.44);
   --shadow-soft: 0 10px 30px rgba(0,0,0,.22);
 }

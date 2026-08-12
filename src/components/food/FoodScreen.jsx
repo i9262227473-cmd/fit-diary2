@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { BookOpen, CalendarDays, ChefHat, Coffee, Cookie, Moon, Plus, Sparkles, Sun, Utensils } from 'lucide-react'
 import CircularProgress, { getCalorieColor } from '../common/CircularProgress'
 import SwipeToDelete from '../common/SwipeToDelete'
@@ -24,7 +24,7 @@ const SECTION_TABS = [
   ['builder', 'Рецепты', ChefHat],
 ]
 
-export default function FoodScreen({ state, dispatch, aiCall }) {
+export default function FoodScreen({ state, dispatch, aiCall, intent }) {
   const food = useFood({ state, dispatch, aiCall })
   const {
     tab, setTab, logMode, setLogMode, meal, setMeal, query, setQuery, results, setResults,
@@ -53,6 +53,17 @@ export default function FoodScreen({ state, dispatch, aiCall }) {
     { label: 'Жиры', value: totals.fat, max: goals.fat, color: 'var(--amber)' },
     { label: 'Углеводы', value: totals.c, max: goals.carbs, color: 'var(--teal)' },
   ]
+
+  useEffect(() => {
+    if (!intent) return
+    if (intent.type === 'barcode' || intent.type === 'qr') {
+      setTab('add')
+      setShowBarcodeScanner(true)
+      return
+    }
+    if (intent.type === 'photo' || intent.type === 'add') setTab('add')
+    if (intent.type === 'log') setTab('log')
+  }, [intent?.id])
 
   return (
     <div className={styles.screen}>

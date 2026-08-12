@@ -17,11 +17,16 @@ import { applyTheme, getSavedTheme } from '../theme'
 export default function DashboardPage() {
   const { user, profile, signOut, aiCall, entries, saveEntry, saveProfile } = useStore()
   const [tab, setTab] = useState('home')
+  const [foodIntent, setFoodIntent] = useState(null)
   const [theme, setTheme] = useState(getSavedTheme)
   const name = profile?.name || user?.user_metadata?.name || 'Спортсмен'
   useReminders()
 
   useEffect(() => { applyTheme(theme) }, [theme])
+  const openFood = (intent = 'log') => {
+    setFoodIntent({ type: intent, id: Date.now() })
+    setTab('food')
+  }
 
   const [water, setWater] = useState(() => {
     try {
@@ -47,8 +52,8 @@ export default function DashboardPage() {
   return (
     <div className={styles.page}>
       <div className={styles.content}>
-        {tab === 'home'     && <HomeScreen CalendarView={CombinedCalendar} state={state} dispatch={dispatch} goTo={setTab} name={name} aiCall={aiCall} />}
-        {tab === 'food'     && <FoodScreen     state={state} dispatch={dispatch} aiCall={aiCall} />}
+        {tab === 'home'     && <HomeScreen CalendarView={CombinedCalendar} state={state} dispatch={dispatch} goTo={setTab} onFoodAction={openFood} name={name} aiCall={aiCall} />}
+        {tab === 'food'     && <FoodScreen     state={state} dispatch={dispatch} aiCall={aiCall} intent={foodIntent} />}
         {tab === 'analysis' && <ProgressScreen state={state} />}
         {tab === 'workout'  && <WorkoutScreen  state={state} dispatch={dispatch} aiCall={aiCall} PlanScreen={PlanScreen} />}
         {tab === 'profile'  && <ProfileScreen  profile={profile} saveProfile={saveProfile} signOut={signOut} aiCall={aiCall} theme={theme} onThemeChange={setTheme} />}
