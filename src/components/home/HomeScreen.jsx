@@ -29,9 +29,9 @@ export default function HomeScreen({ state, dispatch, goTo, name, aiCall, Calend
   const firstName = name?.trim().split(' ')[0] || 'спортсмен'
 
   const macros = [
-    { label: 'Белки', value: totals.protein, max: goals.protein, color: '#32d583' },
-    { label: 'Жиры', value: totals.fat, max: goals.fat, color: '#fbbf24' },
-    { label: 'Углеводы', value: totals.carbs, max: goals.carbs, color: '#38bdf8' },
+    { label: 'Белки', value: totals.protein, max: goals.protein, color: 'var(--accent)' },
+    { label: 'Жиры', value: totals.fat, max: goals.fat, color: 'var(--amber)' },
+    { label: 'Углеводы', value: totals.carbs, max: goals.carbs, color: 'var(--teal)' },
   ]
 
   return (

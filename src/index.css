@@ -16,12 +16,12 @@
   --border:       rgba(255,255,255,0.085);
   --border-strong:rgba(255,255,255,0.14);
 
-  /* Энергичный спортивный акцент */
-  --accent:       #32d583;
-  --accent-bright:#6df5a8;
-  --accent-strong:#1fbf70;
-  --accent-dim:   rgba(50,213,131,0.14);
-  --accent-glow:  0 12px 34px rgba(21,185,105,0.24);
+  /* Единый спортивный изумрудный акцент */
+  --accent:       #2bc477;
+  --accent-bright:#43d98d;
+  --accent-strong:#19945a;
+  --accent-dim:   rgba(43,196,119,0.12);
+  --accent-glow:  0 12px 30px rgba(43,196,119,0.18);
 
   --teal:         #38bdf8;
   --amber:        #fbbf24;
@@ -45,7 +45,7 @@ html, body, #root { height: 100%; }
 body {
   font-family: var(--font);
   background:
-    radial-gradient(circle at 50% -10%, rgba(50,213,131,0.12), transparent 32%),
+    radial-gradient(circle at 50% -10%, rgba(43,196,119,0.08), transparent 32%),
     #050706;
   color: var(--text);
   max-width: 480px;
