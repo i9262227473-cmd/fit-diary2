@@ -5,6 +5,8 @@ import WorkoutDetail from '../workouts/WorkoutDetail'
 import CircularProgress, { getCalorieColor } from '../common/CircularProgress'
 import SwipeToDelete from '../common/SwipeToDelete'
 
+const MEALS_MAP = { breakfast: 'Завтрак', lunch: 'Обед', dinner: 'Ужин', snack: 'Перекус' }
+
 export default function CombinedCalendar({ state, dispatch, aiCall, onClose }) {
   const [cursor, setCursor] = useState(() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() } })
   const [selectedDate, setSelectedDate] = useState(null)
