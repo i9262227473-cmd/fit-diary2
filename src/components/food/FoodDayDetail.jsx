@@ -34,7 +34,7 @@ export default function FoodDayDetail({ date, entry, goals, onClose }) {
           </CircularProgress>
           <div style={{ flex: 1, display: 'flex', gap: 12 }}>
             {[
-              { l: 'Белки', v: totals.p, max: goals.protein, c: '#3d9970' },
+              { l: 'Белки', v: totals.p, max: goals.protein, c: 'var(--accent)' },
               { l: 'Жиры', v: totals.fat, max: goals.fat, c: '#fbbf24' },
               { l: 'Углев.', v: totals.c, max: goals.carbs, c: '#38bdf8' },
             ].map(m => {
@@ -42,7 +42,7 @@ export default function FoodDayDetail({ date, entry, goals, onClose }) {
               return (
                 <div key={m.l} style={{ textAlign: 'center' }}>
                   <div style={{ fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 600, color: over ? '#ef4444' : m.c }}>{Math.round(m.v)}г</div>
-                  <div style={{ fontSize: 10, color: over ? '#ef4444' : '#6b7280', fontWeight: over ? 700 : 400 }}>{m.l}{over ? ' ⚠' : ''}</div>
+                  <div style={{ fontSize: 10, color: over ? '#ef4444' : '#6b7280', fontWeight: over ? 700 : 400 }}>{m.l}</div>
                 </div>
               )
             })}
@@ -60,14 +60,14 @@ export default function FoodDayDetail({ date, entry, goals, onClose }) {
           <div key={mealKey} style={{ background: '#1a1a1a', borderRadius: 16, overflow: 'hidden', border: '1px solid #2e2e2e', marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: '1px solid #2a2a2a' }}>
               <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600 }}>{mealName}</div></div>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 14, color: '#3d9970', fontWeight: 600 }}>{Math.round(mCal)} ккал</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 14, color: 'var(--accent)', fontWeight: 600 }}>{Math.round(mCal)} ккал</div>
             </div>
             {items.map(item => (
               <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderBottom: '1px solid #222' }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 14, color: '#f5f5f5' }}>{item.name}</div>
                   <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2, fontFamily: 'var(--mono)' }}>
-                    {item.weight}г · <span style={{ color: '#3d9970' }}>Б{Math.round(item.protein || 0)}</span>{' '}
+                    {item.weight}г · <span style={{ color: 'var(--accent)' }}>Б{Math.round(item.protein || 0)}</span>{' '}
                     <span style={{ color: '#fbbf24' }}>Ж{Math.round(item.fat || 0)}</span>{' '}
                     <span style={{ color: '#38bdf8' }}>У{Math.round(item.carbs || 0)}</span>
                   </div>

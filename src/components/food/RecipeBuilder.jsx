@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { LoaderCircle, Plus, Sparkles } from 'lucide-react'
 import { searchFoodSmart } from '../../data/searchUtils'
 import { saveCachedFood } from '../../data/userFoodCache'
 import VoiceButton from '../common/VoiceButton'
@@ -100,7 +100,7 @@ export default function RecipeBuilder({ onSave, aiCall }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {toast && <div style={{ position: 'fixed', bottom: 90, left: '50%', transform: 'translateX(-50%)', background: '#3d9970', color: '#000', padding: '10px 22px', borderRadius: 50, fontSize: 13, fontWeight: 700, zIndex: 999, whiteSpace: 'nowrap' }}>{toast}</div>}
+      {toast && <div style={{ position: 'fixed', bottom: 90, left: '50%', transform: 'translateX(-50%)', background: 'var(--accent)', color: '#07140d', padding: '10px 22px', borderRadius: 50, fontSize: 13, fontWeight: 700, zIndex: 999, whiteSpace: 'nowrap' }}>{toast}</div>}
 
       <div style={{ background: '#1a1a1a', borderRadius: 16, padding: 18, border: '1px solid #2e2e2e' }}>
         <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Конструктор блюд</div>
@@ -122,14 +122,14 @@ export default function RecipeBuilder({ onSave, aiCall }) {
                   <div style={{ fontSize: 14, color: '#f5f5f5' }}>{food.name}</div>
                   <div style={{ fontSize: 12, color: '#6b7280', fontFamily: 'var(--mono)' }}>{food.cal100} ккал/100г</div>
                 </div>
-                <Plus size={16} color="#3d9970" />
+                <Plus size={16} color="var(--accent)" />
               </button>
             ))}
           </div>
         )}
         {query.length > 1 && results.length === 0 && (
-          <button onClick={lookupUnknown} disabled={aiLookupLoading} style={{ marginTop: 8, width: '100%', background: 'transparent', border: '1px dashed #3d9970', borderRadius: 10, padding: '11px', color: '#3d9970', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: aiLookupLoading ? 0.6 : 1 }}>
-            {aiLookupLoading ? '⏳ Ищу...' : `✦ Не нашли «${query}»? Спросить ИИ`}
+          <button onClick={lookupUnknown} disabled={aiLookupLoading} style={{ marginTop: 8, width: '100%', background: 'transparent', border: '1px dashed var(--accent)', borderRadius: 10, padding: '11px', color: 'var(--accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: aiLookupLoading ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+            {aiLookupLoading ? <><LoaderCircle size={15} className="spin" /> Ищу...</> : <><Sparkles size={15} /> Не нашли «{query}»? Спросить ИИ</>}
           </button>
         )}
       </div>
@@ -153,10 +153,10 @@ export default function RecipeBuilder({ onSave, aiCall }) {
       )}
 
       {result100 && (
-        <div style={{ background: 'rgba(61,153,112,0.07)', border: '1px solid rgba(61,153,112,0.3)', borderRadius: 16, padding: 18 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#3d9970', marginBottom: 10 }}>Итого на 100г готового блюда</div>
+        <div style={{ background: 'var(--accent-dim)', border: '1px solid rgba(43,196,119,0.28)', borderRadius: 16, padding: 18 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)', marginBottom: 10 }}>Итого на 100г готового блюда</div>
           <div style={{ display: 'flex', gap: 16, fontFamily: 'var(--mono)', fontSize: 14 }}>
-            <div><span style={{ color: '#3d9970', fontWeight: 700 }}>{Math.round(result100.cal100)}</span> <span style={{ color: '#6b7280', fontSize: 11 }}>ккал</span></div>
+            <div><span style={{ color: 'var(--accent)', fontWeight: 700 }}>{Math.round(result100.cal100)}</span> <span style={{ color: '#6b7280', fontSize: 11 }}>ккал</span></div>
             <div><span style={{ color: '#f5f5f5' }}>Б{Math.round(result100.prot100)}</span></div>
             <div><span style={{ color: '#fbbf24' }}>Ж{Math.round(result100.fat100)}</span></div>
             <div><span style={{ color: '#38bdf8' }}>У{Math.round(result100.carbs100)}</span></div>
@@ -165,7 +165,7 @@ export default function RecipeBuilder({ onSave, aiCall }) {
         </div>
       )}
 
-      <button onClick={handleSaveRecipe} disabled={!canSave} style={{ background: '#3d9970', color: '#000', border: 'none', borderRadius: 12, padding: '14px', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: canSave ? 1 : 0.4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+      <button onClick={handleSaveRecipe} disabled={!canSave} style={{ background: 'var(--accent)', color: '#07140d', border: 'none', borderRadius: 12, padding: '14px', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: canSave ? 1 : 0.4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
         Сохранить рецепт
       </button>
     </div>

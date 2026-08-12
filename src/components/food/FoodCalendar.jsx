@@ -69,10 +69,10 @@ export default function FoodCalendar({ entries, goals }) {
               <button
                 key={i}
                 onClick={() => has && setSelectedDate(k)}
-                style={{ aspectRatio: '1', borderRadius: 10, border: isToday ? '1px solid #3d9970' : '1px solid transparent', background: isOver ? 'rgba(239,68,68,0.14)' : has ? 'rgba(61,153,112,0.14)' : 'transparent', color: has ? '#f5f5f5' : '#6b7280', cursor: has ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, fontSize: 13, fontWeight: has ? 700 : 400 }}
+                style={{ aspectRatio: '1', borderRadius: 10, border: isToday ? '1px solid var(--accent)' : '1px solid transparent', background: isOver ? 'rgba(239,68,68,0.14)' : has ? 'var(--accent-dim)' : 'transparent', color: has ? 'var(--text)' : 'var(--text-muted)', cursor: has ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, fontSize: 13, fontWeight: has ? 700 : 400 }}
               >
                 {d}
-                {has && <div style={{ fontSize: 8, fontFamily: 'var(--mono)', color: isOver ? '#ef4444' : '#3d9970' }}>{Math.round(cal)}</div>}
+                {has && <div style={{ fontSize: 8, fontFamily: 'var(--mono)', color: isOver ? 'var(--red)' : 'var(--accent)' }}>{Math.round(cal)}</div>}
               </button>
             )
           })}

@@ -103,9 +103,9 @@ export default function EditFoodModal({ food, onSave, onClose }) {
                   style={{
                     padding: '8px 12px',
                     borderRadius: 8,
-                    border: `1px solid ${meal === key ? '#3d9970' : '#2e2e2e'}`,
-                    background: meal === key ? 'rgba(61,153,112,0.1)' : '#222',
-                    color: meal === key ? '#3d9970' : '#9ca3af',
+                    border: `1px solid ${meal === key ? 'var(--accent)' : 'var(--border)'}`,
+                    background: meal === key ? 'var(--accent-dim)' : 'var(--surface2)',
+                    color: meal === key ? 'var(--accent)' : 'var(--text-secondary)',
                     cursor: 'pointer',
                     fontSize: 12,
                   }}
@@ -119,7 +119,7 @@ export default function EditFoodModal({ food, onSave, onClose }) {
           <div style={{ background: '#222', borderRadius: 10, padding: '12px 14px' }}>
             <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Расчёт за {newWeight}г</div>
             <div style={{ fontFamily: 'var(--mono)', fontSize: 13, color: '#9ca3af' }}>
-              <span style={{ color: '#3d9970', fontWeight: 700 }}>{Math.round(caloriesPer100 * newWeight / 100)} ккал</span>
+              <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{Math.round(caloriesPer100 * newWeight / 100)} ккал</span>
               {' · '}Б{Math.round(proteinPer100 * newWeight / 100)} Ж{Math.round(fatPer100 * newWeight / 100)} У{Math.round(carbsPer100 * newWeight / 100)}
             </div>
           </div>
@@ -128,7 +128,7 @@ export default function EditFoodModal({ food, onSave, onClose }) {
             type="button"
             onClick={save}
             style={{
-              background: '#3d9970',
+              background: 'var(--accent)',
               color: '#000',
               border: 'none',
               borderRadius: 12,

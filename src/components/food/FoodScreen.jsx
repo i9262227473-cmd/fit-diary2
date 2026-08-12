@@ -1,5 +1,5 @@
 import React from 'react'
-import { Plus } from 'lucide-react'
+import { BookOpen, CalendarDays, ChefHat, Coffee, Cookie, Moon, Plus, Sparkles, Sun, Utensils } from 'lucide-react'
 import CircularProgress, { getCalorieColor } from '../common/CircularProgress'
 import SwipeToDelete from '../common/SwipeToDelete'
 import useFood from '../../hooks/useFood'
@@ -7,10 +7,22 @@ import BarcodeScanner from './BarcodeScanner'
 import EditFoodModal from './EditFoodModal'
 import FoodCalendar from './FoodCalendar'
 import FoodModule from './FoodModule'
+import styles from './FoodScreen.module.css'
 
 const MEALS_MAP = { breakfast: 'Завтрак', lunch: 'Обед', dinner: 'Ужин', snack: 'Перекус' }
-const MEAL_ICONS = { breakfast: '•', lunch: '•', dinner: '•', snack: '•' }
+const MEAL_ICONS = {
+  breakfast: <Coffee size={17} />,
+  lunch: <Sun size={17} />,
+  dinner: <Moon size={17} />,
+  snack: <Cookie size={17} />,
+}
 const MEAL_TIMES = { breakfast: '08:00', lunch: '13:00', dinner: '19:00', snack: '16:00' }
+const SECTION_TABS = [
+  ['log', 'Дневник', BookOpen],
+  ['ai', 'AI-поиск', Sparkles],
+  ['add', 'Добавить', Plus],
+  ['builder', 'Рецепты', ChefHat],
+]
 
 export default function FoodScreen({ state, dispatch, aiCall }) {
   const food = useFood({ state, dispatch, aiCall })
@@ -23,68 +35,88 @@ export default function FoodScreen({ state, dispatch, aiCall }) {
     handleScan, handleBarcodeDetect, runAI, addAllAiItems, saveRecipe, appendAiText,
   } = food
 
-  const inp = { width: '100%', padding: '13px 16px', background: '#222', border: '1px solid #2e2e2e', borderRadius: 12, color: '#f5f5f5', fontSize: 15, outline: 'none', boxSizing: 'border-box' }
-  const goals = { calories: state.profile?.calorieGoal || 2200, protein: state.profile?.proteinGoal || 150, fat: state.profile?.fatGoal || 70, carbs: state.profile?.carbGoal || 250 }
+  const inputStyle = {
+    width: '100%', padding: '13px 16px', background: 'var(--surface2)',
+    border: '1px solid var(--border)', borderRadius: 12, color: 'var(--text)',
+    fontSize: 15, outline: 'none', boxSizing: 'border-box',
+  }
+  const goals = {
+    calories: state.profile?.calorieGoal || 2200,
+    protein: state.profile?.proteinGoal || 150,
+    fat: state.profile?.fatGoal || 70,
+    carbs: state.profile?.carbGoal || 250,
+  }
+  const remaining = Math.max(0, goals.calories - Math.round(totals.cal))
+  const percentage = goals.calories > 0 ? Math.min(Math.round(totals.cal / goals.calories * 100), 100) : 0
+  const macros = [
+    { label: 'Белки', value: totals.p, max: goals.protein, color: 'var(--accent)' },
+    { label: 'Жиры', value: totals.fat, max: goals.fat, color: 'var(--amber)' },
+    { label: 'Углеводы', value: totals.c, max: goals.carbs, color: 'var(--teal)' },
+  ]
 
   return (
-    <div>
-      {toast && <div style={{ position: 'fixed', bottom: 90, left: '50%', transform: 'translateX(-50%)', background: '#3d9970', color: '#000', padding: '10px 22px', borderRadius: 50, fontSize: 13, fontWeight: 700, zIndex: 999, whiteSpace: 'nowrap' }}>{toast}</div>}
+    <div className={styles.screen}>
+      {toast && <div className={styles.toast}>{toast}</div>}
       {editingFood && <EditFoodModal food={editingFood} onSave={updateFood} onClose={() => setEditingFood(null)} />}
       {showBarcodeScanner && <BarcodeScanner onDetect={handleBarcodeDetect} onClose={() => setShowBarcodeScanner(false)} />}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div>
-          <div style={{ fontSize: 11, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 1 }}>Питание</div>
-          <div style={{ fontSize: 20, fontWeight: 700 }}>Сегодня</div>
-        </div>
-      </div>
+      <header className={styles.header}>
+        <div><span className={styles.eyebrow}>Питание</span><h1>Дневник питания</h1><p>Сегодня</p></div>
+        <button className={styles.addButton} onClick={() => setTab('add')} aria-label="Добавить продукт"><Plus size={21} /></button>
+      </header>
 
-      <div style={{ background: '#1a1a1a', borderRadius: 20, padding: 20, border: '1px solid #2e2e2e', marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <CircularProgress value={totals.cal} max={goals.calories} size={90} stroke={5} dynamicColor>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 18, fontWeight: 700, color: getCalorieColor(totals.cal / goals.calories) }}>{Math.round(totals.cal)}</div>
-            <div style={{ fontSize: 10, color: '#6b7280' }}>ккал</div>
+      <section className={styles.summaryCard}>
+        <div className={styles.summaryTop}>
+          <div><span className={styles.eyebrow}>Дневной баланс</span><h2>Калории и БЖУ</h2></div>
+          <span className={styles.percent}>{percentage}%</span>
+        </div>
+        <div className={styles.energyRow}>
+          <CircularProgress value={totals.cal} max={goals.calories} size={106} stroke={7} dynamicColor>
+            <strong className={styles.calorieValue} style={{ color: getCalorieColor(totals.cal / goals.calories) }}>{Math.round(totals.cal)}</strong>
+            <span className={styles.calorieUnit}>ккал</span>
           </CircularProgress>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div><div style={{ fontSize: 11, color: '#6b7280' }}>Съедено</div><div style={{ fontFamily: 'var(--mono)', fontSize: 18, fontWeight: 700 }}>{Math.round(totals.cal)}</div></div>
-              <div style={{ textAlign: 'right' }}><div style={{ fontSize: 11, color: '#6b7280' }}>Осталось</div><div style={{ fontFamily: 'var(--mono)', fontSize: 18, fontWeight: 700, color: '#3d9970' }}>{Math.max(0, goals.calories - Math.round(totals.cal))}</div></div>
-            </div>
-            <div style={{ display: 'flex', gap: 12 }}>
-              {[{ l: 'Белки', v: totals.p, max: goals.protein, c: '#3d9970' }, { l: 'Жиры', v: totals.fat, max: goals.fat, c: '#fbbf24' }, { l: 'Углев.', v: totals.c, max: goals.carbs, c: '#38bdf8' }].map(m => {
-                const over = m.max > 0 && m.v > m.max
-                return (
-                  <div key={m.l} style={{ textAlign: 'center' }}>
-                    <div style={{ fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 600, color: over ? '#ef4444' : m.c }}>{Math.round(m.v)}г</div>
-                    <div style={{ fontSize: 10, color: over ? '#ef4444' : '#6b7280', fontWeight: over ? 700 : 400 }}>{m.l}{over ? ' ⚠' : ''}</div>
-                  </div>
-                )
-              })}
-            </div>
+          <div className={styles.energyNumbers}>
+            <div><span>Цель</span><strong>{goals.calories}</strong></div>
+            <div><span>Осталось</span><strong className={styles.remaining}>{remaining}</strong></div>
           </div>
         </div>
-      </div>
+        <div className={styles.macroGrid}>
+          {macros.map(macro => {
+            const color = macro.max > 0 && macro.value > macro.max ? 'var(--red)' : macro.color
+            const width = macro.max > 0 ? Math.min(macro.value / macro.max * 100, 100) : 0
+            return (
+              <div className={styles.macro} key={macro.label}>
+                <div className={styles.macroMeta}><span>{macro.label}</span><strong style={{ color }}>{Math.round(macro.value)} <small>/ {macro.max} г</small></strong></div>
+                <div className={styles.macroTrack}><span style={{ width: `${width}%`, background: color }} /></div>
+              </div>
+            )
+          })}
+        </div>
+      </section>
 
-      <div style={{ display: 'flex', background: '#1a1a1a', borderRadius: 12, padding: 4, gap: 4, marginBottom: 16, border: '1px solid #2e2e2e' }}>
-        {[['log', 'Дневник'], ['ai', '✦ Поиск блюда'], ['add', 'Добавить'], ['builder', 'Конструктор']].map(([key, label]) => (
-          <button key={key} onClick={() => setTab(key)} style={{ flex: 1, padding: '9px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, background: tab === key ? '#3d9970' : 'transparent', color: tab === key ? '#000' : '#6b7280' }}>{label}</button>
+      <nav className={styles.sectionTabs} aria-label="Разделы питания">
+        {SECTION_TABS.map(([key, label, Icon]) => (
+          <button key={key} className={tab === key ? styles.sectionTabActive : ''} onClick={() => setTab(key)}><Icon size={16} /><span>{label}</span></button>
         ))}
-      </div>
+      </nav>
 
       {tab === 'log' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'flex', background: '#1a1a1a', borderRadius: 12, padding: 4, gap: 4, border: '1px solid #2e2e2e' }}>
-            {[['list', 'Список'], ['calendar', 'Календарь']].map(([key, label]) => (
-              <button key={key} onClick={() => setLogMode(key)} style={{ flex: 1, padding: '9px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, background: logMode === key ? '#3d9970' : 'transparent', color: logMode === key ? '#000' : '#6b7280' }}>{label}</button>
-            ))}
+        <section className={styles.logSection}>
+          <div className={styles.logHeader}>
+            <div><span className={styles.eyebrow}>Сегодня</span><h2>Приёмы пищи</h2></div>
+            <div className={styles.viewToggle}>
+              <button className={logMode === 'list' ? styles.viewActive : ''} onClick={() => setLogMode('list')} aria-label="Список"><Utensils size={16} /></button>
+              <button className={logMode === 'calendar' ? styles.viewActive : ''} onClick={() => setLogMode('calendar')} aria-label="Календарь"><CalendarDays size={16} /></button>
+            </div>
           </div>
           {logMode === 'calendar' && <FoodCalendar entries={state.entries} goals={goals} />}
           {logMode === 'list' && (
-            <>
+            <div className={styles.mealList}>
               {entry.foods.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '40px 0', color: '#6b7280' }}>
-                  <div style={{ fontSize: 40, marginBottom: 10 }}></div>
-                  <div>Ничего не добавлено</div>
+                <div className={styles.emptyState}>
+                  <span><Utensils size={25} /></span><h3>Дневник пока пуст</h3>
+                  <p>Добавьте первый приём пищи — калории и БЖУ рассчитаются автоматически.</p>
+                  <button onClick={() => setTab('add')}><Plus size={16} /> Добавить продукт</button>
                 </div>
               )}
               {Object.entries(MEALS_MAP).map(([mealKey, mealName]) => {
@@ -92,72 +124,45 @@ export default function FoodScreen({ state, dispatch, aiCall }) {
                 if (!items.length) return null
                 const mealCalories = items.reduce((total, item) => total + (item.calories || 0), 0)
                 return (
-                  <div key={mealKey} style={{ background: '#1a1a1a', borderRadius: 16, overflow: 'hidden', border: '1px solid #2e2e2e' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: '1px solid #2a2a2a' }}>
-                      <span style={{ fontSize: 18 }}>{MEAL_ICONS[mealKey]}</span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: 600 }}>{mealName}</div>
-                        <div style={{ fontSize: 11, color: '#6b7280' }}>{MEAL_TIMES[mealKey]}</div>
-                      </div>
-                      <div style={{ fontFamily: 'var(--mono)', fontSize: 14, color: '#3d9970', fontWeight: 600 }}>{Math.round(mealCalories)} ккал</div>
+                  <article className={styles.mealCard} key={mealKey}>
+                    <div className={styles.mealHeader}>
+                      <span className={styles.mealIcon}>{MEAL_ICONS[mealKey]}</span>
+                      <div className={styles.mealTitle}><h3>{mealName}</h3><span>{MEAL_TIMES[mealKey]} · {items.length} поз.</span></div>
+                      <strong>{Math.round(mealCalories)} <small>ккал</small></strong>
                     </div>
-                    {items.map(item => (
-                      <SwipeToDelete key={item.id} onDelete={() => removeFood(item.id)}>
-                        <div onClick={() => setEditingFood(item)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', background: '#1a1a1a', borderBottom: '1px solid #222', cursor: 'pointer' }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 14, color: '#f5f5f5' }}>{item.name}</div>
-                            <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2, fontFamily: 'var(--mono)' }}>{item.weight}г · <span style={{ color: '#3d9970' }}>Б{Math.round(item.protein || 0)}</span> <span style={{ color: '#fbbf24' }}>Ж{Math.round(item.fat || 0)}</span> <span style={{ color: '#38bdf8' }}>У{Math.round(item.carbs || 0)}</span></div>
+                    <div className={styles.foodItems}>
+                      {items.map(item => (
+                        <SwipeToDelete key={item.id} onDelete={() => removeFood(item.id)}>
+                          <div className={styles.foodItem} onClick={() => setEditingFood(item)}>
+                            <div><h4>{item.name}</h4><p>{item.weight} г · <span className={styles.protein}>Б {Math.round(item.protein || 0)}</span> <span className={styles.fat}>Ж {Math.round(item.fat || 0)}</span> <span className={styles.carbs}>У {Math.round(item.carbs || 0)}</span></p></div>
+                            <strong>{Math.round(item.calories || 0)}</strong>
                           </div>
-                          <div style={{ fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 600 }}>{Math.round(item.calories || 0)}</div>
-                        </div>
-                      </SwipeToDelete>
-                    ))}
-                  </div>
+                        </SwipeToDelete>
+                      ))}
+                    </div>
+                  </article>
                 )
               })}
-              <button onClick={() => setTab('add')} style={{ background: '#1a1a1a', border: '2px dashed #2e2e2e', borderRadius: 16, padding: '16px', color: '#3d9970', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <Plus size={18} /> Добавить приём пищи
-              </button>
-            </>
+              {entry.foods.length > 0 && <button className={styles.addMeal} onClick={() => setTab('add')}><Plus size={17} /> Добавить приём пищи</button>}
+            </div>
           )}
-        </div>
+        </section>
       )}
 
       <FoodModule
-        tab={tab}
-        meal={meal}
-        meals={MEALS_MAP}
-        mealIcons={MEAL_ICONS}
-        onMealChange={setMeal}
-        manualMode={manualMode}
-        onManualModeChange={setManualMode}
-        inputStyle={inp}
-        query={query}
-        onQueryChange={handleSearch}
-        scanLoading={scanLoading}
-        onOpenBarcodeScanner={() => setShowBarcodeScanner(true)}
-        onPhotoSelected={handleScan}
-        results={results}
-        selectedFood={selectedFood}
+        tab={tab} meal={meal} meals={MEALS_MAP} mealIcons={MEAL_ICONS} onMealChange={setMeal}
+        manualMode={manualMode} onManualModeChange={setManualMode} inputStyle={inputStyle}
+        query={query} onQueryChange={handleSearch} scanLoading={scanLoading}
+        onOpenBarcodeScanner={() => setShowBarcodeScanner(true)} onPhotoSelected={handleScan}
+        results={results} selectedFood={selectedFood}
         onSelectFood={selected => { setSelectedFood(selected); setResults([]) }}
-        onChangeSelectedFood={setSelectedFood}
-        grams={grams}
-        onChangeGrams={setGrams}
-        onClearSelection={() => { setSelectedFood(null); setQuery('') }}
-        onAddFood={addFoodItem}
-        manual={manual}
-        onManualChange={setManual}
-        onAddManual={addManual}
-        aiText={aiText}
-        onAiTextChange={setAiText}
-        onVoiceResult={appendAiText}
-        aiLoading={aiLoading}
-        aiResults={aiResults}
-        onRecognize={runAI}
-        onAddAiItem={item => addFoodItem(item.food, item.grams)}
-        onAddAllAiItems={addAllAiItems}
-        onSaveRecipe={saveRecipe}
-        aiCall={aiCall}
+        onChangeSelectedFood={setSelectedFood} grams={grams} onChangeGrams={setGrams}
+        onClearSelection={() => { setSelectedFood(null); setQuery('') }} onAddFood={addFoodItem}
+        manual={manual} onManualChange={setManual} onAddManual={addManual}
+        aiText={aiText} onAiTextChange={setAiText} onVoiceResult={appendAiText}
+        aiLoading={aiLoading} aiResults={aiResults} onRecognize={runAI}
+        onAddAiItem={item => addFoodItem(item.food, item.grams)} onAddAllAiItems={addAllAiItems}
+        onSaveRecipe={saveRecipe} aiCall={aiCall}
       />
     </div>
   )

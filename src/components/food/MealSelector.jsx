@@ -27,13 +27,13 @@ export default function MealSelector({
             padding: '8px 14px',
             borderRadius: 10,
             border: `1px solid ${
-              selectedMeal === key ? '#3d9970' : '#2e2e2e'
+              selectedMeal === key ? 'var(--accent)' : 'var(--border)'
             }`,
             background:
               selectedMeal === key
-                ? 'rgba(61,153,112,0.1)'
-                : '#1a1a1a',
-            color: selectedMeal === key ? '#3d9970' : '#9ca3af',
+                ? 'var(--accent-dim)'
+                : 'var(--surface)',
+            color: selectedMeal === key ? 'var(--accent)' : 'var(--text-secondary)',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
             fontSize: 13,

@@ -1,4 +1,5 @@
 ﻿import React from 'react'
+import { LoaderCircle, Sparkles } from 'lucide-react'
 import VoiceButton from '../common/VoiceButton'
 
 export default function AiFoodSearch({
@@ -35,7 +36,7 @@ export default function AiFoodSearch({
             marginBottom: 8,
           }}
         >
-          <span style={{ fontSize: 20, color: '#3d9970' }}>✦</span>
+          <Sparkles size={20} color="var(--accent)" />
           <span style={{ fontSize: 15, fontWeight: 600 }}>
             AI-распознавание еды
           </span>
@@ -81,13 +82,13 @@ export default function AiFoodSearch({
                 padding: '7px 12px',
                 borderRadius: 8,
                 border: `1px solid ${
-                  selectedMeal === key ? '#3d9970' : '#2e2e2e'
+                  selectedMeal === key ? 'var(--accent)' : 'var(--border)'
                 }`,
                 background:
                   selectedMeal === key
-                    ? 'rgba(61,153,112,0.1)'
+                    ? 'var(--accent-dim)'
                     : 'transparent',
-                color: selectedMeal === key ? '#3d9970' : '#6b7280',
+                color: selectedMeal === key ? 'var(--accent)' : 'var(--text-muted)',
                 fontSize: 12,
                 cursor: 'pointer',
               }}
@@ -102,7 +103,7 @@ export default function AiFoodSearch({
           onClick={onRecognize}
           disabled={!canRecognize}
           style={{
-            background: '#3d9970',
+            background: 'var(--accent)',
             color: '#000',
             border: 'none',
             borderRadius: 12,
@@ -114,9 +115,13 @@ export default function AiFoodSearch({
             opacity: canRecognize ? 1 : 0.5,
             textTransform: 'uppercase',
             letterSpacing: 0.5,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 7,
           }}
         >
-          {loading ? '⏳ Анализирую...' : '✦ Распознать'}
+          {loading ? <><LoaderCircle size={16} className="spin" /> Анализирую...</> : <><Sparkles size={16} /> Распознать</>}
         </button>
       </div>
 
@@ -183,7 +188,7 @@ export default function AiFoodSearch({
                     style={{
                       padding: '8px 14px',
                       borderRadius: 8,
-                      background: '#3d9970',
+                      background: 'var(--accent)',
                       border: 'none',
                       color: '#000',
                       fontSize: 13,
@@ -200,7 +205,7 @@ export default function AiFoodSearch({
                 type="button"
                 onClick={onAddAll}
                 style={{
-                  background: '#3d9970',
+                  background: 'var(--accent)',
                   color: '#000',
                   border: 'none',
                   borderRadius: 12,

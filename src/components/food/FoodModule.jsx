@@ -50,9 +50,9 @@ export default function FoodModule({
           selectedMeal={meal}
           onMealChange={onMealChange}
         />
-        <div style={{ display: 'flex', background: '#1a1a1a', borderRadius: 12, padding: 3, gap: 3, border: '1px solid #2e2e2e' }}>
+        <div style={{ display: 'flex', background: 'var(--surface)', borderRadius: 12, padding: 3, gap: 3, border: '1px solid var(--border)' }}>
           {[['search', 'Поиск'], ['manual', 'Вручную']].map(([key, label]) => (
-            <button key={key} onClick={() => onManualModeChange(key === 'manual')} style={{ flex: 1, padding: '9px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 13, background: (key === 'manual' ? manualMode : !manualMode) ? '#2a2a2a' : 'transparent', color: (key === 'manual' ? manualMode : !manualMode) ? '#f5f5f5' : '#6b7280' }}>{label}</button>
+            <button key={key} onClick={() => onManualModeChange(key === 'manual')} style={{ flex: 1, padding: '9px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 13, background: (key === 'manual' ? manualMode : !manualMode) ? 'var(--accent-dim)' : 'transparent', color: (key === 'manual' ? manualMode : !manualMode) ? 'var(--accent)' : 'var(--text-muted)' }}>{label}</button>
           ))}
         </div>
         {!manualMode && (

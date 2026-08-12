@@ -89,6 +89,7 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.4; }
 }
 
 .fade-in { animation: fadeInUp 0.35s ease; }
+.spin { animation: spin .8s linear infinite; }
 
 /* ── Buttons ── */
 .btn-green {

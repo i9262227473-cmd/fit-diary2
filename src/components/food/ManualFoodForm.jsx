@@ -51,7 +51,7 @@ export default function ManualFoodForm({
         onClick={onAdd}
         disabled={!canAdd}
         style={{
-          background: '#3d9970',
+          background: 'var(--accent)',
           color: '#000',
           border: 'none',
           borderRadius: 12,

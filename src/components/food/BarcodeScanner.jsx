@@ -138,7 +138,7 @@ export default function BarcodeScanner({ onDetect, onClose }) {
           <button
             type="button"
             onClick={() => setManualMode((current) => !current)}
-            style={{ padding: '7px 12px', borderRadius: 8, background: manualMode ? '#3d9970' : '#1a1a1a', border: '1px solid #2e2e2e', color: manualMode ? '#000' : '#9ca3af', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
+            style={{ padding: '7px 12px', borderRadius: 8, background: manualMode ? 'var(--accent)' : 'var(--surface)', border: '1px solid var(--border)', color: manualMode ? '#07140d' : 'var(--text-secondary)', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
           >
             {manualMode ? 'Камера' : 'Ввести вручную'}
           </button>
@@ -148,7 +148,7 @@ export default function BarcodeScanner({ onDetect, onClose }) {
       {supported && !error && !manualMode ? (
         <div onClick={handleTapFocus} style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
           <video ref={videoRef} playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '70%', height: 120, border: '2px solid #3d9970', borderRadius: 12, boxShadow: '0 0 0 2000px rgba(0,0,0,0.5)' }} />
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '70%', height: 120, border: '2px solid var(--accent)', borderRadius: 12, boxShadow: '0 0 0 2000px rgba(0,0,0,0.5)' }} />
           <div style={{ position: 'absolute', bottom: 24, left: 0, right: 0, textAlign: 'center', color: '#f5f5f5', fontSize: 13 }}>
             Наведите штрихкод на рамку · коснитесь экрана, чтобы перефокусировать
           </div>
@@ -171,7 +171,7 @@ export default function BarcodeScanner({ onDetect, onClose }) {
             type="button"
             onClick={() => manualCode.length >= 6 && onDetect(manualCode)}
             disabled={manualCode.length < 6}
-            style={{ background: '#3d9970', color: '#000', border: 'none', borderRadius: 12, padding: '13px 28px', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: manualCode.length < 6 ? 0.4 : 1, textTransform: 'uppercase', letterSpacing: 0.5 }}
+            style={{ background: 'var(--accent)', color: '#07140d', border: 'none', borderRadius: 12, padding: '13px 28px', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: manualCode.length < 6 ? 0.4 : 1, textTransform: 'uppercase', letterSpacing: 0.5 }}
           >
             Найти
           </button>

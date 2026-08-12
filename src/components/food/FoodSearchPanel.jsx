@@ -1,5 +1,5 @@
 import React from 'react'
-import { Camera, ChevronRight, ScanLine } from 'lucide-react'
+import { Camera, ChevronRight, LoaderCircle, ScanLine, Sparkles } from 'lucide-react'
 import { saveCachedFood } from '../../data/userFoodCache'
 
 export default function FoodSearchPanel({
@@ -37,7 +37,7 @@ export default function FoodSearchPanel({
           <ScanLine size={18} color="#9ca3af" />
         </button>
         <label style={{ width: 46, height: 46, background: '#222', border: '1px solid #2e2e2e', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-          {scanLoading ? '⏳' : <Camera size={18} color="#9ca3af" />}
+          {scanLoading ? <LoaderCircle size={18} className="spin" color="var(--text-secondary)" /> : <Camera size={18} color="var(--text-secondary)" />}
           <input
             type="file"
             accept="image/*"
@@ -59,7 +59,7 @@ export default function FoodSearchPanel({
               <div>
                 <div style={{ fontSize: 14, color: '#f5f5f5', display: 'flex', alignItems: 'center', gap: 6 }}>
                   {food.name}
-                  {food.isUserCache && <span style={{ fontSize: 9, padding: '2px 6px', background: 'rgba(61,153,112,0.15)', color: '#3d9970', borderRadius: 4, fontWeight: 600 }}>✦ AI</span>}
+                  {food.isUserCache && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9, padding: '2px 6px', background: 'var(--accent-dim)', color: 'var(--accent)', borderRadius: 4, fontWeight: 600 }}><Sparkles size={9} /> AI</span>}
                 </div>
                 <div style={{ fontSize: 12, color: '#6b7280', fontFamily: 'var(--mono)' }}>{food.cal100} ккал/100г</div>
               </div>
@@ -70,13 +70,13 @@ export default function FoodSearchPanel({
       )}
 
       {selectedFood && (
-        <div style={{ background: '#1a1a1a', border: '1px solid #3d9970', borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--accent)', borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: 12, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>Проверьте и поправьте при необходимости</span>
             <button onClick={onClearSelection} style={{ width: 26, height: 26, borderRadius: 7, background: '#222', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 15, lineHeight: 1 }}>×</button>
           </div>
           <input
-            style={{ ...inp, fontWeight: 600, color: '#3d9970' }}
+            style={{ ...inp, fontWeight: 600, color: 'var(--accent)' }}
             value={selectedFood.name}
             onChange={e => onChangeSelectedFood({ ...selectedFood, name: e.target.value })}
             placeholder="Название продукта"
@@ -111,7 +111,7 @@ export default function FoodSearchPanel({
             </div>
           </div>
           <div style={{ fontFamily: 'var(--mono)', fontSize: 13, color: '#9ca3af' }}>
-            Итого за порцию: <span style={{ color: '#3d9970', fontWeight: 700 }}>{Math.round((parseFloat(selectedFood.cal100) || 0) * (parseFloat(grams) || 100) / 100)} ккал</span>
+            Итого за порцию: <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{Math.round((parseFloat(selectedFood.cal100) || 0) * (parseFloat(grams) || 100) / 100)} ккал</span>
           </div>
           <button
             onClick={() => {
@@ -125,7 +125,7 @@ export default function FoodSearchPanel({
               saveCachedFood(normalized)
               onAddFood(normalized, grams)
             }}
-            style={{ background: '#3d9970', color: '#000', border: 'none', borderRadius: 12, padding: '13px', fontSize: 14, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}
+            style={{ background: 'var(--accent)', color: '#07140d', border: 'none', borderRadius: 12, padding: '13px', fontSize: 14, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}
           >
             Добавить
           </button>
