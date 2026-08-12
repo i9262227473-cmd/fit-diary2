@@ -13,10 +13,10 @@ import {
 import styles from './HomeScreen.module.css'
 
 const MEALS = {
-  breakfast: { label: 'Завтрак', image: '/assets/meals/oatmeal-berries.webp' },
-  lunch: { label: 'Обед', image: '/assets/meals/chicken-rice.webp' },
-  dinner: { label: 'Ужин', image: '/assets/meals/cottage-cheese-fruit.webp' },
-  snack: { label: 'Перекус', image: '/assets/meals/cottage-cheese-fruit.webp' },
+  breakfast: { label: 'Завтрак', image: '/assets/meals/breakfast-3d.webp' },
+  lunch: { label: 'Обед', image: '/assets/meals/lunch-3d.webp' },
+  dinner: { label: 'Ужин', image: '/assets/meals/dinner-3d.webp' },
+  snack: { label: 'Перекус', image: '/assets/meals/snack-3d.webp' },
 }
 
 const QUICK_ACTIONS = [
@@ -96,7 +96,7 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
       <section className={styles.quickActions}>
         {QUICK_ACTIONS.map(({ label, caption, Icon, action }) => (
           <button key={label} onClick={() => onFoodAction?.(action)}>
-            <span className={styles.actionIcon}><Icon size={22} /></span>
+            <span className={styles.actionIcon}><Icon size={22} strokeWidth={2.35} /></span>
             <strong>{label}</strong><small>{caption}</small>
           </button>
         ))}
