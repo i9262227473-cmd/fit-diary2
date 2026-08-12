@@ -1,6 +1,7 @@
 import React from 'react'
-import { Check, ChevronLeft, Dumbbell, Edit2, Play, Plus } from 'lucide-react'
+import { CalendarDays, Check, ChevronLeft, ChevronRight, Dumbbell, Edit2, Play, Plus, Sparkles } from 'lucide-react'
 import { EFF_LABEL, EXERCISE_DB as FULL_EXERCISE_DB, findAlternatives } from '../../data/exerciseDatabase'
+import { getExerciseMedia } from '../../data/exerciseMedia'
 import useWorkout from '../../hooks/useWorkout'
 import { formatLongTime as fmtTimeLong, getDefaultRestSeconds as getDefaultRestSec } from '../../utils/workoutUi'
 import SwipeToDelete from '../common/SwipeToDelete'
@@ -11,6 +12,7 @@ import WeightTransferModal from './WeightTransferModal'
 import WorkoutCalendar from './WorkoutCalendar'
 import WorkoutComplete from './WorkoutComplete'
 import WorkoutDetail from './WorkoutDetail'
+import styles from './WorkoutScreen.module.css'
 
 export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
   const {
@@ -28,51 +30,59 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
 
   if (view === 'list') {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className={styles.historyScreen}>
         {showRestTimer && <RestTimer duration={restInfo.duration} exerciseName={restInfo.exercise} setInfo={restInfo.setInfo} onClose={() => setShowRestTimer(false)} />}
         {viewWorkout && <WorkoutDetail workout={viewWorkout} onClose={() => setViewWorkout(null)} aiCall={aiCall} onSaveAnalysis={saveWorkoutAnalysis} />}
-        <div>
-          <div style={{ fontSize: 11, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>Тренировки</div>
-          <div style={{ fontSize: 20, fontWeight: 700 }}>История</div>
+        <div className={styles.historyHeading}>
+          <span>Тренировки</span>
+          <h1>История</h1>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-          <button onClick={() => setView('templates')} style={{ background: '#1a1a1a', border: '1px solid #2e2e2e', borderRadius: 16, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 6, cursor: 'pointer', textAlign: 'left' }}>
-            <Dumbbell size={20} color="var(--accent)" />
-            <div style={{ fontSize: 13, fontWeight: 600 }}>Мои тренировки</div>
+        <div className={styles.historyActions}>
+          <button onClick={() => setView('templates')}>
+            <span><Dumbbell size={20} /></span>
+            <strong>Мои тренировки</strong>
+            <small>Шаблоны и программы</small>
           </button>
-          <button onClick={() => setView('plan')} style={{ background: '#1a1a1a', border: '1px solid #2e2e2e', borderRadius: 16, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 6, cursor: 'pointer', textAlign: 'left' }}>
-            <span style={{ fontSize: 20, color: 'var(--accent)' }}>✦</span>
-            <div style={{ fontSize: 13, fontWeight: 600 }}>AI-план</div>
+          <button onClick={() => setView('plan')}>
+            <span><Sparkles size={20} /></span>
+            <strong>AI-план</strong>
+            <small>Персональная программа</small>
           </button>
-          <button onClick={() => { setPlanDayIdx(null); setWk({ name: '', exercises: [] }); setView('builder') }} style={{ background: 'var(--accent)', border: 'none', borderRadius: 16, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 6, cursor: 'pointer', textAlign: 'left' }}>
-            <Plus size={20} color="#000" />
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#000' }}>Новая</div>
+          <button className={styles.newWorkout} onClick={() => { setPlanDayIdx(null); setWk({ name: '', exercises: [] }); setView('builder') }}>
+            <span><Plus size={21} /></span>
+            <strong>Новая</strong>
+            <small>Создать тренировку</small>
           </button>
         </div>
-        <div style={{ display: 'flex', background: '#1a1a1a', borderRadius: 12, padding: 4, gap: 4, border: '1px solid #2e2e2e' }}>
+        <div className={styles.historyToggle}>
           {[['list', 'Список'], ['calendar', 'Календарь']].map(([k, v]) => (
-            <button key={k} onClick={() => setHistMode(k)} style={{ flex: 1, padding: '9px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, background: histMode === k ? 'var(--accent)' : 'transparent', color: histMode === k ? '#000' : '#6b7280' }}>{v}</button>
+            <button key={k} className={histMode === k ? styles.toggleActive : ''} onClick={() => setHistMode(k)}>{k === 'calendar' && <CalendarDays size={15} />}{v}</button>
           ))}
         </div>
         {histMode === 'calendar' && <WorkoutCalendar workoutsByDate={workoutsByDate} onPickWorkout={setViewWorkout} onDeleteWorkout={removeWorkout} />}
         {histMode === 'list' && (allWorkouts.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: '#6b7280' }}>
-            <div style={{ fontSize: 40, marginBottom: 10 }}></div>
-            <div>Тренировок пока нет</div>
+          <div className={styles.emptyHistory}>
+            <span><Dumbbell size={25} /></span>
+            <strong>Тренировок пока нет</strong>
+            <small>Создайте первую тренировку или выберите AI-план</small>
           </div>
-        ) : allWorkouts.map(w => (
-          <SwipeToDelete key={w.id} onDelete={() => removeWorkout(w.id, w.entryDate)} confirmText="Удалить эту тренировку?">
-            <div onClick={() => setViewWorkout(w)} style={{ background: '#1a1a1a', padding: 18, border: '1px solid #2e2e2e', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }}>
-              <div style={{ width: 48, height: 48, borderRadius: 14, background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <span style={{ fontSize: 22 }}></span>
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 3 }}>{w.name || w.type}</div>
-                <div style={{ fontSize: 12, color: '#6b7280', fontFamily: 'var(--mono)' }}>{w.duration} мин · {w.entryDate}</div>
-              </div>
-            </div>
-          </SwipeToDelete>
-        )))}
+        ) : <div className={styles.workoutHistory}>{allWorkouts.map(w => {
+          const firstExercise = w.exercisesDetail?.[0]?.name || w.exercises?.[0]
+          const media = getExerciseMedia(firstExercise)
+          return (
+            <SwipeToDelete key={w.id} onDelete={() => removeWorkout(w.id, w.entryDate)} confirmText="Удалить эту тренировку?">
+              <button className={styles.historyCard} onClick={() => setViewWorkout(w)}>
+                {media ? <img src={media.start} alt="" /> : <span className={styles.historyFallback}><Dumbbell size={24} /></span>}
+                <span className={styles.historyCopy}>
+                  <strong>{w.name || w.type || 'Тренировка'}</strong>
+                  <small>{w.exercises?.length || w.exercisesDetail?.length || 0} упражнений · {w.duration || 0} мин</small>
+                  <small>{w.entryDate}</small>
+                </span>
+                <ChevronRight size={18} />
+              </button>
+            </SwipeToDelete>
+          )
+        })}</div>)}
       </div>
     )
   }
