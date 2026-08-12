@@ -1,21 +1,37 @@
+import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, X } from 'lucide-react'
 import { getTechnique } from '../../data/exerciseTechnique'
+import { getExerciseMedia } from '../../data/exerciseMedia'
+import styles from './TechniqueModal.module.css'
 
 // ─── TECHNIQUE MODAL (окно с техникой упражнения) ─────────────────────﻿
 export default function TechniqueModal({ name, muscle, onClose }) {
+  const [position, setPosition] = useState('start')
   const tech = getTechnique(name)
+  const media = getExerciseMedia(name)
   const M_COLORS = { Грудь:'var(--accent)', Спина:'#3b82f6', Ноги:'#f59e0b', Плечи:'#8b5cf6', Трицепс:'#ec4899', Бицепс:'#f97316', Кор:'#06b6d4', Кардио:'#ef4444' }
   return createPortal(
-    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', zIndex:600, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
-      <div onClick={e => e.stopPropagation()} style={{ background:'#0e0e0e', borderRadius:'20px 20px 0 0', padding:'20px 16px calc(20px + env(safe-area-inset-bottom, 0px))', width:'100%', maxWidth:500, maxHeight:'85vh', overflowY:'auto' }}>
-        <div style={{ display:'flex', alignItems:'flex-start', gap:10, marginBottom:18 }}>
+    <div className={styles.backdrop} onClick={onClose}>
+      <div className={styles.sheet} onClick={e => e.stopPropagation()}>
+        <div className={styles.header}>
           <div style={{ flex:1 }}>
-            <div style={{ fontSize:18, fontWeight:700, color:'#f5f5f5' }}>{name}</div>
-            {muscle && <span style={{ display:'inline-block', marginTop:6, padding:'2px 10px', borderRadius:50, fontSize:11, color:'#000', background:M_COLORS[muscle]||'var(--accent)', fontWeight:600 }}>{muscle}</span>}
+            <div className={styles.title}>{name}</div>
+            {muscle && <span className={styles.muscle} style={{ background:M_COLORS[muscle]||'var(--accent)' }}>{muscle}</span>}
           </div>
-          <button onClick={onClose} style={{ width:32, height:32, borderRadius:8, background:'#1a1a1a', border:'1px solid #2e2e2e', color:'#9ca3af', cursor:'pointer', fontSize:18, flexShrink:0 }}>×</button>
+          <button className={styles.close} onClick={onClose} aria-label="Закрыть"><X size={18} /></button>
         </div>
+
+        {media && (
+          <section className={styles.mediaCard}>
+            <img src={media[position]} alt={`${name} — ${position === 'start' ? 'начальное положение' : 'конечное положение'}`} />
+            <div className={styles.positionTabs}>
+              <button className={position === 'start' ? styles.positionActive : ''} onClick={() => setPosition('start')}>Начало</button>
+              <button className={position === 'end' ? styles.positionActive : ''} onClick={() => setPosition('end')}>Завершение</button>
+            </div>
+            <p>Подсвечены мышцы, которые работают в упражнении</p>
+          </section>
+        )}
 
         {tech ? (
           <>
