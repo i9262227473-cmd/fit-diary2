@@ -62,7 +62,7 @@
   max-width: 100%;
   overflow: hidden;
   color: inherit;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 650;
   letter-spacing: 0.01em;
   text-overflow: ellipsis;
@@ -93,7 +93,7 @@
 @media (max-width: 360px) {
   .shell { padding-inline: 8px; }
   .nav { border-radius: 20px; }
-  .label { font-size: 8px; }
+  .label { font-size: 9px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -20,9 +20,9 @@ const MEALS = {
 }
 
 const QUICK_ACTIONS = [
-  { label: 'Штрих-код', caption: 'Сканировать', Icon: Barcode, tone: 'green', action: 'barcode' },
-  { label: 'QR-код', caption: 'Сканировать', Icon: QrCode, tone: 'purple', action: 'qr' },
-  { label: 'Фото еды', caption: 'Распознать', Icon: Camera, tone: 'orange', action: 'photo' },
+  { label: 'Штрих-код', caption: 'Сканировать', Icon: Barcode, action: 'barcode' },
+  { label: 'QR-код', caption: 'Сканировать', Icon: QrCode, action: 'qr' },
+  { label: 'Фото еды', caption: 'Распознать', Icon: Camera, action: 'photo' },
 ]
 
 export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall, CalendarView }) {
@@ -94,9 +94,9 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
       </section>
 
       <section className={styles.quickActions}>
-        {QUICK_ACTIONS.map(({ label, caption, Icon, tone, action }) => (
+        {QUICK_ACTIONS.map(({ label, caption, Icon, action }) => (
           <button key={label} onClick={() => onFoodAction?.(action)}>
-            <span className={`${styles.actionIcon} ${styles[tone]}`}><Icon size={21} /></span>
+            <span className={styles.actionIcon}><Icon size={22} /></span>
             <strong>{label}</strong><small>{caption}</small>
           </button>
         ))}
