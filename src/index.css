@@ -7,46 +7,138 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-:root {
-  --bg:           #080b0a;
-  --bg-raised:    #0d1210;
-  --surface:      #121816;
-  --surface2:     #18201d;
-  --surface3:     #202a26;
-  --border:       rgba(255,255,255,0.085);
-  --border-strong:rgba(255,255,255,0.14);
+:root,
+[data-theme='apple-dark'] {
+  --bg: #000000;
+  --bg-raised: #09090b;
+  --surface: #111113;
+  --surface2: #1c1c1e;
+  --surface3: #2c2c2e;
+  --card: rgba(28,28,30,.88);
+  --card-solid: #171719;
+  --nav-bg: rgba(22,22,24,.82);
+  --border: rgba(255,255,255,.09);
+  --border-strong: rgba(255,255,255,.15);
+  --accent: #0a84ff;
+  --accent-bright: #409cff;
+  --accent-strong: #0071e3;
+  --accent-dim: rgba(10,132,255,.13);
+  --accent-glow: 0 12px 32px rgba(10,132,255,.2);
+  --accent-contrast: #ffffff;
+  --protein: #30d158;
+  --teal: #64d2ff;
+  --amber: #ffd60a;
+  --red: #ff453a;
+  --purple: #bf5af2;
+  --text: #f5f5f7;
+  --text-muted: #6e6e73;
+  --text-secondary: #a1a1a6;
+  --page-glow: rgba(10,132,255,.085);
+  --shadow: 0 20px 55px rgba(0,0,0,.55);
+  --shadow-soft: 0 12px 34px rgba(0,0,0,.3);
+}
 
-  /* Единый спортивный изумрудный акцент */
-  --accent:       #2bc477;
-  --accent-bright:#43d98d;
-  --accent-strong:#19945a;
-  --accent-dim:   rgba(43,196,119,0.12);
-  --accent-glow:  0 12px 30px rgba(43,196,119,0.18);
+[data-theme='apple-light'] {
+  --bg: #f5f5f7;
+  --bg-raised: #ededf0;
+  --surface: #ffffff;
+  --surface2: #f2f2f7;
+  --surface3: #e5e5ea;
+  --card: rgba(255,255,255,.88);
+  --card-solid: #ffffff;
+  --nav-bg: rgba(255,255,255,.82);
+  --border: rgba(0,0,0,.075);
+  --border-strong: rgba(0,0,0,.13);
+  --accent: #0071e3;
+  --accent-bright: #0077ed;
+  --accent-strong: #005bb5;
+  --accent-dim: rgba(0,113,227,.1);
+  --accent-glow: 0 12px 30px rgba(0,113,227,.16);
+  --accent-contrast: #ffffff;
+  --protein: #248a3d;
+  --teal: #007aff;
+  --amber: #c77800;
+  --red: #d70015;
+  --purple: #8944ab;
+  --text: #1d1d1f;
+  --text-muted: #86868b;
+  --text-secondary: #515154;
+  --page-glow: rgba(0,113,227,.06);
+  --shadow: 0 20px 55px rgba(0,0,0,.13);
+  --shadow-soft: 0 10px 30px rgba(0,0,0,.075);
+}
 
-  --teal:         #38bdf8;
-  --amber:        #fbbf24;
-  --red:          #f87171;
-  --purple:       #a78bfa;
-
-  --text:         #f7faf8;
-  --text-muted:   #68756f;
+[data-theme='sport'] {
+  --bg: #080b0a;
+  --bg-raised: #0d1210;
+  --surface: #121816;
+  --surface2: #18201d;
+  --surface3: #202a26;
+  --card: rgba(18,24,22,.9);
+  --card-solid: #121816;
+  --nav-bg: rgba(18,24,22,.9);
+  --border: rgba(255,255,255,.085);
+  --border-strong: rgba(255,255,255,.14);
+  --accent: #2bc477;
+  --accent-bright: #43d98d;
+  --accent-strong: #19945a;
+  --accent-dim: rgba(43,196,119,.12);
+  --accent-glow: 0 12px 30px rgba(43,196,119,.18);
+  --accent-contrast: #07140d;
+  --protein: #2bc477;
+  --teal: #38bdf8;
+  --amber: #fbbf24;
+  --red: #f87171;
+  --purple: #a78bfa;
+  --text: #f7faf8;
+  --text-muted: #68756f;
   --text-secondary: #a3aea9;
+  --page-glow: rgba(43,196,119,.08);
+  --shadow: 0 18px 50px rgba(0,0,0,.44);
+  --shadow-soft: 0 10px 30px rgba(0,0,0,.22);
+}
 
-  --font:  'Manrope', sans-serif;
-  --mono:  'Roboto Mono', monospace;
+[data-theme='warm'] {
+  --bg: #f5f1ea;
+  --bg-raised: #ece5da;
+  --surface: #fffaf3;
+  --surface2: #f4ece1;
+  --surface3: #e7dccd;
+  --card: rgba(255,250,243,.9);
+  --card-solid: #fffaf3;
+  --nav-bg: rgba(255,250,243,.86);
+  --border: rgba(62,43,28,.1);
+  --border-strong: rgba(62,43,28,.17);
+  --accent: #d96c2f;
+  --accent-bright: #e47c40;
+  --accent-strong: #ae4c19;
+  --accent-dim: rgba(217,108,47,.11);
+  --accent-glow: 0 12px 30px rgba(217,108,47,.16);
+  --accent-contrast: #ffffff;
+  --protein: #39864d;
+  --teal: #247da3;
+  --amber: #b87500;
+  --red: #c94038;
+  --purple: #8557a5;
+  --text: #2b211b;
+  --text-muted: #96877c;
+  --text-secondary: #675a51;
+  --page-glow: rgba(217,108,47,.07);
+  --shadow: 0 20px 50px rgba(75,50,31,.15);
+  --shadow-soft: 0 10px 28px rgba(75,50,31,.09);
+}
 
+:root {
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  --mono: 'Roboto Mono', monospace;
   --r1: 28px; --r2: 20px; --r3: 14px; --r4: 10px;
-  --shadow: 0 18px 50px rgba(0,0,0,0.44);
-  --shadow-soft: 0 10px 30px rgba(0,0,0,0.22);
 }
 
 html, body, #root { height: 100%; }
 
 body {
   font-family: var(--font);
-  background:
-    radial-gradient(circle at 50% -10%, rgba(43,196,119,0.08), transparent 32%),
-    #050706;
+  background: var(--bg);
   color: var(--text);
   max-width: 480px;
   margin: 0 auto;
@@ -94,7 +186,7 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.4; }
 /* ── Buttons ── */
 .btn-green {
   background: linear-gradient(135deg, var(--accent-bright), var(--accent));
-  color: #06120c;
+  color: var(--accent-contrast);
   border-radius: var(--r3);
   padding: 15px;
   font-size: 14px;
@@ -109,7 +201,7 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.4; }
 
 .btn-gold, .btn-primary {
   background: linear-gradient(135deg, var(--accent-bright), var(--accent));
-  color: #06120c;
+  color: var(--accent-contrast);
   border-radius: var(--r2);
   padding: 16px;
   font-size: 15px;

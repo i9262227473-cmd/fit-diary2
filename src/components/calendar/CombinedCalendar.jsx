@@ -78,9 +78,9 @@ export default function CombinedCalendar({ state, dispatch, aiCall, onClose }) {
             const canOpen = hasFood || hasWorkout
             return (
               <button key={i} onClick={() => canOpen && setSelectedDate(isSel ? null : k)}
-                style={{ aspectRatio: '1', borderRadius: 10, border: isToday ? '1px solid #3d9970' : '1px solid transparent', background: isSel ? '#3d9970' : isOver ? 'rgba(239,68,68,0.14)' : hasFood ? 'rgba(61,153,112,0.14)' : 'transparent', color: isSel ? '#000' : canOpen ? '#f5f5f5' : '#6b7280', cursor: canOpen ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, fontSize: 13, fontWeight: canOpen ? 700 : 400, position: 'relative' }}>
+                style={{ aspectRatio: '1', borderRadius: 10, border: isToday ? '1px solid var(--accent)' : '1px solid transparent', background: isSel ? 'var(--accent)' : isOver ? 'rgba(239,68,68,0.14)' : hasFood ? 'var(--accent-dim)' : 'transparent', color: isSel ? '#000' : canOpen ? '#f5f5f5' : '#6b7280', cursor: canOpen ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, fontSize: 13, fontWeight: canOpen ? 700 : 400, position: 'relative' }}>
                 {d}
-                {hasFood && <div style={{ fontSize: 8, fontFamily: 'var(--mono)', color: isSel ? '#000' : isOver ? '#ef4444' : '#3d9970' }}>{Math.round(cal)}</div>}
+                {hasFood && <div style={{ fontSize: 8, fontFamily: 'var(--mono)', color: isSel ? '#000' : isOver ? '#ef4444' : 'var(--accent)' }}>{Math.round(cal)}</div>}
                 {hasWorkout && <div style={{ position: 'absolute', top: 3, right: 3, width: 5, height: 5, borderRadius: '50%', background: isSel ? '#000' : '#38bdf8' }} />}
               </button>
             )
@@ -88,7 +88,7 @@ export default function CombinedCalendar({ state, dispatch, aiCall, onClose }) {
         </div>
         <div style={{ display: 'flex', gap: 14, marginTop: 12, paddingTop: 12, borderTop: '1px solid #2a2a2a' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(61,153,112,0.5)' }} />
+            <div style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--accent-dim)' }} />
             <span style={{ fontSize: 11, color: '#6b7280' }}>Питание</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -109,7 +109,7 @@ export default function CombinedCalendar({ state, dispatch, aiCall, onClose }) {
                   <div style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, color: getCalorieColor(foodTotals.cal / goals.calories) }}>{Math.round(foodTotals.cal)}</div>
                 </CircularProgress>
                 <div style={{ display: 'flex', gap: 12 }}>
-                  {[{ l: 'Б', v: foodTotals.p, max: goals.protein, c: '#3d9970' }, { l: 'Ж', v: foodTotals.fat, max: goals.fat, c: '#fbbf24' }, { l: 'У', v: foodTotals.c, max: goals.carbs, c: '#38bdf8' }].map(m => {
+                  {[{ l: 'Б', v: foodTotals.p, max: goals.protein, c: 'var(--accent)' }, { l: 'Ж', v: foodTotals.fat, max: goals.fat, c: '#fbbf24' }, { l: 'У', v: foodTotals.c, max: goals.carbs, c: '#38bdf8' }].map(m => {
                     const over = m.max > 0 && m.v > m.max
                     return <div key={m.l} style={{ textAlign: 'center' }}>
                       <div style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 600, color: over ? '#ef4444' : m.c }}>{Math.round(m.v)}г</div>

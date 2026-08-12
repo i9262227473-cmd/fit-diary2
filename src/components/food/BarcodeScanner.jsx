@@ -138,7 +138,7 @@ export default function BarcodeScanner({ onDetect, onClose }) {
           <button
             type="button"
             onClick={() => setManualMode((current) => !current)}
-            style={{ padding: '7px 12px', borderRadius: 8, background: manualMode ? 'var(--accent)' : 'var(--surface)', border: '1px solid var(--border)', color: manualMode ? '#07140d' : 'var(--text-secondary)', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
+            style={{ padding: '7px 12px', borderRadius: 8, background: manualMode ? 'var(--accent)' : 'var(--surface)', border: '1px solid var(--border)', color: manualMode ? 'var(--accent-contrast)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
           >
             {manualMode ? 'Камера' : 'Ввести вручную'}
           </button>
@@ -171,7 +171,7 @@ export default function BarcodeScanner({ onDetect, onClose }) {
             type="button"
             onClick={() => manualCode.length >= 6 && onDetect(manualCode)}
             disabled={manualCode.length < 6}
-            style={{ background: 'var(--accent)', color: '#07140d', border: 'none', borderRadius: 12, padding: '13px 28px', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: manualCode.length < 6 ? 0.4 : 1, textTransform: 'uppercase', letterSpacing: 0.5 }}
+            style={{ background: 'var(--accent)', color: 'var(--accent-contrast)', border: 'none', borderRadius: 12, padding: '13px 28px', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: manualCode.length < 6 ? 0.4 : 1, textTransform: 'uppercase', letterSpacing: 0.5 }}
           >
             Найти
           </button>

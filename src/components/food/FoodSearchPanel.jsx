@@ -125,7 +125,7 @@ export default function FoodSearchPanel({
               saveCachedFood(normalized)
               onAddFood(normalized, grams)
             }}
-            style={{ background: 'var(--accent)', color: '#07140d', border: 'none', borderRadius: 12, padding: '13px', fontSize: 14, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}
+            style={{ background: 'var(--accent)', color: 'var(--accent-contrast)', border: 'none', borderRadius: 12, padding: '13px', fontSize: 14, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}
           >
             Добавить
           </button>

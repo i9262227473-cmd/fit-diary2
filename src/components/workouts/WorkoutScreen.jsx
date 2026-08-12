@@ -24,7 +24,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
     removeWorkout, saveWorkoutAnalysis, startFromPlan, resolveWeightTransfer,
   } = useWorkout({ state, dispatch })
 
-  const M_COLORS = { Грудь:'#329063', Спина:'#3b82f6', Ноги:'#f59e0b', Плечи:'#8b5cf6', Трицепс:'#ec4899', Бицепс:'#f97316', Кор:'#06b6d4', Кардио:'#ef4444' }
+  const M_COLORS = { Грудь:'var(--accent)', Спина:'#3b82f6', Ноги:'#f59e0b', Плечи:'#8b5cf6', Трицепс:'#ec4899', Бицепс:'#f97316', Кор:'#06b6d4', Кардио:'#ef4444' }
 
   if (view === 'list') {
     return (
@@ -37,21 +37,21 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
           <button onClick={() => setView('templates')} style={{ background: '#1a1a1a', border: '1px solid #2e2e2e', borderRadius: 16, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 6, cursor: 'pointer', textAlign: 'left' }}>
-            <Dumbbell size={20} color="#3d9970" />
+            <Dumbbell size={20} color="var(--accent)" />
             <div style={{ fontSize: 13, fontWeight: 600 }}>Мои тренировки</div>
           </button>
           <button onClick={() => setView('plan')} style={{ background: '#1a1a1a', border: '1px solid #2e2e2e', borderRadius: 16, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 6, cursor: 'pointer', textAlign: 'left' }}>
-            <span style={{ fontSize: 20, color: '#3d9970' }}>✦</span>
+            <span style={{ fontSize: 20, color: 'var(--accent)' }}>✦</span>
             <div style={{ fontSize: 13, fontWeight: 600 }}>AI-план</div>
           </button>
-          <button onClick={() => { setPlanDayIdx(null); setWk({ name: '', exercises: [] }); setView('builder') }} style={{ background: '#3d9970', border: 'none', borderRadius: 16, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 6, cursor: 'pointer', textAlign: 'left' }}>
+          <button onClick={() => { setPlanDayIdx(null); setWk({ name: '', exercises: [] }); setView('builder') }} style={{ background: 'var(--accent)', border: 'none', borderRadius: 16, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 6, cursor: 'pointer', textAlign: 'left' }}>
             <Plus size={20} color="#000" />
             <div style={{ fontSize: 13, fontWeight: 700, color: '#000' }}>Новая</div>
           </button>
         </div>
         <div style={{ display: 'flex', background: '#1a1a1a', borderRadius: 12, padding: 4, gap: 4, border: '1px solid #2e2e2e' }}>
           {[['list', 'Список'], ['calendar', 'Календарь']].map(([k, v]) => (
-            <button key={k} onClick={() => setHistMode(k)} style={{ flex: 1, padding: '9px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, background: histMode === k ? '#3d9970' : 'transparent', color: histMode === k ? '#000' : '#6b7280' }}>{v}</button>
+            <button key={k} onClick={() => setHistMode(k)} style={{ flex: 1, padding: '9px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, background: histMode === k ? 'var(--accent)' : 'transparent', color: histMode === k ? '#000' : '#6b7280' }}>{v}</button>
           ))}
         </div>
         {histMode === 'calendar' && <WorkoutCalendar workoutsByDate={workoutsByDate} onPickWorkout={setViewWorkout} onDeleteWorkout={removeWorkout} />}
@@ -63,7 +63,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
         ) : allWorkouts.map(w => (
           <SwipeToDelete key={w.id} onDelete={() => removeWorkout(w.id, w.entryDate)} confirmText="Удалить эту тренировку?">
             <div onClick={() => setViewWorkout(w)} style={{ background: '#1a1a1a', padding: 18, border: '1px solid #2e2e2e', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }}>
-              <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(61,153,112,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 14, background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <span style={{ fontSize: 22 }}></span>
               </div>
               <div style={{ flex: 1 }}>
@@ -106,11 +106,11 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
             {filteredEx.map(ex => {
               const alreadyAdded = wk.exercises.some(e => e.exerciseId === ex.id)
               return (
-              <button key={ex.id} onClick={() => addEx(ex)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: alreadyAdded ? 'rgba(61,153,112,0.12)' : '#222', border: alreadyAdded ? '1px solid #3d9970' : '1px solid #2a2a2a', borderRadius: 10, cursor: 'pointer', textAlign: 'left' }}>
-                <span style={{ padding: '2px 8px', borderRadius: 50, fontSize: 11, color: '#000', background: M_COLORS[ex.muscle] || '#3d9970', flexShrink: 0, fontWeight: 600 }}>{ex.muscle}</span>
+              <button key={ex.id} onClick={() => addEx(ex)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: alreadyAdded ? 'var(--accent-dim)' : '#222', border: alreadyAdded ? '1px solid var(--accent)' : '1px solid #2a2a2a', borderRadius: 10, cursor: 'pointer', textAlign: 'left' }}>
+                <span style={{ padding: '2px 8px', borderRadius: 50, fontSize: 11, color: '#000', background: M_COLORS[ex.muscle] || 'var(--accent)', flexShrink: 0, fontWeight: 600 }}>{ex.muscle}</span>
                 <span style={{ fontSize: 13, color: alreadyAdded ? '#6fcaa0' : '#f5f5f5', flex: 1, fontWeight: alreadyAdded ? 600 : 400 }}>{ex.name}</span>
-                <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 6, flexShrink: 0, fontWeight: 600, ...(ex.eff==='best' ? {background:'rgba(61,153,112,0.18)', color:'#6fcaa0'} : ex.eff==='good' ? {background:'#2a2a2a', color:'#d1d5db'} : {background:'#262626', color:'#6b7280'}) }}>{EFF_LABEL[ex.eff]}</span>
-                {alreadyAdded ? <Check size={16} color="#3d9970" /> : <Plus size={16} color="#3d9970" />}
+                <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 6, flexShrink: 0, fontWeight: 600, ...(ex.eff==='best' ? {background:'var(--accent-dim)', color:'#6fcaa0'} : ex.eff==='good' ? {background:'#2a2a2a', color:'#d1d5db'} : {background:'#262626', color:'#6b7280'}) }}>{EFF_LABEL[ex.eff]}</span>
+                {alreadyAdded ? <Check size={16} color="var(--accent)" /> : <Plus size={16} color="var(--accent)" />}
               </button>
               )
             })}
@@ -123,7 +123,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
                 <button onClick={() => moveExercise(eI, -1)} disabled={eI === 0} style={{ width: 22, height: 18, borderRadius: 5, background: '#222', border: 'none', color: eI === 0 ? '#3a3a3a' : '#9ca3af', cursor: eI === 0 ? 'default' : 'pointer', fontSize: 11, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>▲</button>
                 <button onClick={() => moveExercise(eI, 1)} disabled={eI === wk.exercises.length - 1} style={{ width: 22, height: 18, borderRadius: 5, background: '#222', border: 'none', color: eI === wk.exercises.length - 1 ? '#3a3a3a' : '#9ca3af', cursor: eI === wk.exercises.length - 1 ? 'default' : 'pointer', fontSize: 11, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>▼</button>
               </div>
-              <span style={{ padding: '3px 10px', borderRadius: 50, fontSize: 11, color: '#000', background: M_COLORS[ex.muscle] || '#3d9970', fontWeight: 600 }}>{ex.muscle}</span>
+              <span style={{ padding: '3px 10px', borderRadius: 50, fontSize: 11, color: '#000', background: M_COLORS[ex.muscle] || 'var(--accent)', fontWeight: 600 }}>{ex.muscle}</span>
               <button onClick={() => setTechFor({ name: ex.name, muscle: ex.muscle })} style={{ fontSize: 15, fontWeight: 600, flex: 1, background: 'transparent', border: 'none', color: '#f5f5f5', textAlign: 'left', cursor: 'pointer', padding: 0 }}>
                 {ex.name}
               </button>
@@ -133,7 +133,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
               <span style={{ fontSize: 12, color: '#6b7280' }}>Отдых между подходами:</span>
               <button onClick={() => updateRest(eI, -15)} style={{ width: 26, height: 26, borderRadius: 7, background: '#222', border: '1px solid #2e2e2e', color: '#9ca3af', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>−</button>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, color: '#3d9970', minWidth: 44, textAlign: 'center' }}>{fmtTimeLong(ex.restSec || getDefaultRestSec(ex.muscle))}</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, color: 'var(--accent)', minWidth: 44, textAlign: 'center' }}>{fmtTimeLong(ex.restSec || getDefaultRestSec(ex.muscle))}</span>
               <button onClick={() => updateRest(eI, 15)} style={{ width: 26, height: 26, borderRadius: 7, background: '#222', border: '1px solid #2e2e2e', color: '#9ca3af', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>+</button>
             </div>
             {swapFor === eI && (
@@ -151,7 +151,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
                       <button key={alt.id} onClick={() => { replaceEx(eI, alt); setSwapFor(null) }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px', background: '#222', border: '1px solid #2a2a2a', borderRadius: 9, cursor: 'pointer', textAlign: 'left' }}>
                         <span style={{ fontSize: 13, color: '#f5f5f5', flex: 1 }}>{alt.name}</span>
                         <span style={{ fontSize: 10, color: '#6b7280' }}>{alt.equipment}</span>
-                        <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 6, fontWeight: 600, ...(alt.eff==='best' ? {background:'rgba(61,153,112,0.18)', color:'#6fcaa0'} : alt.eff==='good' ? {background:'#2a2a2a', color:'#d1d5db'} : {background:'#262626', color:'#6b7280'}) }}>{EFF_LABEL[alt.eff]}</span>
+                        <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 6, fontWeight: 600, ...(alt.eff==='best' ? {background:'var(--accent-dim)', color:'#6fcaa0'} : alt.eff==='good' ? {background:'#2a2a2a', color:'#d1d5db'} : {background:'#262626', color:'#6b7280'}) }}>{EFF_LABEL[alt.eff]}</span>
                       </button>
                     ))}
                   </div>
@@ -159,9 +159,9 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
               </div>
             )}
             {ex.suggestedWeight && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(61,153,112,0.1)', border: '1px solid rgba(61,153,112,0.3)', borderRadius: 10, padding: '10px 12px', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--accent-dim)', border: '1px solid var(--accent-dim)', borderRadius: 10, padding: '10px 12px', marginBottom: 12 }}>
                 <span style={{ fontSize: 12, color: '#6fcaa0', flex: 1 }}>Вы закрыли все повторы — пора поднять вес до <b>{ex.suggestedWeight} кг</b></span>
-                <button onClick={() => applyProgression(eI)} style={{ padding: '6px 12px', borderRadius: 8, background: '#3d9970', border: 'none', color: '#000', cursor: 'pointer', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>Поднять</button>
+                <button onClick={() => applyProgression(eI)} style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--accent)', border: 'none', color: '#000', cursor: 'pointer', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>Поднять</button>
               </div>
             )}
             <div style={{ display: 'flex', gap: 6, marginBottom: 6, padding: '0 2px' }}>
@@ -191,17 +191,17 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
           </div>
         ))}
         {wk.exercises.length > 0 && (
-          <button onClick={() => { resetTimer(); setRunning(true); setView('active') }} style={{ background: '#3d9970', color: '#000', border: 'none', borderRadius: 14, padding: '15px', fontSize: 14, fontWeight: 700, width: '100%', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          <button onClick={() => { resetTimer(); setRunning(true); setView('active') }} style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 14, padding: '15px', fontSize: 14, fontWeight: 700, width: '100%', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             Начать тренировку
           </button>
         )}
         {wk.exercises.length > 0 && (
-          <button onClick={saveAsTemplate} style={{ background: tplSaved ? '#329063' : 'transparent', color: tplSaved ? '#000' : '#3d9970', border: '1px solid #3d9970', borderRadius: 14, padding: '13px', fontSize: 13, fontWeight: 700, width: '100%', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          <button onClick={saveAsTemplate} style={{ background: tplSaved ? 'var(--accent)' : 'transparent', color: tplSaved ? '#000' : 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 14, padding: '13px', fontSize: 13, fontWeight: 700, width: '100%', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             {tplSaved ? '✓ Сохранено в мои тренировки' : 'Сохранить как шаблон'}
           </button>
         )}
         {wk.exercises.length > 0 && planDayIdx !== null && (
-          <button onClick={saveToPlan} style={{ background: planSaved ? '#329063' : 'transparent', color: planSaved ? '#000' : '#3d9970', border: '1px solid #3d9970', borderRadius: 14, padding: '13px', fontSize: 13, fontWeight: 700, width: '100%', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          <button onClick={saveToPlan} style={{ background: planSaved ? 'var(--accent)' : 'transparent', color: planSaved ? '#000' : 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 14, padding: '13px', fontSize: 13, fontWeight: 700, width: '100%', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             {planSaved ? '✓ Сохранено в план' : 'Сохранить в план'}
           </button>
         )}
@@ -226,7 +226,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
         {showComplete && <WorkoutComplete workout={wk} duration={timer} onSave={saveWorkout} aiCall={aiCall} />}
         <div style={{ background: '#1a1a1a', borderRadius: 20, padding: '20px 24px', border: '1px solid #2e2e2e', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 40, fontWeight: 700, color: '#3d9970' }}>{fmtTimeLong(timer)}</div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 40, fontWeight: 700, color: 'var(--accent)' }}>{fmtTimeLong(timer)}</div>
             <div style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>Общее время</div>
           </div>
           <div style={{ fontSize: 13, fontWeight: 600, textAlign: 'right' }}>{wk.name || 'Тренировка'}</div>
@@ -238,12 +238,12 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
                 <button onClick={() => moveExercise(eI, -1)} disabled={eI === 0} style={{ width: 20, height: 16, borderRadius: 5, background: '#222', border: 'none', color: eI === 0 ? '#3a3a3a' : '#9ca3af', cursor: eI === 0 ? 'default' : 'pointer', fontSize: 10, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>▲</button>
                 <button onClick={() => moveExercise(eI, 1)} disabled={eI === wk.exercises.length - 1} style={{ width: 20, height: 16, borderRadius: 5, background: '#222', border: 'none', color: eI === wk.exercises.length - 1 ? '#3a3a3a' : '#9ca3af', cursor: eI === wk.exercises.length - 1 ? 'default' : 'pointer', fontSize: 10, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>▼</button>
               </div>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: '#3d9970', minWidth: 28 }}>{eI+1}</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--accent)', minWidth: 28 }}>{eI+1}</span>
               <div style={{ flex: 1 }}>
                 <button onClick={() => setTechFor({ name: ex.name, muscle: ex.muscle })} style={{ fontSize: 15, fontWeight: 600, background: 'transparent', border: 'none', color: '#f5f5f5', textAlign: 'left', cursor: 'pointer', padding: 0 }}>{ex.name}</button>
               </div>
               <button onClick={() => setSwapFor(swapFor === eI ? null : eI)} style={{ padding: '5px 9px', borderRadius: 8, background: '#222', border: '1px solid #2e2e2e', color: '#9ca3af', cursor: 'pointer', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>Заменить</button>
-              <span style={{ padding: '3px 10px', borderRadius: 50, fontSize: 11, color: '#000', background: M_COLORS[ex.muscle] || '#3d9970', fontWeight: 600 }}>{ex.muscle}</span>
+              <span style={{ padding: '3px 10px', borderRadius: 50, fontSize: 11, color: '#000', background: M_COLORS[ex.muscle] || 'var(--accent)', fontWeight: 600 }}>{ex.muscle}</span>
             </div>
             {swapFor === eI && (
               <div style={{ margin: '0 16px 14px', background: '#161616', border: '1px solid #2e2e2e', borderRadius: 12, padding: 12 }}>
@@ -260,7 +260,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
                       <button key={alt.id} onClick={() => { replaceEx(eI, alt); setSwapFor(null) }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px', background: '#222', border: '1px solid #2a2a2a', borderRadius: 9, cursor: 'pointer', textAlign: 'left' }}>
                         <span style={{ fontSize: 13, color: '#f5f5f5', flex: 1 }}>{alt.name}</span>
                         <span style={{ fontSize: 10, color: '#6b7280' }}>{alt.equipment}</span>
-                        <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 6, fontWeight: 600, ...(alt.eff==='best' ? {background:'rgba(61,153,112,0.18)', color:'#6fcaa0'} : alt.eff==='good' ? {background:'#2a2a2a', color:'#d1d5db'} : {background:'#262626', color:'#6b7280'}) }}>{EFF_LABEL[alt.eff]}</span>
+                        <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 6, fontWeight: 600, ...(alt.eff==='best' ? {background:'var(--accent-dim)', color:'#6fcaa0'} : alt.eff==='good' ? {background:'#2a2a2a', color:'#d1d5db'} : {background:'#262626', color:'#6b7280'}) }}>{EFF_LABEL[alt.eff]}</span>
                       </button>
                     ))}
                   </div>
@@ -277,11 +277,11 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
               <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {ex.sets.map((set, sI) => (
                   <SwipeToDelete key={set.id || sI} onDelete={() => removeSet(eI, sI)} disabled={ex.sets.length <= 1} radius={8}>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '4px 0', background: set.done ? 'rgba(61,153,112,0.06)' : '#1a1a1a' }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '4px 0', background: set.done ? 'var(--accent-dim)' : '#1a1a1a' }}>
                       <span style={{ width: 44, fontFamily: 'var(--mono)', fontSize: 13, color: '#6b7280' }}>№{sI+1}</span>
                       <button onClick={() => setPickerFor({ eI, sI })} style={{ flex: 1, padding: '9px 4px', background: '#222', border: '1px solid #2e2e2e', borderRadius: 8, color: '#f5f5f5', fontSize: 15, fontWeight: 700, fontFamily: 'var(--mono)', outline: 'none', textAlign: 'center', boxSizing: 'border-box', cursor: 'pointer' }}>{set.reps || ex.targetReps || '—'}</button>
                       <button onClick={() => setPickerFor({ eI, sI })} style={{ flex: 1, padding: '9px 4px', background: '#222', border: '1px solid #2e2e2e', borderRadius: 8, color: '#f5f5f5', fontSize: 15, fontWeight: 700, fontFamily: 'var(--mono)', outline: 'none', textAlign: 'center', boxSizing: 'border-box', cursor: 'pointer' }}>{set.weight || '0'}</button>
-                      <button onClick={() => toggleSet(eI, sI)} style={{ width: 32, height: 32, borderRadius: '50%', border: `2px solid ${set.done ? '#3d9970' : '#2e2e2e'}`, background: set.done ? '#3d9970' : 'transparent', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <button onClick={() => toggleSet(eI, sI)} style={{ width: 32, height: 32, borderRadius: '50%', border: `2px solid ${set.done ? 'var(--accent)' : '#2e2e2e'}`, background: set.done ? 'var(--accent)' : 'transparent', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {set.done && <Check size={16} color="#000" />}
                       </button>
                     </div>
@@ -305,7 +305,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
           <button onClick={() => setRunning(r => !r)} style={{ flex: 1, padding: '14px', background: '#222', border: '1px solid #2e2e2e', borderRadius: 12, color: '#f5f5f5', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
             {running ? 'Пауза' : 'Старт'}
           </button>
-          <button onClick={completeWorkout} style={{ flex: 2, padding: '14px', background: '#3d9970', border: 'none', borderRadius: 12, color: '#000', cursor: 'pointer', fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Завершить</button>
+          <button onClick={completeWorkout} style={{ flex: 2, padding: '14px', background: 'var(--accent)', border: 'none', borderRadius: 12, color: '#000', cursor: 'pointer', fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Завершить</button>
         </div>
       </div>
     )
@@ -322,7 +322,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
           <span style={{ fontSize: 18, fontWeight: 700 }}>Мои тренировки</span>
         </div>
 
-        <button onClick={() => { setPlanDayIdx(null); setWk({ name: '', exercises: [] }); setView('builder') }} style={{ background: '#3d9970', color: '#000', border: 'none', borderRadius: 14, padding: '14px', fontSize: 14, fontWeight: 700, width: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        <button onClick={() => { setPlanDayIdx(null); setWk({ name: '', exercises: [] }); setView('builder') }} style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 14, padding: '14px', fontSize: 14, fontWeight: 700, width: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
           <Plus size={18} /> Собрать новую
         </button>
 
@@ -343,10 +343,10 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
                 </div>
               </SwipeToDelete>
               <div style={{ padding: '12px 16px', borderTop: '1px solid #2a2a2a', background: '#161616', display: 'flex', gap: 8 }}>
-                <button onClick={() => startFromTemplate(tpl, 'builder')} style={{ flex: 1, background: 'transparent', color: '#3d9970', border: '1px solid #3d9970', borderRadius: 12, padding: '12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <button onClick={() => startFromTemplate(tpl, 'builder')} style={{ flex: 1, background: 'transparent', color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 12, padding: '12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   <Edit2 size={14} /> Изменить
                 </button>
-                <button onClick={() => startFromTemplate(tpl, 'active')} style={{ flex: 1.4, background: '#3d9970', color: '#000', border: 'none', borderRadius: 12, padding: '12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <button onClick={() => startFromTemplate(tpl, 'active')} style={{ flex: 1.4, background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 12, padding: '12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   <Play size={14} /> Начать
                 </button>
               </div>
@@ -368,7 +368,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
 
   return (
     <div style={{ padding: 20, textAlign: 'center' }}>
-      <button onClick={() => setView('list')} style={{ background: '#3d9970', color: '#000', border: 'none', borderRadius: 12, padding: '12px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+      <button onClick={() => setView('list')} style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 12, padding: '12px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
         ← К списку тренировок
       </button>
     </div>

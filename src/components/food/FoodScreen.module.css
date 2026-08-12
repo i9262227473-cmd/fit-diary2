@@ -3,8 +3,8 @@
 .eyebrow { color: var(--text-muted); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .header h1 { margin-top: 4px; color: var(--text); font-size: clamp(23px, 6vw, 28px); font-weight: 800; letter-spacing: -.04em; }
 .header p { margin-top: 3px; color: var(--text-secondary); font-size: 12px; font-weight: 600; }
-.addButton { display: grid; place-items: center; width: 45px; height: 45px; color: #07140d; border-radius: 15px; background: var(--accent); box-shadow: var(--accent-glow); }
-.summaryCard, .logSection { border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(155deg, rgba(22,29,27,.98), rgba(14,19,17,.98)); box-shadow: var(--shadow-soft); }
+.addButton { display: grid; place-items: center; width: 45px; height: 45px; color: var(--accent-contrast); border-radius: 15px; background: var(--accent); box-shadow: var(--accent-glow); }
+.summaryCard, .logSection { border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(155deg, var(--surface2), var(--card-solid)); box-shadow: var(--shadow-soft); }
 .summaryCard { padding: 18px; }
 .summaryTop, .logHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .summaryTop h2, .logHeader h2 { margin-top: 3px; color: var(--text); font-size: 17px; font-weight: 800; letter-spacing: -.025em; }
@@ -24,7 +24,7 @@
 .macroMeta small { color: var(--text-muted); font-size: 9px; font-weight: 500; }
 .macroTrack { overflow: hidden; height: 5px; border-radius: 99px; background: var(--surface3); }
 .macroTrack span { display: block; height: 100%; border-radius: inherit; transition: width .35s ease; }
-.sectionTabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; padding: 5px; border: 1px solid var(--border); border-radius: 18px; background: rgba(18,24,22,.86); }
+.sectionTabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; padding: 5px; border: 1px solid var(--border); border-radius: 18px; background: var(--card); }
 .sectionTabs button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 0; height: 50px; padding: 5px 2px; color: var(--text-muted); border-radius: 13px; background: transparent; }
 .sectionTabs button span { overflow: hidden; max-width: 100%; font-size: 8px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
 .sectionTabs .sectionTabActive { color: var(--accent-bright); background: var(--accent-dim); }
@@ -34,7 +34,7 @@
 .viewToggle button { display: grid; place-items: center; width: 33px; height: 30px; color: var(--text-muted); border-radius: 9px; background: transparent; }
 .viewToggle .viewActive { color: var(--accent); background: var(--accent-dim); }
 .mealList { display: flex; flex-direction: column; gap: 11px; }
-.mealCard { overflow: hidden; border: 1px solid var(--border); border-radius: 18px; background: rgba(18,24,22,.72); }
+.mealCard { overflow: hidden; border: 1px solid var(--border); border-radius: 18px; background: var(--card); }
 .mealHeader { display: flex; align-items: center; gap: 11px; padding: 13px 14px; border-bottom: 1px solid var(--border); }
 .mealIcon { display: grid; place-items: center; width: 36px; height: 36px; color: var(--accent); border-radius: 12px; background: var(--accent-dim); }
 .mealTitle { min-width: 0; flex: 1; }
@@ -43,21 +43,21 @@
 .mealHeader > strong { color: var(--accent); font-family: var(--mono); font-size: 13px; font-weight: 600; }
 .mealHeader > strong small { color: var(--text-muted); font-size: 8px; font-weight: 500; }
 .foodItems > *:last-child .foodItem { border-bottom: 0; }
-.foodItem { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.05); background: rgba(18,24,22,.94); cursor: pointer; }
+.foodItem { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--border); background: var(--card-solid); cursor: pointer; }
 .foodItem > div { min-width: 0; flex: 1; }
 .foodItem h4 { overflow: hidden; color: var(--text); font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .foodItem p { margin-top: 4px; color: var(--text-muted); font-family: var(--mono); font-size: 9px; }
 .foodItem > strong { color: var(--text); font-family: var(--mono); font-size: 13px; font-weight: 600; }
-.protein { color: var(--accent); }
+.protein { color: var(--protein); }
 .fat { color: var(--amber); }
 .carbs { color: var(--teal); }
 .addMeal, .emptyState button { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; color: var(--accent); font-size: 11px; font-weight: 800; }
-.addMeal { padding: 13px; border: 1px dashed rgba(43,196,119,.26); border-radius: 15px; background: rgba(43,196,119,.045); text-transform: uppercase; }
-.emptyState { padding: 26px 18px; text-align: center; border: 1px dashed var(--border-strong); border-radius: 18px; background: rgba(18,24,22,.55); }
+.addMeal { padding: 13px; border: 1px dashed var(--accent); border-radius: 15px; background: var(--accent-dim); text-transform: uppercase; }
+.emptyState { padding: 26px 18px; text-align: center; border: 1px dashed var(--border-strong); border-radius: 18px; background: var(--card); }
 .emptyState > span { display: grid; place-items: center; width: 48px; height: 48px; margin: 0 auto 12px; color: var(--accent); border-radius: 16px; background: var(--accent-dim); }
 .emptyState h3 { color: var(--text); font-size: 14px; font-weight: 800; }
 .emptyState p { max-width: 280px; margin: 6px auto 15px; color: var(--text-muted); font-size: 11px; line-height: 1.5; }
-.emptyState button { max-width: 190px; margin: 0 auto; padding: 10px 12px; color: #07140d; border-radius: 12px; background: var(--accent); }
-.toast { position: fixed; z-index: 999; bottom: 94px; left: 50%; max-width: calc(100% - 32px); padding: 10px 18px; color: #07140d; border-radius: 50px; background: var(--accent); box-shadow: var(--shadow); font-size: 12px; font-weight: 800; white-space: nowrap; transform: translateX(-50%); }
+.emptyState button { max-width: 190px; margin: 0 auto; padding: 10px 12px; color: var(--accent-contrast); border-radius: 12px; background: var(--accent); }
+.toast { position: fixed; z-index: 999; bottom: 94px; left: 50%; max-width: calc(100% - 32px); padding: 10px 18px; color: var(--accent-contrast); border-radius: 50px; background: var(--accent); box-shadow: var(--shadow); font-size: 12px; font-weight: 800; white-space: nowrap; transform: translateX(-50%); }
 @media (max-width: 370px) { .energyRow { gap: 12px; } .sectionTabs button span { font-size: 7px; } }
 @media (prefers-reduced-motion: reduce) { .macroTrack span { transition: none; } }

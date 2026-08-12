@@ -5,14 +5,14 @@ import { getTechnique } from '../../data/exerciseTechnique'
 // ─── TECHNIQUE MODAL (окно с техникой упражнения) ─────────────────────﻿
 export default function TechniqueModal({ name, muscle, onClose }) {
   const tech = getTechnique(name)
-  const M_COLORS = { Грудь:'#329063', Спина:'#3b82f6', Ноги:'#f59e0b', Плечи:'#8b5cf6', Трицепс:'#ec4899', Бицепс:'#f97316', Кор:'#06b6d4', Кардио:'#ef4444' }
+  const M_COLORS = { Грудь:'var(--accent)', Спина:'#3b82f6', Ноги:'#f59e0b', Плечи:'#8b5cf6', Трицепс:'#ec4899', Бицепс:'#f97316', Кор:'#06b6d4', Кардио:'#ef4444' }
   return createPortal(
     <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', zIndex:600, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
       <div onClick={e => e.stopPropagation()} style={{ background:'#0e0e0e', borderRadius:'20px 20px 0 0', padding:'20px 16px calc(20px + env(safe-area-inset-bottom, 0px))', width:'100%', maxWidth:500, maxHeight:'85vh', overflowY:'auto' }}>
         <div style={{ display:'flex', alignItems:'flex-start', gap:10, marginBottom:18 }}>
           <div style={{ flex:1 }}>
             <div style={{ fontSize:18, fontWeight:700, color:'#f5f5f5' }}>{name}</div>
-            {muscle && <span style={{ display:'inline-block', marginTop:6, padding:'2px 10px', borderRadius:50, fontSize:11, color:'#000', background:M_COLORS[muscle]||'#3d9970', fontWeight:600 }}>{muscle}</span>}
+            {muscle && <span style={{ display:'inline-block', marginTop:6, padding:'2px 10px', borderRadius:50, fontSize:11, color:'#000', background:M_COLORS[muscle]||'var(--accent)', fontWeight:600 }}>{muscle}</span>}
           </div>
           <button onClick={onClose} style={{ width:32, height:32, borderRadius:8, background:'#1a1a1a', border:'1px solid #2e2e2e', color:'#9ca3af', cursor:'pointer', fontSize:18, flexShrink:0 }}>×</button>
         </div>

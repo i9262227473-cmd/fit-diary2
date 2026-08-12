@@ -54,7 +54,7 @@ export default function SetPickerModal({ title, reps, weight, onSave, onClose })
           type="button"
           onClick={() => onSave(repsValue, weightValue)}
           style={{
-            background: '#3d9970',
+            background: 'var(--accent)',
             color: '#000',
             border: 'none',
             borderRadius: 12,

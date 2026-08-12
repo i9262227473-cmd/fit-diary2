@@ -67,11 +67,11 @@ export default function RestTimer({ duration = 90, onClose, exerciseName, setInf
   if (minimized) {
     const rMini = 15, circMini = 2 * Math.PI * rMini
     return createPortal(
-      <div onClick={() => setMinimized(false)} style={{ position: 'fixed', top: 'calc(10px + env(safe-area-inset-top, 0px))', left: 12, right: 12, zIndex: 500, background: '#1a1a1a', border: '1px solid rgba(61,153,112,0.4)', borderRadius: 14, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
+      <div onClick={() => setMinimized(false)} style={{ position: 'fixed', top: 'calc(10px + env(safe-area-inset-top, 0px))', left: 12, right: 12, zIndex: 500, background: '#1a1a1a', border: '1px solid var(--accent-dim)', borderRadius: 14, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
         <div style={{ width: 36, height: 36, flexShrink: 0 }}>
           <svg width={36} height={36} style={{ transform: 'rotate(-90deg)' }}>
             <circle cx={18} cy={18} r={rMini} fill="none" stroke="#2a2a2a" strokeWidth={3} />
-            <circle cx={18} cy={18} r={rMini} fill="none" stroke="#3d9970" strokeWidth={3} strokeLinecap="round" strokeDasharray={`${pct*circMini} ${circMini}`} />
+            <circle cx={18} cy={18} r={rMini} fill="none" stroke="var(--accent)" strokeWidth={3} strokeLinecap="round" strokeDasharray={`${pct*circMini} ${circMini}`} />
           </svg>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -93,11 +93,11 @@ export default function RestTimer({ duration = 90, onClose, exerciseName, setInf
       <div style={{ position: 'relative', width: 200, height: 200 }}>
         <svg width={200} height={200} style={{ transform: 'rotate(-90deg)' }}>
           <circle cx={100} cy={100} r={r} fill="none" stroke="#2a2a2a" strokeWidth={5} />
-          <circle cx={100} cy={100} r={r} fill="none" stroke="#3d9970" strokeWidth={5} strokeLinecap="round"
+          <circle cx={100} cy={100} r={r} fill="none" stroke="var(--accent)" strokeWidth={5} strokeLinecap="round"
             strokeDasharray={`${dash} ${circ - dash}`} style={{ transition: 'stroke-dasharray 0.5s ease' }} />
         </svg>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 48, fontWeight: 700, color: remaining > 0 ? '#f5f5f5' : '#3d9970' }}>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 48, fontWeight: 700, color: remaining > 0 ? '#f5f5f5' : 'var(--accent)' }}>
             {String(Math.floor(remaining/60)).padStart(2,'0')}:{String(remaining%60).padStart(2,'0')}
           </div>
         </div>

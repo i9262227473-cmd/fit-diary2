@@ -100,7 +100,7 @@ export default function RecipeBuilder({ onSave, aiCall }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {toast && <div style={{ position: 'fixed', bottom: 90, left: '50%', transform: 'translateX(-50%)', background: 'var(--accent)', color: '#07140d', padding: '10px 22px', borderRadius: 50, fontSize: 13, fontWeight: 700, zIndex: 999, whiteSpace: 'nowrap' }}>{toast}</div>}
+      {toast && <div style={{ position: 'fixed', bottom: 90, left: '50%', transform: 'translateX(-50%)', background: 'var(--accent)', color: 'var(--accent-contrast)', padding: '10px 22px', borderRadius: 50, fontSize: 13, fontWeight: 700, zIndex: 999, whiteSpace: 'nowrap' }}>{toast}</div>}
 
       <div style={{ background: '#1a1a1a', borderRadius: 16, padding: 18, border: '1px solid #2e2e2e' }}>
         <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Конструктор блюд</div>
@@ -165,7 +165,7 @@ export default function RecipeBuilder({ onSave, aiCall }) {
         </div>
       )}
 
-      <button onClick={handleSaveRecipe} disabled={!canSave} style={{ background: 'var(--accent)', color: '#07140d', border: 'none', borderRadius: 12, padding: '14px', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: canSave ? 1 : 0.4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+      <button onClick={handleSaveRecipe} disabled={!canSave} style={{ background: 'var(--accent)', color: 'var(--accent-contrast)', border: 'none', borderRadius: 12, padding: '14px', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: canSave ? 1 : 0.4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
         Сохранить рецепт
       </button>
     </div>

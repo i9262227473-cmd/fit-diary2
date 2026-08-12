@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { Dumbbell } from 'lucide-react'
 import { useStore, API_URL } from './store'
 
 import AuthPage from './pages/AuthPage'
@@ -56,12 +57,12 @@ export default function App() {
     return (
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        height: '100vh', flexDirection: 'column', gap: '16px', background: '#f0f4f8'
+        height: '100vh', flexDirection: 'column', gap: '16px', background: 'var(--bg)', color: 'var(--text)'
       }}>
-        <div style={{ fontSize: '48px' }}>💪</div>
+        <div style={{ display:'grid', placeItems:'center', width:54, height:54, borderRadius:18, background:'var(--accent-dim)', color:'var(--accent)' }}><Dumbbell size={26} /></div>
         <div style={{
           width: '36px', height: '36px',
-          border: '3px solid #dde3ea', borderTopColor: '#2563eb',
+          border: '3px solid var(--surface3)', borderTopColor: 'var(--accent)',
           borderRadius: '50%', animation: 'spin 1s linear infinite'
         }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>

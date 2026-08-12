@@ -10,7 +10,7 @@ export default function WorkoutDetail({ workout, onClose, aiCall, onSaveAnalysis
   const details = workout.exercisesDetail || []
   const totalSets = details.reduce((a, e) => a + (e.sets?.length || 0), 0)
   const totalVolume = details.reduce((a, e) => a + (e.sets || []).reduce((s, st) => s + (parseFloat(st.weight)||0) * (parseInt(String(st.reps).split('-').pop())||0), 0), 0)
-  const M_COLORS = { Грудь:'#329063', Спина:'#3b82f6', Ноги:'#f59e0b', Плечи:'#8b5cf6', Трицепс:'#ec4899', Бицепс:'#f97316', Кор:'#06b6d4', Кардио:'#ef4444' }
+  const M_COLORS = { Грудь:'var(--accent)', Спина:'#3b82f6', Ноги:'#f59e0b', Плечи:'#8b5cf6', Трицепс:'#ec4899', Бицепс:'#f97316', Кор:'#06b6d4', Кардио:'#ef4444' }
 
   const runAnalysis = async () => {
     if (aiLoading || !aiCall) return
@@ -59,17 +59,17 @@ ${exLines}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8, marginBottom: 18 }}>
         {[{ l: 'Время', v: (workout.duration||0)+'м' }, { l: 'Упр.', v: details.length }, { l: 'Подходы', v: totalSets }, { l: 'Тоннаж', v: Math.round(totalVolume)+'кг' }].map(s => (
           <div key={s.l} style={{ background: '#1a1a1a', borderRadius: 14, padding: 12, border: '1px solid #2e2e2e', textAlign: 'center' }}>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 15, fontWeight: 700, color: '#3d9970', marginBottom: 4 }}>{s.v}</div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 15, fontWeight: 700, color: 'var(--accent)', marginBottom: 4 }}>{s.v}</div>
             <div style={{ fontSize: 10, color: '#6b7280' }}>{s.l}</div>
           </div>
         ))}
       </div>
 
-      <button onClick={runAnalysis} disabled={aiLoading} style={{ background: '#1a1a1a', border: '1px solid #3d9970', borderRadius: 14, padding: '13px', fontSize: 14, fontWeight: 700, width: '100%', cursor: 'pointer', color: '#3d9970', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 14, textTransform: 'uppercase', letterSpacing: 0.5, opacity: aiLoading ? 0.6 : 1 }}>
+      <button onClick={runAnalysis} disabled={aiLoading} style={{ background: '#1a1a1a', border: '1px solid var(--accent)', borderRadius: 14, padding: '13px', fontSize: 14, fontWeight: 700, width: '100%', cursor: 'pointer', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 14, textTransform: 'uppercase', letterSpacing: 0.5, opacity: aiLoading ? 0.6 : 1 }}>
         <Sparkles size={15} />{aiLoading ? 'Анализирую...' : savedMark ? '✓ Сохранено' : (aiText ? 'Обновить AI-анализ' : 'AI-анализ тренировки')}
       </button>
       {aiText && (
-        <div style={{ background: 'rgba(61,153,112,0.05)', border: '1px solid rgba(61,153,112,0.25)', borderRadius: 16, padding: 16, marginBottom: 14 }}>
+        <div style={{ background: 'var(--accent-dim)', border: '1px solid var(--accent-dim)', borderRadius: 16, padding: 16, marginBottom: 14 }}>
           <div style={{ fontSize: 13, color: '#d1d5db', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{aiText}</div>
         </div>
       )}
@@ -77,17 +77,17 @@ ${exLines}
       {details.length > 0 ? details.map((ex, eI) => (
         <div key={eI} style={{ background: '#1a1a1a', borderRadius: 16, overflow: 'hidden', border: '1px solid #2e2e2e', marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px' }}>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 18, fontWeight: 700, color: '#3d9970', minWidth: 24 }}>{eI+1}</span>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 18, fontWeight: 700, color: 'var(--accent)', minWidth: 24 }}>{eI+1}</span>
             <span style={{ fontSize: 14, fontWeight: 600, flex: 1 }}>{ex.name}</span>
-            <span style={{ padding: '3px 10px', borderRadius: 50, fontSize: 11, color: '#000', background: M_COLORS[ex.muscle] || '#3d9970', fontWeight: 600 }}>{ex.muscle}</span>
+            <span style={{ padding: '3px 10px', borderRadius: 50, fontSize: 11, color: '#000', background: M_COLORS[ex.muscle] || 'var(--accent)', fontWeight: 600 }}>{ex.muscle}</span>
           </div>
           <div style={{ padding: '0 16px 10px' }}>
             {(ex.sets || []).map((set, sI) => (
               <div key={sI} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 0', borderTop: '1px solid #222' }}>
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: '#6b7280', minWidth: 44 }}>№{sI+1}</span>
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 600, flex: 1 }}>{set.reps} пов</span>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 600, color: '#3d9970' }}>{set.weight || 0} кг</span>
-                {set.done && <Check size={14} color="#3d9970" />}
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 600, color: 'var(--accent)' }}>{set.weight || 0} кг</span>
+                {set.done && <Check size={14} color="var(--accent)" />}
               </div>
             ))}
             {ex.comment && (

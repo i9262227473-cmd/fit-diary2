@@ -5,21 +5,9 @@
   flex-direction: column;
   position: relative;
   background:
-    radial-gradient(circle at 84% 4%, rgba(50, 213, 131, 0.10), transparent 24%),
-    radial-gradient(circle at 0% 48%, rgba(56, 189, 248, 0.05), transparent 30%),
+    radial-gradient(circle at 82% 0%, var(--page-glow), transparent 26%),
     var(--bg);
   overflow: hidden;
-}
-
-.page::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.22;
-  background-image: linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
-  background-size: 28px 28px;
-  mask-image: linear-gradient(to bottom, black, transparent 48%);
 }
 
 .content {

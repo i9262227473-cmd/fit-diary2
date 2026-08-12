@@ -49,7 +49,7 @@ export default function FoodScreen({ state, dispatch, aiCall }) {
   const remaining = Math.max(0, goals.calories - Math.round(totals.cal))
   const percentage = goals.calories > 0 ? Math.min(Math.round(totals.cal / goals.calories * 100), 100) : 0
   const macros = [
-    { label: 'Белки', value: totals.p, max: goals.protein, color: 'var(--accent)' },
+    { label: 'Белки', value: totals.p, max: goals.protein, color: 'var(--protein)' },
     { label: 'Жиры', value: totals.fat, max: goals.fat, color: 'var(--amber)' },
     { label: 'Углеводы', value: totals.c, max: goals.carbs, color: 'var(--teal)' },
   ]

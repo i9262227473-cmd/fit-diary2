@@ -1,7 +1,7 @@
 export function NavHome({ color, size }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M3 9.5L12 3l9 6.5V21a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" stroke={color} strokeWidth="2" fill={color === '#3d9970' ? 'rgba(61,153,112,0.15)' : 'none'} />
+      <path d="M3 9.5L12 3l9 6.5V21a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" stroke={color} strokeWidth="2" fill={color === 'var(--accent)' ? 'var(--accent-dim)' : 'none'} />
       <path d="M9 22v-7h6v7" stroke={color} strokeWidth="2" strokeLinecap="round" />
     </svg>
   )

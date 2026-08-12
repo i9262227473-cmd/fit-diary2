@@ -6,7 +6,7 @@ import { normReps } from '../../pages/planUtils'
 const PLAN_KEY = 'workout-plan-v4-pro'
 const LEVEL_RU = { beginner: 'новичок', amateur: 'любитель', advanced: 'продвинутый', professional: 'профессионал' }
 const GOAL_RU = { weight_loss: 'fat_loss', muscle_gain: 'muscle_gain', maintenance: 'maintenance', endurance: 'maintenance', strength: 'strength', health: 'maintenance' }
-const DAY_COLORS_PLAN = ['#3d9970', '#38bdf8', '#fbbf24', '#3d9970', '#38bdf8', '#6b7280', '#6b7280']
+const DAY_COLORS_PLAN = ['var(--accent)', '#38bdf8', '#fbbf24', 'var(--accent)', '#38bdf8', '#6b7280', '#6b7280']
 
 const EN_TO_RU = {
   'Monday':'Понедельник','Tuesday':'Вторник','Wednesday':'Среда','Thursday':'Четверг',
@@ -200,7 +200,7 @@ ${hasLimitations ? '6. ОБЯЗАТЕЛЬНО исключить опасные 
   }
 
   const typeLabel = t => t === 'compound' ? 'Базовое' : 'Изоляция'
-  const typeColor = t => t === 'compound' ? '#3d9970' : '#38bdf8'
+  const typeColor = t => t === 'compound' ? 'var(--accent)' : '#38bdf8'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -212,7 +212,7 @@ ${hasLimitations ? '6. ОБЯЗАТЕЛЬНО исключить опасные 
       </div>
 
       <div style={{ background: '#1a1a1a', borderRadius: 14, padding: '12px 16px', display: 'flex', border: '1px solid #2e2e2e' }}>
-        {[{ label:'Уровень', value:levelLabel, c:'#3d9970' }, { label:'Цель', value:goalKey, c:'#38bdf8' }, { label:'Ограничения', value:hasLimitations?'Есть':'Нет', c:hasLimitations?'#fbbf24':'#6b7280' }].map((item, i) => (
+        {[{ label:'Уровень', value:levelLabel, c:'var(--accent)' }, { label:'Цель', value:goalKey, c:'#38bdf8' }, { label:'Ограничения', value:hasLimitations?'Есть':'Нет', c:hasLimitations?'#fbbf24':'#6b7280' }].map((item, i) => (
           <div key={i} style={{ flex: 1, padding:'4px 8px', borderRight: i<2?'1px solid #2e2e2e':'none' }}>
             <div style={{ fontSize: 10, color:'#6b7280', marginBottom:3, textTransform:'uppercase' }}>{item.label}</div>
             <div style={{ fontSize:12, color:item.c, fontWeight:600, textTransform:'capitalize' }}>{item.value}</div>
@@ -226,13 +226,13 @@ ${hasLimitations ? '6. ОБЯЗАТЕЛЬНО исключить опасные 
           <div style={{ fontSize:16, fontWeight:700 }}>AI составит план под тебя</div>
           <div style={{ fontSize:13, color:'#6b7280', lineHeight:1.6 }}>Учитывает уровень, цель, сплит{hasLimitations ? ' и ваши ограничения/травмы' : ''}</div>
           {error && <div style={{ fontSize:13, color:'#f87171', background:'rgba(248,113,113,0.1)', padding:'10px 16px', borderRadius:10, width:'100%' }}>{error}</div>}
-          <button onClick={generatePlan} style={{ background:'#3d9970', color:'#000', border:'none', borderRadius:14, padding:'14px 28px', fontSize:15, fontWeight:700, cursor:'pointer', textTransform:'uppercase', letterSpacing:0.5 }}>Создать план</button>
+          <button onClick={generatePlan} style={{ background:'var(--accent)', color:'#000', border:'none', borderRadius:14, padding:'14px 28px', fontSize:15, fontWeight:700, cursor:'pointer', textTransform:'uppercase', letterSpacing:0.5 }}>Создать план</button>
         </div>
       )}
 
       {loading && (
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:16, padding:'48px 0' }}>
-          <div style={{ width:48, height:48, borderRadius:'50%', border:'3px solid rgba(61,153,112,0.2)', borderTop:'3px solid #3d9970', animation:'spin 1s linear infinite' }} />
+          <div style={{ width:48, height:48, borderRadius:'50%', border:'3px solid var(--accent-dim)', borderTop:'3px solid var(--accent)', animation:'spin 1s linear infinite' }} />
           <div style={{ fontSize:14, fontWeight:600 }}>{loadingMsg}</div>
           <div style={{ fontSize:12, color:'#6b7280' }}>20–40 секунд</div>
         </div>
@@ -242,13 +242,13 @@ ${hasLimitations ? '6. ОБЯЗАТЕЛЬНО исключить опасные 
         <>
           <div style={{ background:'#1a1a1a', borderRadius:14, padding:'10px 16px', display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid #2e2e2e' }}>
             <span style={{ fontSize:13, color:'#6b7280' }}>Сплит</span>
-            <span style={{ fontSize:13, fontWeight:700, color:'#3d9970' }}>{plan.plan.split || '—'}</span>
+            <span style={{ fontSize:13, fontWeight:700, color:'var(--accent)' }}>{plan.plan.split || '—'}</span>
           </div>
           {plan.plan.days.map((day, i) => {
             const isRest = !day.exercises || day.exercises.length === 0
             const isOpen = expandedDay === i
             return (
-              <div key={i} style={{ background:'#1a1a1a', borderRadius:18, overflow:'hidden', border:`1px solid ${isOpen?'rgba(61,153,112,0.3)':'#2e2e2e'}` }}>
+              <div key={i} style={{ background:'#1a1a1a', borderRadius:18, overflow:'hidden', border:`1px solid ${isOpen?'var(--accent-dim)':'#2e2e2e'}` }}>
                 <div onClick={() => setExpandedDay(isOpen ? null : i)} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', cursor:'pointer' }}>
                   <div style={{ width:10, height:10, borderRadius:'50%', background:isRest?'#4b5563':DAY_COLORS_PLAN[i%7], flexShrink:0 }} />
                   <div style={{ flex:1 }}>
@@ -275,7 +275,7 @@ ${hasLimitations ? '6. ОБЯЗАТЕЛЬНО исключить опасные 
                               <span style={{ fontSize:14, fontWeight:500 }}>{ex.name}</span>
                             </div>
                             <div style={{ display:'flex', gap:12, fontFamily:'var(--mono)', fontSize:12 }}>
-                              <span style={{ color:'#3d9970' }}>{ex.sets} × {reps.min}–{reps.max}</span>
+                              <span style={{ color:'var(--accent)' }}>{ex.sets} × {reps.min}–{reps.max}</span>
                               <span style={{ color:'#6b7280' }}>отдых {ex.rest_sec}с</span>
                             </div>
                           </div>
@@ -286,11 +286,11 @@ ${hasLimitations ? '6. ОБЯЗАТЕЛЬНО исключить опасные 
                     {/* Кнопки: Редактировать (→ конструктор) и Начать тренировку (→ активная) */}
                     <div style={{ padding: '12px 16px', borderTop: '1px solid #2a2a2a', background: '#161616', display: 'flex', gap: 8 }}>
                       <button onClick={() => onStartWorkout && onStartWorkout(day, i, 'builder')}
-                        style={{ flex: 1, background: 'transparent', color: '#3d9970', border: '1px solid #3d9970', borderRadius: 12, padding: '12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        style={{ flex: 1, background: 'transparent', color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 12, padding: '12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                         <Edit2 size={14} /> Изменить
                       </button>
                       <button onClick={() => onStartWorkout && onStartWorkout(day, i, 'active')}
-                        style={{ flex: 1.4, background: '#3d9970', color: '#000', border: 'none', borderRadius: 12, padding: '12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        style={{ flex: 1.4, background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 12, padding: '12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                         <Play size={14} /> Начать
                       </button>
                     </div>

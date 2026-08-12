@@ -10,14 +10,18 @@ import CombinedCalendar from '../components/calendar/CombinedCalendar'
 import ProfileScreen from '../components/profile/ProfileScreen'
 import BottomNavigation from '../components/layout/BottomNavigation'
 import useReminders from '../hooks/useReminders'
+import { applyTheme, getSavedTheme } from '../theme'
 
 
 // ─── MAIN DASHBOARD ───────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const { user, profile, signOut, aiCall, entries, saveEntry, saveProfile } = useStore()
   const [tab, setTab] = useState('home')
+  const [theme, setTheme] = useState(getSavedTheme)
   const name = profile?.name || user?.user_metadata?.name || 'Спортсмен'
   useReminders()
+
+  useEffect(() => { applyTheme(theme) }, [theme])
 
   const [water, setWater] = useState(() => {
     try {
@@ -47,7 +51,7 @@ export default function DashboardPage() {
         {tab === 'food'     && <FoodScreen     state={state} dispatch={dispatch} aiCall={aiCall} />}
         {tab === 'analysis' && <ProgressScreen state={state} />}
         {tab === 'workout'  && <WorkoutScreen  state={state} dispatch={dispatch} aiCall={aiCall} PlanScreen={PlanScreen} />}
-        {tab === 'profile'  && <ProfileScreen  profile={profile} saveProfile={saveProfile} signOut={signOut} aiCall={aiCall} />}
+        {tab === 'profile'  && <ProfileScreen  profile={profile} saveProfile={saveProfile} signOut={signOut} aiCall={aiCall} theme={theme} onThemeChange={setTheme} />}
       </div>
       <BottomNavigation activeTab={tab} onTabChange={setTab} />
     </div>

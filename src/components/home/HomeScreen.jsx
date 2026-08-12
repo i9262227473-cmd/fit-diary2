@@ -29,7 +29,7 @@ export default function HomeScreen({ state, dispatch, goTo, name, aiCall, Calend
   const firstName = name?.trim().split(' ')[0] || 'спортсмен'
 
   const macros = [
-    { label: 'Белки', value: totals.protein, max: goals.protein, color: 'var(--accent)' },
+    { label: 'Белки', value: totals.protein, max: goals.protein, color: 'var(--protein)' },
     { label: 'Жиры', value: totals.fat, max: goals.fat, color: 'var(--amber)' },
     { label: 'Углеводы', value: totals.carbs, max: goals.carbs, color: 'var(--teal)' },
   ]

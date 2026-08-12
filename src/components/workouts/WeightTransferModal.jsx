@@ -53,7 +53,7 @@ export default function WeightTransferModal({ onConfirm, onDecline, onClose }) {
             onClick={onConfirm}
             style={{
               flex: 1.3,
-              background: '#3d9970',
+              background: 'var(--accent)',
               color: '#000',
               border: 'none',
               borderRadius: 12,

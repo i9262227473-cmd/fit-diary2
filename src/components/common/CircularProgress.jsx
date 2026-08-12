@@ -1,5 +1,5 @@
 function getCalorieColor(pct) {
-  if (pct < 0.6) return '#3d9970'
+  if (pct < 0.6) return 'var(--accent)'
   if (pct < 0.85) return '#a3e635'
   if (pct < 0.95) return '#fbbf24'
   if (pct < 1.05) return '#fb923c'
@@ -23,7 +23,7 @@ export default function CircularProgress({
   const ratio = max > 0 ? value / max : 0
   const cappedRatio = Math.min(ratio, 1.2)
   const dash = Math.min(cappedRatio, 1) * circumference
-  const finalColor = dynamicColor ? getCalorieColor(ratio) : (color || '#3d9970')
+  const finalColor = dynamicColor ? getCalorieColor(ratio) : (color || 'var(--accent)')
 
   return (
     <div
@@ -37,7 +37,7 @@ export default function CircularProgress({
       }}
     >
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#2a2a2a" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="var(--surface3)" strokeWidth={stroke} />
         <circle
           cx={size / 2}
           cy={size / 2}
