@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react'
 import { BookOpen, CalendarDays, ChefHat, Coffee, Cookie, Moon, Plus, Sparkles, Sun, Utensils } from 'lucide-react'
-import CircularProgress, { getCalorieColor } from '../common/CircularProgress'
 import SwipeToDelete from '../common/SwipeToDelete'
 import useFood from '../../hooks/useFood'
 import BarcodeScanner from './BarcodeScanner'
@@ -17,6 +16,12 @@ const MEAL_ICONS = {
   snack: <Cookie size={17} />,
 }
 const MEAL_TIMES = { breakfast: '08:00', lunch: '13:00', dinner: '19:00', snack: '16:00' }
+const MEAL_VISUALS = {
+  breakfast: '/assets/meals/breakfast-3d.webp',
+  lunch: '/assets/meals/lunch-3d.webp',
+  dinner: '/assets/meals/dinner-3d.webp',
+  snack: '/assets/meals/snack-3d.webp',
+}
 const SECTION_TABS = [
   ['log', 'Дневник', BookOpen],
   ['ai', 'AI-поиск', Sparkles],
@@ -48,6 +53,15 @@ export default function FoodScreen({ state, dispatch, aiCall, intent }) {
   }
   const remaining = Math.max(0, goals.calories - Math.round(totals.cal))
   const percentage = goals.calories > 0 ? Math.min(Math.round(totals.cal / goals.calories * 100), 100) : 0
+  const macroCalories = totals.p * 4 + totals.fat * 9 + totals.c * 4
+  const proteinShare = macroCalories > 0 ? totals.p * 4 / macroCalories : .34
+  const fatShare = macroCalories > 0 ? totals.fat * 9 / macroCalories : .33
+  const proteinEnd = percentage * proteinShare
+  const fatEnd = proteinEnd + percentage * fatShare
+  const ringStyle = {
+    background: `conic-gradient(from -90deg, var(--protein) 0 ${proteinEnd}%, var(--amber) ${proteinEnd}% ${fatEnd}%, var(--purple) ${fatEnd}% ${percentage}%, var(--surface3) ${percentage}% 100%)`,
+  }
+  const dayTitle = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
   const macros = [
     { label: 'Белки', value: totals.p, max: goals.protein, color: 'var(--protein)' },
     { label: 'Жиры', value: totals.fat, max: goals.fat, color: 'var(--amber)' },
@@ -72,23 +86,29 @@ export default function FoodScreen({ state, dispatch, aiCall, intent }) {
       {showBarcodeScanner && <BarcodeScanner onDetect={handleBarcodeDetect} onClose={() => setShowBarcodeScanner(false)} />}
 
       <header className={styles.header}>
-        <div><span className={styles.eyebrow}>Питание</span><h1>Дневник питания</h1><p>Сегодня</p></div>
+        <button className={styles.headerButton} onClick={() => { setTab('log'); setLogMode('calendar') }} aria-label="Открыть календарь"><CalendarDays size={19} /></button>
+        <div className={styles.headerTitle}><h1>Питание</h1><p>Сегодня, {dayTitle}</p></div>
         <button className={styles.addButton} onClick={() => setTab('add')} aria-label="Добавить продукт"><Plus size={21} /></button>
       </header>
 
       <section className={styles.summaryCard}>
         <div className={styles.summaryTop}>
-          <div><span className={styles.eyebrow}>Дневной баланс</span><h2>Калории и БЖУ</h2></div>
+          <div><span className={styles.eyebrow}>Баланс дня</span><h2>Энергия и БЖУ</h2></div>
           <span className={styles.percent}>{percentage}%</span>
         </div>
         <div className={styles.energyRow}>
-          <CircularProgress value={totals.cal} max={goals.calories} size={106} stroke={7} dynamicColor>
-            <strong className={styles.calorieValue} style={{ color: getCalorieColor(totals.cal / goals.calories) }}>{Math.round(totals.cal)}</strong>
-            <span className={styles.calorieUnit}>ккал</span>
-          </CircularProgress>
+          <div className={styles.ringColumn}>
+            <div className={styles.macroRing} style={ringStyle}>
+              <div className={styles.ringInner}>
+                <strong>{Math.round(totals.cal)}</strong>
+                <span>ккал</span>
+              </div>
+            </div>
+            <span className={styles.ringGoal}>из {goals.calories} ккал</span>
+          </div>
           <div className={styles.energyNumbers}>
-            <div><span>Цель</span><strong>{goals.calories}</strong></div>
-            <div><span>Осталось</span><strong className={styles.remaining}>{remaining}</strong></div>
+            <div><span>Съедено</span><strong>{Math.round(totals.cal)}</strong><small>ккал</small></div>
+            <div><span>Осталось</span><strong className={styles.remaining}>{remaining}</strong><small>ккал</small></div>
           </div>
         </div>
         <div className={styles.macroGrid}>
@@ -137,7 +157,7 @@ export default function FoodScreen({ state, dispatch, aiCall, intent }) {
                 return (
                   <article className={styles.mealCard} key={mealKey}>
                     <div className={styles.mealHeader}>
-                      <span className={styles.mealIcon}>{MEAL_ICONS[mealKey]}</span>
+                      <img className={styles.mealVisual} src={MEAL_VISUALS[mealKey]} alt="" />
                       <div className={styles.mealTitle}><h3>{mealName}</h3><span>{MEAL_TIMES[mealKey]} · {items.length} поз.</span></div>
                       <strong>{Math.round(mealCalories)} <small>ккал</small></strong>
                     </div>
