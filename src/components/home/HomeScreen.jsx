@@ -5,6 +5,7 @@ import {
   CalendarDays,
   Camera,
   ChevronRight,
+  Dumbbell,
   Mic,
   Plus,
   ScanLine,
@@ -14,10 +15,10 @@ import {
 import styles from './HomeScreen.module.css'
 
 const MEALS = {
-  breakfast: { label: 'Завтрак', image: '/assets/meals/oatmeal-berries.webp' },
-  lunch: { label: 'Обед', image: '/assets/meals/chicken-rice.webp' },
-  dinner: { label: 'Ужин', image: '/assets/meals/chicken-rice.webp' },
-  snack: { label: 'Перекус', image: '/assets/meals/cottage-cheese-fruit.webp' },
+  breakfast: { label: 'Завтрак', image: '/assets/meals/breakfast-3d.webp' },
+  lunch: { label: 'Обед', image: '/assets/meals/lunch-3d.webp' },
+  dinner: { label: 'Ужин', image: '/assets/meals/dinner-3d.webp' },
+  snack: { label: 'Перекус', image: '/assets/meals/snack-3d.webp' },
 }
 
 const FOOD_SHORTCUTS = [
@@ -72,6 +73,7 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
   const dayTitle = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
   const currentWorkout = entry.workouts?.[entry.workouts.length - 1]
   const water = state.water
+  const waterPercent = water.goal > 0 ? Math.min(water.consumed / water.goal * 100, 100) : 0
   const workoutExerciseCount = currentWorkout?.exercisesDetail?.length || currentWorkout?.exercises?.length || 0
 
   const mealRows = Object.entries(MEALS).map(([key, meta]) => {
@@ -170,12 +172,12 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
 
       <div className={styles.compactGrid}>
         <button className={styles.compactCard} onClick={() => goTo('workout')}>
-          <img className={styles.cardVisual} src="/assets/home/workout-gym-photo.webp" alt="Гантели в тренажёрном зале" />
+          <span className={styles.workoutIllustration} aria-hidden="true"><Dumbbell size={29} strokeWidth={2.4} /></span>
           <span><small>Тренировка</small><strong>{currentWorkout?.name || 'Открыть план'}</strong>{workoutExerciseCount > 0 && <em>{workoutExerciseCount} упражнений{currentWorkout?.duration ? ` · ${currentWorkout.duration} мин` : ''}</em>}</span>
           <ChevronRight size={17} />
         </button>
         <section className={styles.compactCard}>
-          <img className={styles.cardVisual} src="/assets/home/water-glass-photo.webp" alt="Стакан воды" />
+          <span className={styles.waterGlass} aria-hidden="true"><i style={{ height: `${waterPercent}%` }} /><b /></span>
           <span><small>Вода</small><strong>{water.consumed} / {water.goal} стаканов</strong><em>{Math.max(water.goal - water.consumed, 0) > 0 ? `Осталось ${Math.max(water.goal - water.consumed, 0) * 250} мл` : 'Цель выполнена'}</em></span>
           <button className={styles.waterAdd} onClick={() => dispatch({ type: 'SET_WATER', val: Math.min(water.consumed + 1, water.goal) })} aria-label="Добавить стакан"><Plus size={17} /></button>
         </section>

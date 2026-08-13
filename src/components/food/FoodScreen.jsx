@@ -17,10 +17,10 @@ const MEAL_ICONS = {
 }
 const MEAL_TIMES = { breakfast: '08:00', lunch: '13:00', dinner: '19:00', snack: '16:00' }
 const MEAL_VISUALS = {
-  breakfast: '/assets/meals/oatmeal-berries.webp',
-  lunch: '/assets/meals/chicken-rice.webp',
-  dinner: '/assets/meals/chicken-rice.webp',
-  snack: '/assets/meals/cottage-cheese-fruit.webp',
+  breakfast: '/assets/meals/breakfast-3d.webp',
+  lunch: '/assets/meals/lunch-3d.webp',
+  dinner: '/assets/meals/dinner-3d.webp',
+  snack: '/assets/meals/snack-3d.webp',
 }
 const SECTION_TABS = [
   ['ai', 'AI-поиск', Sparkles],
