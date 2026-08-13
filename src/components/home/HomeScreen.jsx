@@ -10,6 +10,7 @@ import {
   ScanLine,
   Search,
   Sparkles,
+  X,
 } from 'lucide-react'
 import styles from './HomeScreen.module.css'
 
@@ -20,11 +21,11 @@ const MEALS = {
   snack: { label: 'Перекус', image: '/assets/meals/snack-3d.webp' },
 }
 
-const FOOD_SHORTCUTS = [
-  { label: 'Голос', Icon: Mic, action: 'ai' },
-  { label: 'Фото', Icon: Camera, action: 'photo' },
-  { label: 'Сканер', Icon: ScanLine, action: 'code' },
-  { label: 'Поиск', Icon: Search, action: 'add' },
+const FOOD_ACTIONS = [
+  { label: 'Описать или сказать', caption: 'AI распознает блюдо по тексту или голосу', Icon: Mic, action: 'ai' },
+  { label: 'Сфотографировать еду', caption: 'Распознать продукты на тарелке', Icon: Camera, action: 'photo' },
+  { label: 'Сканировать код', caption: 'QR- или штрихкод на упаковке', Icon: ScanLine, action: 'code' },
+  { label: 'Найти продукт', caption: 'Обычный поиск по базе продуктов', Icon: Search, action: 'add' },
 ]
 
 function arcPoint(angle, radius = 61) {
@@ -46,6 +47,7 @@ const MACRO_ARCS = [
 
 export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall, CalendarView }) {
   const [showCalendar, setShowCalendar] = useState(false)
+  const [showFoodActions, setShowFoodActions] = useState(false)
   const today = new Date().toISOString().split('T')[0]
   const entry = state.entries.find(item => item.date === today) || { date: today, foods: [], workouts: [] }
   const goals = {
@@ -75,6 +77,11 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
   const waterPercent = water.goal > 0 ? Math.min(water.consumed / water.goal * 100, 100) : 0
   const workoutExerciseCount = currentWorkout?.exercisesDetail?.length || currentWorkout?.exercises?.length || 0
 
+  const chooseFoodAction = action => {
+    setShowFoodActions(false)
+    onFoodAction?.(action)
+  }
+
   const mealRows = Object.entries(MEALS).map(([key, meta]) => {
     const foods = entry.foods.filter(item => item.meal === key)
     if (!foods.length) return null
@@ -91,6 +98,26 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
       </header>
 
       {showCalendar && CalendarView && <CalendarView state={state} dispatch={dispatch} aiCall={aiCall} onClose={() => setShowCalendar(false)} />}
+      {showFoodActions && (
+        <div className={styles.foodActionsBackdrop} onClick={() => setShowFoodActions(false)}>
+          <div className={styles.foodActionsSheet} onClick={event => event.stopPropagation()}>
+            <div className={styles.sheetHandle} />
+            <div className={styles.foodActionsHeading}>
+              <div><span>AI-питание</span><h2>Как добавить еду?</h2><p>Выберите способ распознавания</p></div>
+              <button onClick={() => setShowFoodActions(false)} aria-label="Закрыть"><X size={18} /></button>
+            </div>
+            <div className={styles.foodActionList}>
+              {FOOD_ACTIONS.map(({ label, caption, Icon, action }) => (
+                <button key={action} onClick={() => chooseFoodAction(action)}>
+                  <span><Icon size={20} /></span>
+                  <div><strong>{label}</strong><small>{caption}</small></div>
+                  <ChevronRight size={17} />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <section className={styles.balanceCard}>
         <div className={styles.ringColumn}>
@@ -123,24 +150,16 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
         </div>
       </section>
 
-      <section className={styles.foodComposer}>
-        <div className={styles.foodComposerHeading}>
-          <h2>Добавить еду</h2>
+      <button className={styles.foodEntryCard} onClick={() => setShowFoodActions(true)}>
+        <img src="/assets/home/ai-food-hero.webp" alt="Блюдо с курицей и овощами" />
+        <span className={styles.foodEntryShade} />
+        <span className={styles.foodEntryCopy}>
           <span><Sparkles size={12} /> AI</span>
-        </div>
-        <button className={styles.foodPrompt} onClick={() => onFoodAction?.('ai')}>
-          <span>Что вы съели?</span>
-          <i><ArrowRight size={17} /></i>
-        </button>
-        <div className={styles.foodShortcuts}>
-          {FOOD_SHORTCUTS.map(({ label, Icon, action }) => (
-            <button key={action} onClick={() => onFoodAction?.(action)}>
-              <Icon size={17} />
-              <span>{label}</span>
-            </button>
-          ))}
-        </div>
-      </section>
+          <strong>Добавить еду</strong>
+          <small>Фото, голос, код или поиск</small>
+        </span>
+        <i><ArrowRight size={18} /></i>
+      </button>
 
       <section className={styles.mealsSection}>
         <div className={styles.sectionHeading}>
