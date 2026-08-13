@@ -5,7 +5,6 @@ import {
   CalendarDays,
   Camera,
   ChevronRight,
-  Dumbbell,
   Mic,
   Plus,
   ScanLine,
@@ -172,7 +171,15 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
 
       <div className={styles.compactGrid}>
         <button className={styles.compactCard} onClick={() => goTo('workout')}>
-          <span className={styles.workoutIllustration} aria-hidden="true"><Dumbbell size={29} strokeWidth={2.4} /></span>
+          <span className={styles.workoutIllustration} aria-hidden="true">
+            <span className={styles.dumbbell3d}>
+              <span className={styles.dumbbellBar} />
+              <span className={`${styles.dumbbellPlate} ${styles.plateOuterLeft}`} />
+              <span className={`${styles.dumbbellPlate} ${styles.plateInnerLeft}`} />
+              <span className={`${styles.dumbbellPlate} ${styles.plateInnerRight}`} />
+              <span className={`${styles.dumbbellPlate} ${styles.plateOuterRight}`} />
+            </span>
+          </span>
           <span><small>Тренировка</small><strong>{currentWorkout?.name || 'Открыть план'}</strong>{workoutExerciseCount > 0 && <em>{workoutExerciseCount} упражнений{currentWorkout?.duration ? ` · ${currentWorkout.duration} мин` : ''}</em>}</span>
           <ChevronRight size={17} />
         </button>
