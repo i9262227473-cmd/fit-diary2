@@ -68,12 +68,17 @@ export default function FoodScreen({ state, dispatch, aiCall, intent }) {
   }
   const dayTitle = new Date(`${selectedDate}T12:00:00`).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
   const today = new Date().toISOString().split('T')[0]
-  const touchStartX = React.useRef(null)
+  const swipeStartX = React.useRef(null)
   const changeDay = delta => setSelectedDate(current => shiftIsoDate(current, delta))
+  const handleDaySwipeStart = event => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+    if (event.target.closest('button, input, textarea, select, [role="button"]')) return
+    swipeStartX.current = event.clientX
+  }
   const handleDaySwipeEnd = event => {
-    if (touchStartX.current == null) return
-    const delta = event.changedTouches[0].clientX - touchStartX.current
-    touchStartX.current = null
+    if (swipeStartX.current == null) return
+    const delta = event.clientX - swipeStartX.current
+    swipeStartX.current = null
     if (Math.abs(delta) < 55) return
     changeDay(delta < 0 ? 1 : -1)
   }
@@ -113,7 +118,7 @@ export default function FoodScreen({ state, dispatch, aiCall, intent }) {
         <button onClick={() => changeDay(1)} aria-label="Следующий день"><ChevronLeft size={18} /></button>
       </div>
 
-      <div className={styles.daySwipe} onTouchStart={event => { touchStartX.current = event.touches[0].clientX }} onTouchEnd={handleDaySwipeEnd}>
+      <div className={styles.daySwipe} onPointerDown={handleDaySwipeStart} onPointerUp={handleDaySwipeEnd} onPointerCancel={() => { swipeStartX.current = null }}>
       <section className={styles.summaryCard}>
         <div className={styles.summaryTop}>
           <div><span className={styles.eyebrow}>Баланс дня</span><h2>Энергия и БЖУ</h2></div>

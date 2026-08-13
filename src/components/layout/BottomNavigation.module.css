@@ -38,10 +38,10 @@
 .item::after {
   content: '';
   position: absolute;
-  bottom: 3px;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
+  bottom: 2px;
+  width: 16px;
+  height: 2px;
+  border-radius: 99px;
   background: var(--accent);
   box-shadow: 0 0 10px var(--accent);
   opacity: 0;
@@ -52,10 +52,13 @@
 .iconWrap {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 30px;
-  border-radius: 12px;
-  transition: background 0.18s ease, transform 0.18s ease;
+  width: 38px;
+  height: 32px;
+  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  border-radius: 11px;
+  background: radial-gradient(circle at 34% 25%, rgba(255,255,255,.055), transparent 42%), linear-gradient(145deg, color-mix(in srgb, var(--surface3) 54%, transparent), color-mix(in srgb, var(--card-solid) 76%, transparent));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.055), inset 0 -4px 8px rgba(0,0,0,.08), 0 3px 7px rgba(0,0,0,.12);
+  transition: background 0.18s ease, border-color .18s ease, box-shadow .18s ease, transform 0.18s ease;
 }
 
 .label {
@@ -81,8 +84,10 @@
 }
 
 .active .iconWrap {
-  background: var(--accent-dim);
-  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+  background: radial-gradient(circle at 34% 25%, color-mix(in srgb, var(--accent-bright) 21%, transparent), transparent 42%), linear-gradient(145deg, color-mix(in srgb, var(--surface3) 72%, var(--accent) 28%), var(--card-solid));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1), inset 0 -5px 10px rgba(0,0,0,.12), 0 5px 12px color-mix(in srgb, var(--accent) 16%, rgba(0,0,0,.14));
+  transform: translateY(-2px);
 }
 
 .active .label {

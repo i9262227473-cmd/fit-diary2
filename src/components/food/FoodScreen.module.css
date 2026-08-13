@@ -39,7 +39,7 @@
 .dayLabel { display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--text); background: transparent; }
 .dayLabel strong { font-size: 13px; font-weight: 800; text-transform: capitalize; }
 .dayLabel span { color: var(--text-muted); font-size: 8px; font-weight: 650; }
-.daySwipe { display: contents; }
+.daySwipe { display: flex; flex-direction: column; gap: 10px; touch-action: pan-y; }
 .sectionTabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 5px; border: 1px solid var(--border); border-radius: 18px; background: var(--card); }
 .sectionTabs button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 0; height: 54px; padding: 5px 2px; color: var(--text-muted); border-radius: 13px; background: transparent; }
 .sectionTabs button span { overflow: hidden; max-width: 100%; font-size: 9px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }

@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import {
-  ArrowRight,
   Bell,
   CalendarDays,
   Camera,
@@ -125,13 +124,27 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
             <svg className={styles.macroRingSvg} viewBox="0 0 160 160" aria-hidden="true">
               {macroData.map((macro, index) => (
                 <React.Fragment key={macro.label}>
+                  <path className={styles.macroTrackShadow} d={describeArc(MACRO_ARCS[index].start, MACRO_ARCS[index].end)} />
                   <path className={styles.macroTrack} d={describeArc(MACRO_ARCS[index].start, MACRO_ARCS[index].end)} pathLength="100" style={{ '--macro-color': macro.color }} />
+                  <path
+                    className={styles.macroProgressShadow}
+                    d={describeArc(MACRO_ARCS[index].start, MACRO_ARCS[index].end)}
+                    pathLength="100"
+                    strokeDasharray={`${macro.percent} 100`}
+                    style={{ '--macro-color': macro.color }}
+                  />
                   <path
                     className={styles.macroProgress}
                     d={describeArc(MACRO_ARCS[index].start, MACRO_ARCS[index].end)}
                     pathLength="100"
                     strokeDasharray={`${macro.percent} 100`}
                     style={{ '--macro-color': macro.color, '--macro-intensity': .48 + macro.percent / 190 }}
+                  />
+                  <path
+                    className={styles.macroShine}
+                    d={describeArc(MACRO_ARCS[index].start, MACRO_ARCS[index].end)}
+                    pathLength="100"
+                    strokeDasharray={`${macro.percent} 100`}
                   />
                 </React.Fragment>
               ))}
@@ -151,14 +164,21 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
       </section>
 
       <button className={styles.foodEntryCard} onClick={() => setShowFoodActions(true)}>
-        <img src="/assets/home/ai-food-hero.webp" alt="Блюдо с курицей и овощами" />
-        <span className={styles.foodEntryShade} />
-        <span className={styles.foodEntryCopy}>
-          <span><Sparkles size={12} /> AI</span>
-          <strong>Добавить еду</strong>
-          <small>Фото, голос, код или поиск</small>
+        <span className={styles.foodIllustration} aria-hidden="true">
+          <span className={styles.foodBowl}>
+            <i className={styles.foodLeaf} />
+            <i className={styles.foodGrain} />
+            <i className={styles.foodBerry} />
+            <b />
+          </span>
+          <span className={styles.foodSparkle}>+</span>
         </span>
-        <i><ArrowRight size={18} /></i>
+        <span className={styles.foodEntryCopy}>
+          <small>Питание</small>
+          <strong>Добавить еду</strong>
+          <em>Выбрать способ распознавания</em>
+        </span>
+        <ChevronRight size={17} />
       </button>
 
       <section className={styles.mealsSection}>
