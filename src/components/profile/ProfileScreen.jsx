@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
-import { AlertTriangle, Bell, Check, LogOut, Palette, Sparkles } from 'lucide-react'
+import { AlertTriangle, Bell, Check, Info, LogOut, Palette, Sparkles } from 'lucide-react'
 import { clearCachedFoods, getCachedFoods } from '../../data/userFoodCache'
 import { getReminderSettings, saveReminderSettings } from '../../hooks/useReminders'
 import { THEMES } from '../../theme'
+import { APP_BUILD, APP_VERSION } from '../../appVersion'
 
 const LEVEL_LABELS = { beginner:'Новичок', amateur:'Любитель', advanced:'Продвинутый', professional:'Профессионал' }
 const GOAL_LABELS  = { weight_loss:'Похудение', muscle_gain:'Набор массы', maintenance:'Поддержание', endurance:'Выносливость', strength:'Сила', health:'Здоровье' }
@@ -340,6 +341,20 @@ export default function ProfileScreen({ profile, saveProfile, signOut, aiCall, t
                 style={{ padding:'8px 14px', borderRadius:10, background: cacheCleared ? 'var(--accent)' : 'rgba(239,68,68,0.1)', border:`1px solid ${cacheCleared ? 'var(--accent)' : 'rgba(239,68,68,0.3)'}`, color: cacheCleared ? 'var(--accent-contrast)' : '#ef4444', cursor:'pointer', fontSize:12, fontWeight:600, opacity: cacheCount === 0 ? 0.4 : 1 }}>
                 {cacheCleared ? '✓ Очищено' : 'Очистить'}
               </button>
+            </div>
+          </div>
+          <div style={{ background:'var(--surface)', borderRadius:16, padding:16, border:'1px solid var(--border)' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12 }}>
+              <Info size={16} color="var(--accent)" />
+              <div style={{ fontSize:14, fontWeight:700 }}>О приложении</div>
+            </div>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:12 }}>
+              <span style={{ color:'var(--text-secondary)', fontSize:13 }}>Версия Fit Diary</span>
+              <strong style={{ color:'var(--text)', fontFamily:'var(--mono)', fontSize:13 }}>{APP_VERSION}</strong>
+            </div>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:12, marginTop:9, paddingTop:9, borderTop:'1px solid var(--border)' }}>
+              <span style={{ color:'var(--text-muted)', fontSize:11 }}>Номер сборки</span>
+              <span style={{ color:'var(--text-muted)', fontFamily:'var(--mono)', fontSize:11 }}>{APP_BUILD}</span>
             </div>
           </div>
         </div>

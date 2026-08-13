@@ -85,11 +85,12 @@ export default function FoodScreen({ state, dispatch, aiCall, intent }) {
 
   useEffect(() => {
     if (!intent) return
-    if (intent.type === 'barcode' || intent.type === 'qr') {
+    if (intent.type === 'barcode' || intent.type === 'qr' || intent.type === 'code') {
       setTab('add')
       setShowBarcodeScanner(true)
       return
     }
+    if (intent.type === 'ai') setTab('ai')
     if (intent.type === 'photo' || intent.type === 'add') setTab('add')
     if (intent.type === 'log') setTab('log')
   }, [intent?.id])

@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import {
-  Barcode,
   Bell,
   CalendarDays,
   Camera,
@@ -8,7 +7,8 @@ import {
   Droplets,
   Dumbbell,
   Plus,
-  QrCode,
+  ScanLine,
+  Sparkles,
 } from 'lucide-react'
 import styles from './HomeScreen.module.css'
 
@@ -20,8 +20,8 @@ const MEALS = {
 }
 
 const QUICK_ACTIONS = [
-  { label: 'Штрих-код', caption: 'Сканировать', Icon: Barcode, action: 'barcode' },
-  { label: 'QR-код', caption: 'Сканировать', Icon: QrCode, action: 'qr' },
+  { label: 'AI-поиск', caption: 'Описать еду', Icon: Sparkles, action: 'ai' },
+  { label: 'Сканировать код', caption: 'QR или штрихкод', Icon: ScanLine, action: 'code' },
   { label: 'Фото еды', caption: 'Распознать', Icon: Camera, action: 'photo' },
 ]
 
@@ -123,8 +123,8 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
             ))}
           </div>
         ) : (
-          <button className={styles.emptyMeal} onClick={() => onFoodAction?.('add')}>
-            <span><Plus size={20} /></span><strong>Добавить первый приём пищи</strong><small>Вручную, по фото или штрих-коду</small>
+          <button className={styles.emptyMeal} onClick={() => onFoodAction?.('ai')}>
+            <span><Sparkles size={20} /></span><strong>Добавить первый приём пищи</strong><small>Начать с AI-поиска</small>
           </button>
         )}
       </section>
