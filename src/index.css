@@ -129,7 +129,7 @@
 }
 
 :root {
-  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  --font: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --mono: 'Roboto Mono', monospace;
   --r1: 28px; --r2: 20px; --r3: 14px; --r4: 10px;
 }
