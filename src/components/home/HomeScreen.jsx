@@ -27,7 +27,7 @@ const FOOD_ACTIONS = [
   { label: 'Найти продукт', caption: 'Обычный поиск по базе продуктов', Icon: Search, action: 'add' },
 ]
 
-function arcPoint(angle, radius = 70) {
+function arcPoint(angle, radius = 72) {
   const radians = angle * Math.PI / 180
   return { x: 80 + radius * Math.sin(radians), y: 80 - radius * Math.cos(radians) }
 }
@@ -35,7 +35,7 @@ function arcPoint(angle, radius = 70) {
 function describeArc(startAngle, endAngle) {
   const start = arcPoint(startAngle)
   const end = arcPoint(endAngle)
-  return `M ${start.x} ${start.y} A 70 70 0 0 1 ${end.x} ${end.y}`
+  return `M ${start.x} ${start.y} A 72 72 0 0 1 ${end.x} ${end.y}`
 }
 
 const MACRO_ARCS = [
@@ -149,9 +149,12 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
                 </React.Fragment>
               ))}
             </svg>
-            <div className={styles.ringInner}><strong>{eaten}</strong><span>ккал</span></div>
+            <div className={styles.ringInner}>
+              <strong>{eaten}</strong>
+              <span>ккал</span>
+              <small>Цель {goals.calories}</small>
+            </div>
           </div>
-          <span className={styles.goal}>Цель: {goals.calories} ккал</span>
         </div>
         <div className={styles.macroList}>
           {macroData.map(macro => (
