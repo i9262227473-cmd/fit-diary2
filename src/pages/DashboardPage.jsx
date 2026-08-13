@@ -19,6 +19,7 @@ export default function DashboardPage() {
   const [tab, setTab] = useState('home')
   const [foodIntent, setFoodIntent] = useState(null)
   const [theme, setTheme] = useState(getSavedTheme)
+  const [workoutActive, setWorkoutActive] = useState(false)
   const name = profile?.name || user?.user_metadata?.name || 'Спортсмен'
   useReminders()
 
@@ -55,10 +56,10 @@ export default function DashboardPage() {
         {tab === 'home'     && <HomeScreen CalendarView={CombinedCalendar} state={state} dispatch={dispatch} goTo={setTab} onFoodAction={openFood} name={name} aiCall={aiCall} />}
         {tab === 'food'     && <FoodScreen     state={state} dispatch={dispatch} aiCall={aiCall} intent={foodIntent} />}
         {tab === 'analysis' && <ProgressScreen state={state} />}
-        {tab === 'workout'  && <WorkoutScreen  state={state} dispatch={dispatch} aiCall={aiCall} PlanScreen={PlanScreen} />}
+        {tab === 'workout'  && <WorkoutScreen  state={state} dispatch={dispatch} aiCall={aiCall} PlanScreen={PlanScreen} onActiveChange={setWorkoutActive} />}
         {tab === 'profile'  && <ProfileScreen  profile={profile} saveProfile={saveProfile} signOut={signOut} aiCall={aiCall} theme={theme} onThemeChange={setTheme} />}
       </div>
-      <BottomNavigation activeTab={tab} onTabChange={setTab} />
+      {!(tab === 'workout' && workoutActive) && <BottomNavigation activeTab={tab} onTabChange={setTab} />}
     </div>
   )
 }

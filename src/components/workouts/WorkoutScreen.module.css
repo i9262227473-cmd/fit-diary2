@@ -28,3 +28,48 @@
 .emptyHistory strong { color: var(--text); font-size: 14px; font-weight: 800; }
 .emptyHistory small { max-width: 250px; margin: 6px auto 0; color: var(--text-muted); font-size: 10px; line-height: 1.5; }
 @media (max-width: 370px) { .historyActions { gap: 5px; } .historyActions > button { padding-inline: 8px; } .historyActions strong { font-size: 11px; } }
+
+.activeWorkout { display: flex; flex-direction: column; gap: 12px; padding-bottom: 88px; }
+.activeSummary { display: flex; align-items: center; justify-content: space-between; padding: 19px 20px; border: 1px solid var(--border); border-radius: 24px; background: var(--card-solid); box-shadow: var(--shadow-soft); }
+.activeTime { color: var(--accent); font-family: var(--mono); font-size: 36px; font-weight: 800; letter-spacing: -.04em; }
+.activeTimeLabel { margin-top: 2px; color: var(--text-muted); font-size: 11px; font-weight: 650; }
+.activeWorkoutName { max-width: 45%; color: var(--text); font-size: 13px; font-weight: 750; text-align: right; }
+.activeExerciseCard { overflow: hidden; border: 1px solid var(--border); border-radius: 22px; background: var(--card-solid); box-shadow: var(--shadow-soft); }
+.activeExerciseHeader { display: flex; align-items: center; gap: 9px; padding: 12px; }
+.activeReorder { display: flex; flex: 0 0 auto; flex-direction: column; gap: 3px; }
+.activeReorder button { display: grid; place-items: center; width: 22px; height: 20px; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 7px; background: var(--surface2); font-size: 8px; }
+.activeReorder button:disabled { color: var(--text-muted); opacity: .35; }
+.activeExerciseNumber { min-width: 20px; color: var(--accent); font-family: var(--mono); font-size: 18px; font-weight: 800; text-align: center; }
+.activeExerciseImage { overflow: hidden; flex: 0 0 auto; width: 52px; height: 52px; padding: 0; border: 1px solid var(--border); border-radius: 14px; background: var(--surface2); }
+.activeExerciseImage img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.activeExerciseTitle { min-width: 0; flex: 1; }
+.activeExerciseTitle > button { display: block; overflow: hidden; width: 100%; padding: 0; color: var(--text); background: transparent; font-size: 14px; font-weight: 800; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.activeExerciseTitle > span { display: inline-block; margin-top: 5px; padding: 3px 8px; color: #fff; border-radius: 999px; font-size: 9px; font-weight: 800; }
+.activeSwapButton { flex: 0 0 auto; padding: 7px 9px; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 10px; background: var(--surface2); font-size: 10px; font-weight: 750; }
+.activeSwapPanel { margin: 0 12px 12px; padding: 11px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface2); }
+.activeSwapHeading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; color: var(--text-secondary); font-size: 11px; font-weight: 750; }
+.activeSwapHeading button { display: grid; place-items: center; width: 24px; height: 24px; color: var(--text-muted); border-radius: 8px; background: var(--surface3); }
+.activeAlternatives { display: flex; flex-direction: column; gap: 5px; }
+.activeAlternatives > button { display: flex; align-items: center; gap: 8px; padding: 9px 10px; text-align: left; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.activeAlternatives > button > span:first-child { min-width: 0; flex: 1; color: var(--text); font-size: 12px; }
+.activeAlternatives small, .activeNoAlternatives { color: var(--text-muted); font-size: 10px; }
+.activeSets { padding: 2px 12px 13px; }
+.activeSetLabels, .activeSetRow { display: grid; grid-template-columns: 43px minmax(0, 1fr) minmax(0, 1fr) 38px; align-items: center; gap: 7px; }
+.activeSetLabels { padding: 5px 2px 7px; color: var(--text-muted); font-size: 9px; font-weight: 700; text-align: center; text-transform: uppercase; }
+.activeSetLabels span:first-child { text-align: left; }
+.activeSetList { display: flex; flex-direction: column; gap: 5px; }
+.activeSetRow { padding: 5px; border-radius: 12px; background: var(--surface2); }
+.activeSetRow > span { color: var(--text-muted); font-family: var(--mono); font-size: 11px; text-align: center; }
+.activeSetRow > button:not(.activeSetCheck) { min-width: 0; min-height: 40px; color: var(--text); border: 1px solid var(--border); border-radius: 10px; background: var(--surface); font-family: var(--mono); font-size: 14px; font-weight: 800; }
+.activeSetDone { background: var(--accent-dim); }
+.activeSetCheck { display: grid; place-items: center; width: 34px; height: 34px; color: var(--accent-contrast); border: 2px solid var(--border-strong); border-radius: 50%; background: transparent; }
+.activeSetDone .activeSetCheck { border-color: var(--accent); background: var(--accent); }
+.activeAddSet { width: 100%; margin-top: 8px; padding: 10px; color: var(--accent); border: 1px dashed color-mix(in srgb, var(--accent) 38%, var(--border)); border-radius: 11px; background: var(--accent-dim); font-size: 11px; font-weight: 750; }
+.activeComment { margin-top: 8px; }
+.activeComment input { width: 100%; padding: 11px 12px; color: var(--text); border: 1px solid var(--border); border-radius: 11px; background: var(--surface2); font-size: 11px; }
+.activeComment input::placeholder { color: var(--text-muted); }
+.activeActions { position: fixed; z-index: 400; right: max(12px, calc((100vw - 480px) / 2 + 12px)); bottom: max(10px, env(safe-area-inset-bottom, 0px)); left: max(12px, calc((100vw - 480px) / 2 + 12px)); display: grid; grid-template-columns: .8fr 1.4fr; gap: 8px; padding: 8px; border: 1px solid var(--border-strong); border-radius: 20px; background: var(--nav-bg); box-shadow: var(--shadow); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+.activeActions button { min-height: 52px; border-radius: 14px; font-size: 12px; font-weight: 800; }
+.activePause { color: var(--text); border: 1px solid var(--border); background: var(--surface2); }
+.activeFinish { color: var(--accent-contrast); background: var(--accent); letter-spacing: .04em; text-transform: uppercase; }
+@media (max-width: 370px) { .activeExerciseImage { display: none; } .activeExerciseHeader { gap: 7px; } .activeSwapButton { padding-inline: 7px; } }

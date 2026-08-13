@@ -14,7 +14,7 @@ import WorkoutComplete from './WorkoutComplete'
 import WorkoutDetail from './WorkoutDetail'
 import styles from './WorkoutScreen.module.css'
 
-export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
+export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onActiveChange }) {
   const {
     view, setView, wk, setWk, exSearch, setExSearch, running, setRunning, timer, resetTimer,
     showRestTimer, setShowRestTimer, restInfo, showComplete, swapFor, setSwapFor,
@@ -27,6 +27,11 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
   } = useWorkout({ state, dispatch })
 
   const M_COLORS = { Грудь:'var(--accent)', Спина:'#3b82f6', Ноги:'#f59e0b', Плечи:'#8b5cf6', Трицепс:'#ec4899', Бицепс:'#f97316', Кор:'#06b6d4', Кардио:'#ef4444' }
+
+  React.useEffect(() => {
+    onActiveChange?.(view === 'active')
+    return () => onActiveChange?.(false)
+  }, [view, onActiveChange])
 
   if (view === 'list') {
     return (
@@ -221,7 +226,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
 
   if (view === 'active') {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 90 }}>
+      <div className={styles.activeWorkout}>
         {showRestTimer && <RestTimer duration={restInfo.duration} exerciseName={restInfo.exercise} setInfo={restInfo.setInfo} onClose={() => setShowRestTimer(false)} />}
         {techFor && <TechniqueModal name={techFor.name} muscle={techFor.muscle} onClose={() => setTechFor(null)} />}
         {pickerFor && wk.exercises[pickerFor.eI] && (
@@ -234,42 +239,45 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
           />
         )}
         {showComplete && <WorkoutComplete workout={wk} duration={timer} onSave={saveWorkout} aiCall={aiCall} />}
-        <div style={{ background: '#1a1a1a', borderRadius: 20, padding: '20px 24px', border: '1px solid #2e2e2e', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className={styles.activeSummary}>
           <div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 40, fontWeight: 700, color: 'var(--accent)' }}>{fmtTimeLong(timer)}</div>
-            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>Общее время</div>
+            <div className={styles.activeTime}>{fmtTimeLong(timer)}</div>
+            <div className={styles.activeTimeLabel}>Общее время</div>
           </div>
-          <div style={{ fontSize: 13, fontWeight: 600, textAlign: 'right' }}>{wk.name || 'Тренировка'}</div>
+          <div className={styles.activeWorkoutName}>{wk.name || 'Тренировка'}</div>
         </div>
-        {wk.exercises.map((ex, eI) => (
-          <div key={ex.uid || eI} style={{ background: '#1a1a1a', borderRadius: 18, overflow: 'hidden', border: '1px solid #2e2e2e' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
-                <button onClick={() => moveExercise(eI, -1)} disabled={eI === 0} style={{ width: 20, height: 16, borderRadius: 5, background: '#222', border: 'none', color: eI === 0 ? '#3a3a3a' : '#9ca3af', cursor: eI === 0 ? 'default' : 'pointer', fontSize: 10, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>▲</button>
-                <button onClick={() => moveExercise(eI, 1)} disabled={eI === wk.exercises.length - 1} style={{ width: 20, height: 16, borderRadius: 5, background: '#222', border: 'none', color: eI === wk.exercises.length - 1 ? '#3a3a3a' : '#9ca3af', cursor: eI === wk.exercises.length - 1 ? 'default' : 'pointer', fontSize: 10, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>▼</button>
+        {wk.exercises.map((ex, eI) => {
+          const media = getExerciseMedia(ex.name)
+          return (
+          <div key={ex.uid || eI} className={styles.activeExerciseCard}>
+            <div className={styles.activeExerciseHeader}>
+              <div className={styles.activeReorder}>
+                <button onClick={() => moveExercise(eI, -1)} disabled={eI === 0}>▲</button>
+                <button onClick={() => moveExercise(eI, 1)} disabled={eI === wk.exercises.length - 1}>▼</button>
               </div>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--accent)', minWidth: 28 }}>{eI+1}</span>
-              <div style={{ flex: 1 }}>
-                <button onClick={() => setTechFor({ name: ex.name, muscle: ex.muscle })} style={{ fontSize: 15, fontWeight: 600, background: 'transparent', border: 'none', color: '#f5f5f5', textAlign: 'left', cursor: 'pointer', padding: 0 }}>{ex.name}</button>
+              <span className={styles.activeExerciseNumber}>{eI+1}</span>
+              {media && <button className={styles.activeExerciseImage} onClick={() => setTechFor({ name: ex.name, muscle: ex.muscle })}><img src={media.start} alt="" /></button>}
+              <div className={styles.activeExerciseTitle}>
+                <button onClick={() => setTechFor({ name: ex.name, muscle: ex.muscle })}>{ex.name}</button>
+                <span style={{ background: M_COLORS[ex.muscle] || 'var(--accent)' }}>{ex.muscle}</span>
               </div>
-              <button onClick={() => setSwapFor(swapFor === eI ? null : eI)} style={{ padding: '5px 9px', borderRadius: 8, background: '#222', border: '1px solid #2e2e2e', color: '#9ca3af', cursor: 'pointer', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>Заменить</button>
-              <span style={{ padding: '3px 10px', borderRadius: 50, fontSize: 11, color: '#000', background: M_COLORS[ex.muscle] || 'var(--accent)', fontWeight: 600 }}>{ex.muscle}</span>
+              <button className={styles.activeSwapButton} onClick={() => setSwapFor(swapFor === eI ? null : eI)}>Заменить</button>
             </div>
             {swapFor === eI && (
-              <div style={{ margin: '0 16px 14px', background: '#161616', border: '1px solid #2e2e2e', borderRadius: 12, padding: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#9ca3af' }}>Заменить на:</span>
-                  <button onClick={() => setSwapFor(null)} style={{ width: 24, height: 24, borderRadius: 6, background: '#222', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 14 }}>×</button>
+              <div className={styles.activeSwapPanel}>
+                <div className={styles.activeSwapHeading}>
+                  <span>Заменить на:</span>
+                  <button onClick={() => setSwapFor(null)}>×</button>
                 </div>
                 {(() => {
                   const dbEx = FULL_EXERCISE_DB.find(e => e.id === ex.exerciseId) || FULL_EXERCISE_DB.find(e => e.name.toLowerCase() === (ex.name||'').toLowerCase())
                   const alts = dbEx ? findAlternatives(dbEx, workoutPlace) : []
-                  if (alts.length === 0) return <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 0' }}>Нет подходящих альтернатив для вашего места тренировок</div>
-                  return <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  if (alts.length === 0) return <div className={styles.activeNoAlternatives}>Нет подходящих альтернатив для вашего места тренировок</div>
+                  return <div className={styles.activeAlternatives}>
                     {alts.map(alt => (
-                      <button key={alt.id} onClick={() => { replaceEx(eI, alt); setSwapFor(null) }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px', background: '#222', border: '1px solid #2a2a2a', borderRadius: 9, cursor: 'pointer', textAlign: 'left' }}>
-                        <span style={{ fontSize: 13, color: '#f5f5f5', flex: 1 }}>{alt.name}</span>
-                        <span style={{ fontSize: 10, color: '#6b7280' }}>{alt.equipment}</span>
+                      <button key={alt.id} onClick={() => { replaceEx(eI, alt); setSwapFor(null) }}>
+                        <span>{alt.name}</span>
+                        <small>{alt.equipment}</small>
                         <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 6, fontWeight: 600, ...(alt.eff==='best' ? {background:'var(--accent-dim)', color:'#6fcaa0'} : alt.eff==='good' ? {background:'#2a2a2a', color:'#d1d5db'} : {background:'#262626', color:'#6b7280'}) }}>{EFF_LABEL[alt.eff]}</span>
                       </button>
                     ))}
@@ -277,45 +285,41 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen }) {
                 })()}
               </div>
             )}
-            <div style={{ padding: '8px 0' }}>
-              <div style={{ display: 'flex', gap: 8, padding: '4px 16px 8px', alignItems: 'center' }}>
-                <span style={{ width: 44, fontSize: 10, color: '#6b7280', textTransform: 'uppercase' }}>Подход</span>
-                <span style={{ flex: 1, fontSize: 10, color: '#6b7280', textAlign: 'center' }}>Повторы (факт)</span>
-                <span style={{ flex: 1, fontSize: 10, color: '#6b7280', textAlign: 'center' }}>Вес, кг</span>
-                <span style={{ width: 40 }}></span>
+            <div className={styles.activeSets}>
+              <div className={styles.activeSetLabels}>
+                <span>Подход</span><span>Повторы</span><span>Вес, кг</span><i />
               </div>
-              <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div className={styles.activeSetList}>
                 {ex.sets.map((set, sI) => (
                   <SwipeToDelete key={set.id || sI} onDelete={() => removeSet(eI, sI)} disabled={ex.sets.length <= 1} radius={8}>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '4px 0', background: set.done ? 'var(--accent-dim)' : '#1a1a1a' }}>
-                      <span style={{ width: 44, fontFamily: 'var(--mono)', fontSize: 13, color: '#6b7280' }}>№{sI+1}</span>
-                      <button onClick={() => setPickerFor({ eI, sI })} style={{ flex: 1, padding: '9px 4px', background: '#222', border: '1px solid #2e2e2e', borderRadius: 8, color: '#f5f5f5', fontSize: 15, fontWeight: 700, fontFamily: 'var(--mono)', outline: 'none', textAlign: 'center', boxSizing: 'border-box', cursor: 'pointer' }}>{set.reps || ex.targetReps || '—'}</button>
-                      <button onClick={() => setPickerFor({ eI, sI })} style={{ flex: 1, padding: '9px 4px', background: '#222', border: '1px solid #2e2e2e', borderRadius: 8, color: '#f5f5f5', fontSize: 15, fontWeight: 700, fontFamily: 'var(--mono)', outline: 'none', textAlign: 'center', boxSizing: 'border-box', cursor: 'pointer' }}>{set.weight || '0'}</button>
-                      <button onClick={() => toggleSet(eI, sI)} style={{ width: 32, height: 32, borderRadius: '50%', border: `2px solid ${set.done ? 'var(--accent)' : '#2e2e2e'}`, background: set.done ? 'var(--accent)' : 'transparent', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {set.done && <Check size={16} color="#000" />}
+                    <div className={`${styles.activeSetRow} ${set.done ? styles.activeSetDone : ''}`}>
+                      <span>№{sI+1}</span>
+                      <button onClick={() => setPickerFor({ eI, sI })}>{set.reps || ex.targetReps || '—'}</button>
+                      <button onClick={() => setPickerFor({ eI, sI })}>{set.weight || '0'}</button>
+                      <button className={styles.activeSetCheck} onClick={() => toggleSet(eI, sI)} aria-label="Отметить подход выполненным">
+                        {set.done && <Check size={16} />}
                       </button>
                     </div>
                   </SwipeToDelete>
                 ))}
               </div>
-              <button onClick={() => addSet(eI)} style={{ margin: '4px 16px 8px', padding: '9px', background: 'transparent', border: '1px dashed #2e2e2e', borderRadius: 8, color: '#6b7280', cursor: 'pointer', fontSize: 13, width: 'calc(100% - 32px)' }}>+ Добавить подход</button>
-              <div style={{ margin: '0 16px 12px' }}>
+              <button className={styles.activeAddSet} onClick={() => addSet(eI)}>+ Добавить подход</button>
+              <div className={styles.activeComment}>
                 <input
                   type="text"
                   value={ex.comment || ''}
                   onChange={e => updateComment(eI, e.target.value)}
                   placeholder="Комментарий к упражнению (необязательно)"
-                  style={{ width: '100%', padding: '9px 12px', background: '#161616', border: '1px solid #2a2a2a', borderRadius: 10, color: '#d1d5db', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
             </div>
           </div>
-        ))}
-        <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, padding: '12px 16px calc(12px + env(safe-area-inset-bottom, 0px))', background: '#111', borderTop: '1px solid #1e1e1e', display: 'flex', gap: 10, zIndex: 400 }}>
-          <button onClick={() => setRunning(r => !r)} style={{ flex: 1, padding: '14px', background: '#222', border: '1px solid #2e2e2e', borderRadius: 12, color: '#f5f5f5', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
+        )})}
+        <div className={styles.activeActions}>
+          <button className={styles.activePause} onClick={() => setRunning(r => !r)}>
             {running ? 'Пауза' : 'Старт'}
           </button>
-          <button onClick={completeWorkout} style={{ flex: 2, padding: '14px', background: 'var(--accent)', border: 'none', borderRadius: 12, color: '#000', cursor: 'pointer', fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Завершить</button>
+          <button className={styles.activeFinish} onClick={completeWorkout}>Завершить</button>
         </div>
       </div>
     )
