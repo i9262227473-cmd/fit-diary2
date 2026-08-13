@@ -18,13 +18,30 @@
 .macroRow strong { display: block; margin-top: 3px; color: var(--text); font-family: var(--mono); font-size: 15px; font-weight: 550; }
 .macroRow small { color: var(--text-muted); font-size: 11px; font-weight: 450; }
 
-.quickActions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; padding: 5px; border: 1px solid var(--border); border-radius: 19px; background: var(--card); }
-.quickActions button { position: relative; display: flex; min-width: 0; flex-direction: column; align-items: center; justify-content: center; min-height: 78px; padding: 8px 5px; border-radius: 14px; background: transparent; }
-.quickActions button:not(:last-child)::after { content: ''; position: absolute; top: 12px; right: 0; bottom: 12px; width: 1px; background: var(--border); }
-.actionIcon { display: grid; place-items: center; width: 42px; height: 42px; margin-bottom: 6px; color: var(--accent); border: 1px solid rgba(255, 255, 255, .09); border-radius: 13px; background: linear-gradient(145deg, #243249, #111a29); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 6px 12px rgba(4, 10, 20, .2); }
-.actionIcon svg { filter: drop-shadow(0 2px 3px color-mix(in srgb, var(--accent) 35%, transparent)); }
-.quickActions strong { max-width: 100%; color: var(--text); font-size: 11px; font-weight: 750; line-height: 1.15; text-align: center; }
-.quickActions small { margin-top: 2px; color: var(--text-muted); font-size: 9px; font-weight: 600; }
+.aiHero { position: relative; overflow: hidden; width: 100%; min-height: 158px; padding: 0; text-align: left; border: 1px solid rgba(255,255,255,.12); border-radius: 22px; background: #08111f; box-shadow: 0 15px 34px rgba(3,9,18,.28); }
+.aiHero > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.aiHeroShade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(5,11,20,.98) 0%, rgba(5,11,20,.88) 39%, rgba(5,11,20,.25) 67%, rgba(5,11,20,.04) 100%); }
+.aiHeroCopy { position: relative; z-index: 1; display: flex; width: 58%; min-height: 158px; flex-direction: column; align-items: flex-start; justify-content: center; padding: 17px 0 17px 17px; color: #fff; }
+.aiHeroCopy > small { display: flex; align-items: center; gap: 5px; color: #ff9c61; font-size: 9px; font-style: normal; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+.aiHeroCopy > strong { display: block; margin-top: 7px; font-size: 20px; font-weight: 850; line-height: 1.08; letter-spacing: -.035em; }
+.aiHeroCopy > em { display: block; margin-top: 5px; color: rgba(255,255,255,.66); font-size: 9px; font-style: normal; font-weight: 650; }
+.aiHeroCopy > b { display: flex; align-items: center; gap: 6px; margin-top: 13px; padding: 8px 10px; color: #fff; border-radius: 10px; background: var(--accent); font-size: 9px; font-weight: 800; }
+
+.foodActionsBackdrop { position: fixed; z-index: 800; inset: 0; display: flex; align-items: flex-end; justify-content: center; padding: 0; background: rgba(0,0,0,.56); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); }
+.foodActionsSheet { width: 100%; max-width: 480px; padding: 8px 16px calc(18px + env(safe-area-inset-bottom, 0px)); border: 1px solid var(--border); border-bottom: 0; border-radius: 26px 26px 0 0; background: var(--bg); box-shadow: 0 -20px 50px rgba(0,0,0,.28); animation: sheetFloatIn .26s cubic-bezier(.2,.75,.2,1) both; }
+.sheetHandle { width: 38px; height: 4px; margin: 0 auto 15px; border-radius: 99px; background: var(--surface3); }
+.foodActionsHeading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
+.foodActionsHeading span { color: var(--accent); font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.foodActionsHeading h2 { margin-top: 3px; color: var(--text); font-size: 19px; font-weight: 850; }
+.foodActionsHeading > button { display: grid; place-items: center; width: 36px; height: 36px; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 12px; background: var(--surface2); }
+.foodActionList { display: flex; flex-direction: column; gap: 7px; }
+.foodActionList > button { display: flex; align-items: center; gap: 11px; width: 100%; padding: 10px; text-align: left; border: 1px solid var(--border); border-radius: 16px; background: var(--card-solid); }
+.foodActionList > button > span { display: grid; place-items: center; flex: 0 0 auto; width: 44px; height: 44px; color: var(--accent); border-radius: 13px; background: var(--accent-dim); }
+.foodActionList > button > div { min-width: 0; flex: 1; }
+.foodActionList strong, .foodActionList small { display: block; }
+.foodActionList strong { color: var(--text); font-size: 12px; font-weight: 800; }
+.foodActionList small { margin-top: 3px; color: var(--text-muted); font-size: 9px; line-height: 1.35; }
+.foodActionList > button > svg { flex: 0 0 auto; color: var(--text-muted); }
 
 .mealsSection { padding: 16px; border: 1px solid var(--border); border-radius: 22px; background: linear-gradient(155deg, var(--surface2), var(--card-solid)); box-shadow: var(--shadow-soft); }
 .sectionHeading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
@@ -47,16 +64,22 @@
 
 .compactGrid { display: flex; flex-direction: column; gap: 7px; }
 .compactCard { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 12px 14px; text-align: left; border: 1px solid var(--border); border-radius: 17px; background: var(--card); }
-.compactIcon { display: grid; place-items: center; flex: 0 0 auto; width: 44px; height: 44px; color: var(--accent); border: 1px solid rgba(255, 255, 255, .09); border-radius: 14px; background: linear-gradient(145deg, #243249, #111a29); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 5px 11px rgba(4, 10, 20, .18); }
-.waterIcon { color: var(--teal); }
+.workoutVisual { flex: 0 0 auto; width: 62px; height: 62px; object-fit: cover; border: 1px solid var(--border); border-radius: 15px; background: #07111f; box-shadow: 0 5px 12px rgba(4,10,20,.18); }
 .compactCard > span:nth-child(2) { min-width: 0; flex: 1; }
 .compactCard small { display: block; color: var(--text-muted); font-size: 10px; font-weight: 650; }
 .compactCard strong { display: block; overflow: hidden; margin-top: 3px; color: var(--text); font-size: 14px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+.compactCard em { display: block; margin-top: 4px; color: var(--text-muted); font-size: 9px; font-style: normal; font-weight: 600; }
 .compactCard > svg { flex: 0 0 auto; color: var(--text-muted); }
 .waterAdd { display: grid; place-items: center; flex: 0 0 auto; width: 30px; height: 30px; color: var(--teal); border-radius: 10px; background: color-mix(in srgb, var(--teal) 12%, transparent); }
+.waterGlass { position: relative; overflow: hidden; flex: 0 0 auto; width: 48px; height: 58px; border: 2px solid color-mix(in srgb, var(--teal) 38%, var(--border)); border-top-width: 3px; border-radius: 9px 9px 15px 15px; background: linear-gradient(105deg, rgba(255,255,255,.19), rgba(255,255,255,.03) 42%, rgba(255,255,255,.13)); box-shadow: inset 7px 0 10px rgba(255,255,255,.08), 0 6px 13px rgba(10,80,120,.13); }
+.waterGlass::before { content: ''; position: absolute; z-index: 3; top: -1px; right: 3px; left: 3px; height: 5px; border: 1px solid color-mix(in srgb, var(--teal) 35%, transparent); border-radius: 50%; background: rgba(255,255,255,.2); }
+.waterGlass > i { position: absolute; right: 2px; bottom: 2px; left: 2px; min-height: 3px; border-radius: 4px 4px 12px 12px; background: linear-gradient(180deg, #6bdcff, #1689c1); box-shadow: inset 0 4px 7px rgba(255,255,255,.25); transition: height .35s ease; }
+.waterGlass > i::before { content: ''; position: absolute; top: -3px; right: 0; left: 0; height: 6px; border-radius: 50%; background: #8be6ff; }
+.waterGlass > b { position: absolute; z-index: 4; top: 8px; left: 7px; width: 5px; height: 31px; border-radius: 99px; background: rgba(255,255,255,.38); filter: blur(.4px); }
 
 @media (max-width: 370px) {
   .balanceCard { gap: 12px; padding-inline: 14px; }
   .macroRing { width: 116px; height: 116px; }
-  .quickActions strong { font-size: 10px; }
+  .aiHeroCopy { width: 62%; padding-left: 14px; }
+  .aiHeroCopy > strong { font-size: 18px; }
 }

@@ -1,15 +1,17 @@
 import React, { useState } from 'react'
 import {
+  ArrowRight,
   Bell,
   CalendarDays,
   Camera,
   ChevronRight,
-  Droplets,
-  Dumbbell,
   Plus,
   ScanLine,
+  Search,
   Sparkles,
+  X,
 } from 'lucide-react'
+import { getExerciseMedia } from '../../data/exerciseMedia'
 import styles from './HomeScreen.module.css'
 
 const MEALS = {
@@ -19,14 +21,31 @@ const MEALS = {
   snack: { label: 'Перекус', image: '/assets/meals/snack-3d.webp' },
 }
 
-const QUICK_ACTIONS = [
-  { label: 'AI-поиск', caption: 'Описать еду', Icon: Sparkles, action: 'ai' },
-  { label: 'Сканировать код', caption: 'QR или штрихкод', Icon: ScanLine, action: 'code' },
-  { label: 'Фото еды', caption: 'Распознать', Icon: Camera, action: 'photo' },
+const FOOD_ACTIONS = [
+  { label: 'Описать или сказать', caption: 'AI рассчитает блюдо по тексту или голосу', Icon: Sparkles, action: 'ai' },
+  { label: 'Сфотографировать еду', caption: 'Распознать продукты на тарелке', Icon: Camera, action: 'photo' },
+  { label: 'Сканировать код', caption: 'QR- или штрихкод на упаковке', Icon: ScanLine, action: 'code' },
+  { label: 'Обычный поиск', caption: 'Найти продукт в базе', Icon: Search, action: 'add' },
 ]
+
+function getWorkoutImage(workout) {
+  const exerciseName = workout?.exercisesDetail?.[0]?.name || workout?.exercises?.[0]?.name || workout?.exercises?.[0]
+  const media = getExerciseMedia(exerciseName)
+  if (media) return media.start
+  const name = String(workout?.name || workout?.type || '').toLowerCase()
+  if (name.includes('спин')) return '/assets/muscles/back.webp'
+  if (name.includes('ног')) return '/assets/muscles/legs.webp'
+  if (name.includes('плеч')) return '/assets/muscles/shoulders.webp'
+  if (name.includes('бицеп')) return '/assets/muscles/biceps.webp'
+  if (name.includes('трицеп')) return '/assets/muscles/triceps.webp'
+  if (name.includes('пресс') || name.includes('кор')) return '/assets/muscles/core.webp'
+  if (name.includes('кардио')) return '/assets/muscles/cardio.webp'
+  return '/assets/muscles/chest.webp'
+}
 
 export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall, CalendarView }) {
   const [showCalendar, setShowCalendar] = useState(false)
+  const [showFoodActions, setShowFoodActions] = useState(false)
   const today = new Date().toISOString().split('T')[0]
   const entry = state.entries.find(item => item.date === today) || { date: today, foods: [], workouts: [] }
   const goals = {
@@ -54,6 +73,14 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
   const dayTitle = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
   const currentWorkout = entry.workouts?.[entry.workouts.length - 1]
   const water = state.water
+  const waterPercent = water.goal > 0 ? Math.min(water.consumed / water.goal * 100, 100) : 0
+  const workoutExerciseCount = currentWorkout?.exercisesDetail?.length || currentWorkout?.exercises?.length || 0
+  const workoutImage = getWorkoutImage(currentWorkout)
+
+  const chooseFoodAction = action => {
+    setShowFoodActions(false)
+    onFoodAction?.(action)
+  }
 
   const mealRows = Object.entries(MEALS).map(([key, meta]) => {
     const foods = entry.foods.filter(item => item.meal === key)
@@ -71,6 +98,26 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
       </header>
 
       {showCalendar && CalendarView && <CalendarView state={state} dispatch={dispatch} aiCall={aiCall} onClose={() => setShowCalendar(false)} />}
+      {showFoodActions && (
+        <div className={styles.foodActionsBackdrop} onClick={() => setShowFoodActions(false)}>
+          <div className={styles.foodActionsSheet} onClick={event => event.stopPropagation()}>
+            <div className={styles.sheetHandle} />
+            <div className={styles.foodActionsHeading}>
+              <div><span>AI-питание</span><h2>Как добавить еду?</h2></div>
+              <button onClick={() => setShowFoodActions(false)} aria-label="Закрыть"><X size={18} /></button>
+            </div>
+            <div className={styles.foodActionList}>
+              {FOOD_ACTIONS.map(({ label, caption, Icon, action }) => (
+                <button key={action} onClick={() => chooseFoodAction(action)}>
+                  <span><Icon size={20} /></span>
+                  <div><strong>{label}</strong><small>{caption}</small></div>
+                  <ChevronRight size={17} />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <section className={styles.balanceCard}>
         <div className={styles.ringColumn}>
@@ -93,14 +140,16 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
         </div>
       </section>
 
-      <section className={styles.quickActions}>
-        {QUICK_ACTIONS.map(({ label, caption, Icon, action }) => (
-          <button key={label} onClick={() => onFoodAction?.(action)}>
-            <span className={styles.actionIcon}><Icon size={22} strokeWidth={2.35} /></span>
-            <strong>{label}</strong><small>{caption}</small>
-          </button>
-        ))}
-      </section>
+      <button className={styles.aiHero} onClick={() => setShowFoodActions(true)}>
+        <img src="/assets/home/ai-food-hero.webp" alt="Полезное блюдо с курицей и овощами" />
+        <span className={styles.aiHeroShade} />
+        <span className={styles.aiHeroCopy}>
+          <small><Sparkles size={12} /> AI-питание</small>
+          <strong>Добавить еду с AI</strong>
+          <em>Фото, голос, текст или код</em>
+          <b>Добавить за несколько секунд <ArrowRight size={14} /></b>
+        </span>
+      </button>
 
       <section className={styles.mealsSection}>
         <div className={styles.sectionHeading}>
@@ -131,13 +180,13 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
 
       <div className={styles.compactGrid}>
         <button className={styles.compactCard} onClick={() => goTo('workout')}>
-          <span className={styles.compactIcon}><Dumbbell size={20} /></span>
-          <span><small>Тренировка</small><strong>{currentWorkout?.name || 'Открыть план'}</strong></span>
+          <img className={styles.workoutVisual} src={workoutImage} alt="" />
+          <span><small>Тренировка</small><strong>{currentWorkout?.name || 'Открыть план'}</strong>{workoutExerciseCount > 0 && <em>{workoutExerciseCount} упражнений{currentWorkout?.duration ? ` · ${currentWorkout.duration} мин` : ''}</em>}</span>
           <ChevronRight size={17} />
         </button>
         <section className={styles.compactCard}>
-          <span className={`${styles.compactIcon} ${styles.waterIcon}`}><Droplets size={20} /></span>
-          <span><small>Вода</small><strong>{water.consumed} / {water.goal}</strong></span>
+          <span className={styles.waterGlass} aria-hidden="true"><i style={{ height: `${waterPercent}%` }} /><b /></span>
+          <span><small>Вода</small><strong>{water.consumed} / {water.goal} стаканов</strong><em>{Math.max(water.goal - water.consumed, 0) > 0 ? `Осталось ${Math.max(water.goal - water.consumed, 0) * 250} мл` : 'Цель выполнена'}</em></span>
           <button className={styles.waterAdd} onClick={() => dispatch({ type: 'SET_WATER', val: Math.min(water.consumed + 1, water.goal) })} aria-label="Добавить стакан"><Plus size={17} /></button>
         </section>
       </div>
