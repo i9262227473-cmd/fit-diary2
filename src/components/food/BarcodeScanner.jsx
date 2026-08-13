@@ -46,7 +46,7 @@ export default function BarcodeScanner({ onDetect, onClose }) {
     const start = async () => {
       try {
         detectorRef.current = new window.BarcodeDetector({
-          formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'],
+          formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code', 'data_matrix'],
         })
 
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -132,7 +132,7 @@ export default function BarcodeScanner({ onDetect, onClose }) {
           <X size={18} color="#9ca3af" />
         </button>
 
-        <span style={{ fontSize: 16, fontWeight: 700, color: '#f5f5f5', flex: 1 }}>Сканер штрихкода</span>
+        <span style={{ fontSize: 16, fontWeight: 700, color: '#f5f5f5', flex: 1 }}>Сканер кода</span>
 
         {supported && !error && (
           <button
@@ -150,7 +150,7 @@ export default function BarcodeScanner({ onDetect, onClose }) {
           <video ref={videoRef} playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '70%', height: 120, border: '2px solid var(--accent)', borderRadius: 12, boxShadow: '0 0 0 2000px rgba(0,0,0,0.5)' }} />
           <div style={{ position: 'absolute', bottom: 24, left: 0, right: 0, textAlign: 'center', color: '#f5f5f5', fontSize: 13 }}>
-            Наведите штрихкод на рамку · коснитесь экрана, чтобы перефокусировать
+            Наведите QR- или штрихкод на рамку · коснитесь экрана для фокуса
           </div>
         </div>
       ) : (

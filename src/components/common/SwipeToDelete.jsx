@@ -40,6 +40,7 @@ export default function SwipeToDelete({
     }
 
     if (axis.current === 'x') {
+      event.stopPropagation()
       if (event.cancelable) event.preventDefault()
       setDx(Math.max(-MAX, Math.min(0, deltaX)))
     }
@@ -50,9 +51,10 @@ export default function SwipeToDelete({
     axis.current = null
   }
 
-  const handleEnd = () => {
+  const handleEnd = (event) => {
     if (disabled) return
     setDragging(false)
+    if (axis.current === 'x') event.stopPropagation()
 
     if (-dx < THRESHOLD) {
       reset()

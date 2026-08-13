@@ -179,9 +179,22 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.4; }
 @keyframes ringProgress {
   from { stroke-dashoffset: 283; }
 }
+@keyframes viewFloatIn {
+  from { opacity: 0; transform: translateY(10px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes sheetFloatIn {
+  from { opacity: 0; transform: translateY(28px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 
 .fade-in { animation: fadeInUp 0.35s ease; }
 .spin { animation: spin .8s linear infinite; }
+.app-view-enter { animation: viewFloatIn .24s ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
 
 /* ── Buttons ── */
 .btn-green {

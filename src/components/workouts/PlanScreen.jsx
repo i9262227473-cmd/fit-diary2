@@ -203,15 +203,15 @@ ${hasLimitations ? '6. ОБЯЗАТЕЛЬНО исключить опасные 
   const typeColor = t => t === 'compound' ? 'var(--accent)' : '#38bdf8'
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div className="app-view-enter" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <button onClick={onBack} style={{ width: 36, height: 36, borderRadius: 10, background: '#1a1a1a', border: '1px solid #2e2e2e', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <ChevronLeft size={18} color="#9ca3af" />
+        <button onClick={onBack} style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--card-solid)', border: '1px solid var(--border)', color:'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <ChevronLeft size={18} />
         </button>
         <span style={{ fontSize: 18, fontWeight: 700 }}>AI-план тренировок</span>
       </div>
 
-      <div style={{ background: '#1a1a1a', borderRadius: 14, padding: '12px 16px', display: 'flex', border: '1px solid #2e2e2e' }}>
+      <div style={{ background: 'var(--card-solid)', borderRadius: 14, padding: '12px 16px', display: 'flex', border: '1px solid var(--border)' }}>
         {[{ label:'Уровень', value:levelLabel, c:'var(--accent)' }, { label:'Цель', value:goalKey, c:'#38bdf8' }, { label:'Ограничения', value:hasLimitations?'Есть':'Нет', c:hasLimitations?'#fbbf24':'#6b7280' }].map((item, i) => (
           <div key={i} style={{ flex: 1, padding:'4px 8px', borderRight: i<2?'1px solid #2e2e2e':'none' }}>
             <div style={{ fontSize: 10, color:'#6b7280', marginBottom:3, textTransform:'uppercase' }}>{item.label}</div>
@@ -221,7 +221,7 @@ ${hasLimitations ? '6. ОБЯЗАТЕЛЬНО исключить опасные 
       </div>
 
       {!plan && !loading && (
-        <div style={{ background:'#1a1a1a', borderRadius:20, padding:28, display:'flex', flexDirection:'column', alignItems:'center', gap:16, textAlign:'center', border:'1px solid #2e2e2e' }}>
+        <div style={{ background:'var(--card-solid)', borderRadius:20, padding:28, display:'flex', flexDirection:'column', alignItems:'center', gap:16, textAlign:'center', border:'1px solid var(--border)' }}>
           <div style={{ fontSize:48 }}>✦</div>
           <div style={{ fontSize:16, fontWeight:700 }}>AI составит план под тебя</div>
           <div style={{ fontSize:13, color:'#6b7280', lineHeight:1.6 }}>Учитывает уровень, цель, сплит{hasLimitations ? ' и ваши ограничения/травмы' : ''}</div>
@@ -240,7 +240,7 @@ ${hasLimitations ? '6. ОБЯЗАТЕЛЬНО исключить опасные 
 
       {plan && plan.plan && Array.isArray(plan.plan.days) && (
         <>
-          <div style={{ background:'#1a1a1a', borderRadius:14, padding:'10px 16px', display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid #2e2e2e' }}>
+          <div style={{ background:'var(--card-solid)', borderRadius:14, padding:'10px 16px', display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid var(--border)' }}>
             <span style={{ fontSize:13, color:'#6b7280' }}>Сплит</span>
             <span style={{ fontSize:13, fontWeight:700, color:'var(--accent)' }}>{plan.plan.split || '—'}</span>
           </div>
@@ -248,7 +248,7 @@ ${hasLimitations ? '6. ОБЯЗАТЕЛЬНО исключить опасные 
             const isRest = !day.exercises || day.exercises.length === 0
             const isOpen = expandedDay === i
             return (
-              <div key={i} style={{ background:'#1a1a1a', borderRadius:18, overflow:'hidden', border:`1px solid ${isOpen?'var(--accent-dim)':'#2e2e2e'}` }}>
+              <div key={i} style={{ background:'var(--card-solid)', borderRadius:18, overflow:'hidden', border:`1px solid ${isOpen?'var(--accent)':'var(--border)'}` }}>
                 <div onClick={() => setExpandedDay(isOpen ? null : i)} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', cursor:'pointer' }}>
                   <div style={{ width:10, height:10, borderRadius:'50%', background:isRest?'#4b5563':DAY_COLORS_PLAN[i%7], flexShrink:0 }} />
                   <div style={{ flex:1 }}>
@@ -284,7 +284,7 @@ ${hasLimitations ? '6. ОБЯЗАТЕЛЬНО исключить опасные 
                       )
                     })}
                     {/* Кнопки: Редактировать (→ конструктор) и Начать тренировку (→ активная) */}
-                    <div style={{ padding: '12px 16px', borderTop: '1px solid #2a2a2a', background: '#161616', display: 'flex', gap: 8 }}>
+                    <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', background: 'var(--surface2)', display: 'flex', gap: 8 }}>
                       <button onClick={() => onStartWorkout && onStartWorkout(day, i, 'builder')}
                         style={{ flex: 1, background: 'transparent', color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 12, padding: '12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                         <Edit2 size={14} /> Изменить
@@ -300,7 +300,7 @@ ${hasLimitations ? '6. ОБЯЗАТЕЛЬНО исключить опасные 
             )
           })}
           {plan.progression?.increment_percent && (
-            <div style={{ background:'#1a1a1a', borderRadius:18, padding:16, border:'1px solid #2e2e2e' }}>
+            <div style={{ background:'var(--card-solid)', borderRadius:18, padding:16, border:'1px solid var(--border)' }}>
               <div style={{ fontSize:13, fontWeight:700, marginBottom:12 }}>Прогрессия</div>
               <div style={{ fontSize:12, color:'#9ca3af' }}>
                 Выполнил все подходы → +{plan.progression.increment_percent.min ?? 2.5}–{plan.progression.increment_percent.max ?? 5}% к весу

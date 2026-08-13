@@ -12,6 +12,7 @@ import WeightTransferModal from './WeightTransferModal'
 import WorkoutCalendar from './WorkoutCalendar'
 import WorkoutComplete from './WorkoutComplete'
 import WorkoutDetail from './WorkoutDetail'
+import ExerciseDragHandle from './ExerciseDragHandle'
 import styles from './WorkoutScreen.module.css'
 
 export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onActiveChange }) {
@@ -27,6 +28,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
   } = useWorkout({ state, dispatch })
 
   const M_COLORS = { Грудь:'var(--accent)', Спина:'#3b82f6', Ноги:'#f59e0b', Плечи:'#8b5cf6', Трицепс:'#ec4899', Бицепс:'#f97316', Кор:'#06b6d4', Кардио:'#ef4444' }
+  const MUSCLE_MEDIA = { Грудь:'chest', Спина:'back', Ноги:'legs', Плечи:'shoulders', Трицепс:'triceps', Бицепс:'biceps', Кор:'core', Кардио:'cardio' }
 
   React.useEffect(() => {
     onActiveChange?.(view === 'active')
@@ -94,7 +96,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
 
   if (view === 'builder') {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className={`${styles.builder} app-view-enter`}>
         {showRestTimer && <RestTimer duration={restInfo.duration} exerciseName={restInfo.exercise} setInfo={restInfo.setInfo} onClose={() => setShowRestTimer(false)} />}
         {techFor && <TechniqueModal name={techFor.name} muscle={techFor.muscle} onClose={() => setTechFor(null)} />}
         {pickerFor && wk.exercises[pickerFor.eI] && (
@@ -106,25 +108,28 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
             onSave={(r, w) => { updateSet(pickerFor.eI, pickerFor.sI, 'reps', r); updateSet(pickerFor.eI, pickerFor.sI, 'weight', w); setPickerFor(null) }}
           />
         )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button onClick={() => setView('list')} style={{ width: 36, height: 36, borderRadius: 10, background: '#1a1a1a', border: '1px solid #2e2e2e', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ChevronLeft size={18} color="#9ca3af" />
+        <div className={styles.builderHeading}>
+          <button onClick={() => setView('list')} className={styles.backButton}>
+            <ChevronLeft size={18} />
           </button>
           <span style={{ fontSize: 18, fontWeight: 700 }}>Конструктор</span>
         </div>
-        <input style={{ width: '100%', padding: '13px 16px', background: '#1a1a1a', border: '1px solid #2e2e2e', borderRadius: 14, color: '#f5f5f5', fontSize: 15, fontWeight: 600, outline: 'none', boxSizing: 'border-box' }}
+        <input className={styles.builderName}
           placeholder="Название тренировки" value={wk.name} onChange={e => setWk(w => ({...w, name: e.target.value}))} />
-        <div style={{ background: '#1a1a1a', borderRadius: 16, padding: 14, border: '1px solid #2e2e2e' }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>База упражнений</div>
-          <input style={{ width: '100%', padding: '11px 14px', background: '#222', border: '1px solid #2e2e2e', borderRadius: 10, color: '#f5f5f5', fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10 }} placeholder="Поиск..." value={exSearch} onChange={e => setExSearch(e.target.value)} />
-          <div style={{ maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div className={styles.exerciseLibrary}>
+          <div className={styles.libraryTitle}>Группы мышц</div>
+          <div className={styles.muscleGrid}>
+            {Object.entries(MUSCLE_MEDIA).map(([label, file]) => <button key={label} onClick={() => setExSearch(label)}><img src={`/assets/muscles/${file}.webp`} alt="" /><span>{label}</span></button>)}
+          </div>
+          <input className={styles.librarySearch} placeholder="Поиск упражнения или мышцы..." value={exSearch} onChange={e => setExSearch(e.target.value)} />
+          <div className={styles.libraryList}>
             {filteredEx.map(ex => {
               const alreadyAdded = wk.exercises.some(e => e.exerciseId === ex.id)
               return (
-              <button key={ex.id} onClick={() => addEx(ex)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: alreadyAdded ? 'var(--accent-dim)' : '#222', border: alreadyAdded ? '1px solid var(--accent)' : '1px solid #2a2a2a', borderRadius: 10, cursor: 'pointer', textAlign: 'left' }}>
+              <button key={ex.id} onClick={() => addEx(ex)} className={`${styles.libraryItem} ${alreadyAdded ? styles.libraryItemAdded : ''}`}>
                 <span style={{ padding: '2px 8px', borderRadius: 50, fontSize: 11, color: '#000', background: M_COLORS[ex.muscle] || 'var(--accent)', flexShrink: 0, fontWeight: 600 }}>{ex.muscle}</span>
-                <span style={{ fontSize: 13, color: alreadyAdded ? '#6fcaa0' : '#f5f5f5', flex: 1, fontWeight: alreadyAdded ? 600 : 400 }}>{ex.name}</span>
-                <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 6, flexShrink: 0, fontWeight: 600, ...(ex.eff==='best' ? {background:'var(--accent-dim)', color:'#6fcaa0'} : ex.eff==='good' ? {background:'#2a2a2a', color:'#d1d5db'} : {background:'#262626', color:'#6b7280'}) }}>{EFF_LABEL[ex.eff]}</span>
+                <span className={styles.libraryItemName}>{ex.name}</span>
+                <span className={styles.efficiency}>{EFF_LABEL[ex.eff]}</span>
                 {alreadyAdded ? <Check size={16} color="var(--accent)" /> : <Plus size={16} color="var(--accent)" />}
               </button>
               )
@@ -132,24 +137,22 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
           </div>
         </div>
         {wk.exercises.map((ex, eI) => (
-          <div key={ex.uid || eI} style={{ background: '#1a1a1a', borderRadius: 16, padding: 16, border: '1px solid #2e2e2e' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
-                <button onClick={() => moveExercise(eI, -1)} disabled={eI === 0} style={{ width: 22, height: 18, borderRadius: 5, background: '#222', border: 'none', color: eI === 0 ? '#3a3a3a' : '#9ca3af', cursor: eI === 0 ? 'default' : 'pointer', fontSize: 11, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>▲</button>
-                <button onClick={() => moveExercise(eI, 1)} disabled={eI === wk.exercises.length - 1} style={{ width: 22, height: 18, borderRadius: 5, background: '#222', border: 'none', color: eI === wk.exercises.length - 1 ? '#3a3a3a' : '#9ca3af', cursor: eI === wk.exercises.length - 1 ? 'default' : 'pointer', fontSize: 11, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>▼</button>
-              </div>
+          <div key={ex.uid || eI} className={styles.builderExercise}>
+            <div className={styles.builderExerciseHeader}>
+              <ExerciseDragHandle index={eI} count={wk.exercises.length} onMove={moveExercise} className={styles.dragHandle} />
               <span style={{ padding: '3px 10px', borderRadius: 50, fontSize: 11, color: '#000', background: M_COLORS[ex.muscle] || 'var(--accent)', fontWeight: 600 }}>{ex.muscle}</span>
-              <button onClick={() => setTechFor({ name: ex.name, muscle: ex.muscle })} style={{ fontSize: 15, fontWeight: 600, flex: 1, background: 'transparent', border: 'none', color: '#f5f5f5', textAlign: 'left', cursor: 'pointer', padding: 0 }}>
+              <button onClick={() => setTechFor({ name: ex.name, muscle: ex.muscle })} className={styles.builderExerciseTitle}>
                 {ex.name}
               </button>
-              <button onClick={() => setSwapFor(eI)} style={{ padding: '5px 10px', borderRadius: 8, background: '#222', border: '1px solid #2e2e2e', color: '#9ca3af', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>Заменить</button>
-              <button onClick={() => removeEx(eI)} style={{ width: 28, height: 28, borderRadius: 8, background: '#222', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 18 }}>×</button>
+              <button onClick={() => setTechFor({ name: ex.name, muscle: ex.muscle })} className={styles.techniqueButton}>Техника</button>
+              <button onClick={() => removeEx(eI)} className={styles.removeExercise}>×</button>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-              <span style={{ fontSize: 12, color: '#6b7280' }}>Отдых между подходами:</span>
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Отдых:</span>
               <button onClick={() => updateRest(eI, -15)} style={{ width: 26, height: 26, borderRadius: 7, background: '#222', border: '1px solid #2e2e2e', color: '#9ca3af', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>−</button>
               <span style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, color: 'var(--accent)', minWidth: 44, textAlign: 'center' }}>{fmtTimeLong(ex.restSec || getDefaultRestSec(ex.muscle))}</span>
               <button onClick={() => updateRest(eI, 15)} style={{ width: 26, height: 26, borderRadius: 7, background: '#222', border: '1px solid #2e2e2e', color: '#9ca3af', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>+</button>
+              <button onClick={() => setSwapFor(swapFor === eI ? null : eI)} className={styles.builderSwapButton}>Заменить</button>
             </div>
             {swapFor === eI && (
               <div style={{ background: '#161616', border: '1px solid #2e2e2e', borderRadius: 12, padding: 12, marginBottom: 12 }}>
@@ -187,10 +190,10 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 6 }}>
               {ex.sets.map((set, sI) => (
                 <SwipeToDelete key={set.id || sI} onDelete={() => removeSet(eI, sI)} disabled={ex.sets.length <= 1} radius={8}>
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', background: '#1a1a1a' }}>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', background: 'var(--card-solid)' }}>
                     <div style={{ width: 28, fontSize: 13, color: '#6b7280', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{sI+1}</div>
-                    <button onClick={() => setPickerFor({ eI, sI })} style={{ flex: 1, padding: '9px 4px', background: '#222', border: '1px solid #2e2e2e', borderRadius: 8, color: '#f5f5f5', fontSize: 14, fontFamily: 'var(--mono)', fontWeight: 700, outline: 'none', textAlign: 'center', cursor: 'pointer' }}>{set.reps || '10'}</button>
-                    <button onClick={() => setPickerFor({ eI, sI })} style={{ flex: 1, padding: '9px 4px', background: '#222', border: '1px solid #2e2e2e', borderRadius: 8, color: '#f5f5f5', fontSize: 14, fontFamily: 'var(--mono)', fontWeight: 700, outline: 'none', textAlign: 'center', cursor: 'pointer' }}>{set.weight || '0'}</button>
+                    <button onClick={() => setPickerFor({ eI, sI })} className={styles.builderSetValue}>{set.reps || '10'}</button>
+                    <button onClick={() => setPickerFor({ eI, sI })} className={styles.builderSetValue}>{set.weight || '0'}</button>
                   </div>
                 </SwipeToDelete>
               ))}
@@ -201,7 +204,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
               value={ex.comment || ''}
               onChange={e => updateComment(eI, e.target.value)}
               placeholder="Комментарий к упражнению (необязательно)"
-              style={{ width: '100%', padding: '9px 12px', background: '#161616', border: '1px solid #2a2a2a', borderRadius: 10, color: '#d1d5db', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+              className={styles.builderComment}
             />
           </div>
         ))}
@@ -251,10 +254,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
           return (
           <div key={ex.uid || eI} className={styles.activeExerciseCard}>
             <div className={styles.activeExerciseHeader}>
-              <div className={styles.activeReorder}>
-                <button onClick={() => moveExercise(eI, -1)} disabled={eI === 0}>▲</button>
-                <button onClick={() => moveExercise(eI, 1)} disabled={eI === wk.exercises.length - 1}>▼</button>
-              </div>
+              <ExerciseDragHandle index={eI} count={wk.exercises.length} onMove={moveExercise} className={styles.activeDragHandle} />
               <span className={styles.activeExerciseNumber}>{eI+1}</span>
               {media && <button className={styles.activeExerciseImage} onClick={() => setTechFor({ name: ex.name, muscle: ex.muscle })}><img src={media.start} alt="" /></button>}
               <div className={styles.activeExerciseTitle}>

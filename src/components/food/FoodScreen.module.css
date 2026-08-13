@@ -1,7 +1,7 @@
-.screen { display: flex; flex-direction: column; gap: 10px; padding-bottom: 4px; }
+.screen { display: flex; flex-direction: column; gap: 10px; padding-bottom: 4px; animation: viewFloatIn .24s ease both; }
 .header { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 12px; padding: 0 0 4px; }
 .eyebrow { color: var(--text-muted); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-.headerTitle { min-width: 0; text-align: center; }
+.headerTitle { min-width: 0; text-align: center; background: transparent; }
 .header h1 { color: var(--text); font-size: 18px; font-weight: 800; letter-spacing: -.025em; }
 .header p { margin-top: 2px; color: var(--text-muted); font-size: 11px; font-weight: 650; text-transform: capitalize; }
 .headerButton, .addButton { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; }
@@ -33,7 +33,14 @@
 .macroMeta small { color: var(--text-muted); font-size: 9px; font-weight: 500; }
 .macroTrack { overflow: hidden; height: 5px; border-radius: 99px; background: var(--surface3); }
 .macroTrack span { display: block; height: 100%; border-radius: inherit; transition: width .35s ease; }
-.sectionTabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; padding: 5px; border: 1px solid var(--border); border-radius: 18px; background: var(--card); }
+.daySwitcher { display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; gap: 6px; }
+.daySwitcher > button:not(.dayLabel) { display: grid; place-items: center; width: 40px; height: 40px; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 13px; background: var(--card); }
+.daySwitcher > button:last-child { transform: rotate(180deg); }
+.dayLabel { display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--text); background: transparent; }
+.dayLabel strong { font-size: 13px; font-weight: 800; text-transform: capitalize; }
+.dayLabel span { color: var(--text-muted); font-size: 8px; font-weight: 650; }
+.daySwipe { display: contents; }
+.sectionTabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 5px; border: 1px solid var(--border); border-radius: 18px; background: var(--card); }
 .sectionTabs button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 0; height: 54px; padding: 5px 2px; color: var(--text-muted); border-radius: 13px; background: transparent; }
 .sectionTabs button span { overflow: hidden; max-width: 100%; font-size: 9px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
 .sectionTabs .sectionTabActive { color: var(--accent); border: 1px solid rgba(255,255,255,.08); background: linear-gradient(145deg, #243249, #111a29); box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }

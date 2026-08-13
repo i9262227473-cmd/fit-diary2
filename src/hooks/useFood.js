@@ -51,6 +51,7 @@ function getMealByTime() {
 
 export default function useFood({ state, dispatch, aiCall }) {
   const [tab, setTab] = useState('log')
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0])
   const [logMode, setLogMode] = useState('list')
   const [meal, setMeal] = useState(getMealByTime)
   const [query, setQuery] = useState('')
@@ -68,7 +69,7 @@ export default function useFood({ state, dispatch, aiCall }) {
   const [editingFood, setEditingFood] = useState(null)
 
   const today = new Date().toISOString().split('T')[0]
-  const entry = state.entries.find(item => item.date === today) || { date: today, foods: [], workouts: [] }
+  const entry = state.entries.find(item => item.date === selectedDate) || { date: selectedDate, foods: [], workouts: [] }
   const totals = entry.foods.reduce(
     (total, food) => ({
       cal: total.cal + (food.calories || 0),
@@ -226,7 +227,12 @@ export default function useFood({ state, dispatch, aiCall }) {
     setScanLoading(true)
 
     try {
-      const food = await lookupBarcode(code)
+      const normalizedCode = String(code).match(/(?:01|gtin=)?(\d{8,14})/i)?.[1] || String(code).replace(/\D/g, '')
+      if (normalizedCode.length < 6) {
+        alert('Код распознан, но в нём нет номера продукта. Попробуйте другой код или добавьте продукт вручную.')
+        return
+      }
+      const food = await lookupBarcode(normalizedCode)
 
       if (food && food.cal100 > 0) {
         saveCachedFood(food)
@@ -291,8 +297,8 @@ export default function useFood({ state, dispatch, aiCall }) {
   }
 
   const addAllAiItems = () => {
-    const currentEntry = state.entries.find(item => item.date === today) || {
-      date: today,
+    const currentEntry = state.entries.find(item => item.date === selectedDate) || {
+      date: selectedDate,
       foods: [],
       workouts: [],
     }
@@ -369,6 +375,8 @@ export default function useFood({ state, dispatch, aiCall }) {
     setEditingFood,
     entry,
     totals,
+    selectedDate,
+    setSelectedDate,
     handleSearch,
     addFoodItem,
     addManual,

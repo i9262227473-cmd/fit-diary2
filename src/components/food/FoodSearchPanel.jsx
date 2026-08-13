@@ -32,7 +32,7 @@ export default function FoodSearchPanel({
           type="button"
           onClick={onOpenBarcodeScanner}
           style={{ width: 46, height: 46, background: '#222', border: '1px solid #2e2e2e', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
-          title="Сканировать штрихкод"
+          title="Сканировать QR- или штрихкод"
         >
           <ScanLine size={18} color="#9ca3af" />
         </button>

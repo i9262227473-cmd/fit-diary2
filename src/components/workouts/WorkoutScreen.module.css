@@ -29,6 +29,32 @@
 .emptyHistory small { max-width: 250px; margin: 6px auto 0; color: var(--text-muted); font-size: 10px; line-height: 1.5; }
 @media (max-width: 370px) { .historyActions { gap: 5px; } .historyActions > button { padding-inline: 8px; } .historyActions strong { font-size: 11px; } }
 
+.builder { display: flex; flex-direction: column; gap: 14px; }
+.builderHeading { display: flex; align-items: center; gap: 10px; color: var(--text); }
+.backButton { display: grid; place-items: center; width: 38px; height: 38px; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 12px; background: var(--card-solid); }
+.builderName, .librarySearch, .builderComment { width: 100%; color: var(--text); border: 1px solid var(--border); background: var(--surface2); }
+.builderName { padding: 14px 16px; border-radius: 15px; font-size: 15px; font-weight: 700; }
+.exerciseLibrary, .builderExercise { padding: 14px; border: 1px solid var(--border); border-radius: 19px; background: var(--card-solid); box-shadow: var(--shadow-soft); }
+.libraryTitle { margin-bottom: 10px; color: var(--text); font-size: 13px; font-weight: 800; }
+.muscleGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 11px; }
+.muscleGrid button { position: relative; overflow: hidden; aspect-ratio: 1; border: 1px solid var(--border); border-radius: 13px; background: var(--surface2); }
+.muscleGrid img { width: 100%; height: 100%; object-fit: cover; }
+.muscleGrid span { position: absolute; right: 3px; bottom: 3px; left: 3px; padding: 4px 2px; color: #fff; border-radius: 7px; background: rgba(3, 8, 15, .76); font-size: 8px; font-weight: 800; text-align: center; }
+.librarySearch { margin-bottom: 10px; padding: 11px 13px; border-radius: 11px; font-size: 13px; }
+.libraryList { display: flex; max-height: 235px; flex-direction: column; gap: 5px; overflow-y: auto; }
+.libraryItem { display: flex; align-items: center; gap: 8px; padding: 10px; text-align: left; border: 1px solid var(--border); border-radius: 11px; background: var(--surface2); }
+.libraryItemAdded { border-color: var(--accent); background: var(--accent-dim); }
+.libraryItemName { min-width: 0; flex: 1; color: var(--text); font-size: 12px; font-weight: 700; }
+.efficiency { flex: 0 0 auto; padding: 3px 6px; color: var(--text-secondary); border-radius: 6px; background: var(--surface3); font-size: 8px; font-weight: 800; }
+.builderExerciseHeader { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; }
+.dragHandle, .activeDragHandle { display: grid; place-items: center; flex: 0 0 auto; width: 32px; height: 42px; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 10px; background: var(--surface2); touch-action: none; }
+.builderExerciseTitle { min-width: 0; flex: 1; color: var(--text); background: transparent; font-size: 13px; font-weight: 800; text-align: left; }
+.techniqueButton { padding: 7px 8px; color: var(--accent); border: 1px solid var(--accent); border-radius: 9px; background: var(--accent-dim); font-size: 9px; font-weight: 800; }
+.builderSwapButton { margin-left: auto; padding: 6px 9px; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 9px; background: var(--surface2); font-size: 9px; font-weight: 750; }
+.removeExercise { width: 28px; height: 28px; color: var(--text-muted); border-radius: 9px; background: var(--surface2); font-size: 18px; }
+.builderSetValue { flex: 1; padding: 10px 4px; color: var(--text); border: 1px solid var(--border); border-radius: 9px; background: var(--surface2); font-family: var(--mono); font-size: 14px; font-weight: 800; text-align: center; }
+.builderComment { padding: 11px 12px; border-radius: 11px; font-size: 12px; }
+
 .activeWorkout { display: flex; flex-direction: column; gap: 12px; padding-bottom: 88px; }
 .activeSummary { display: flex; align-items: center; justify-content: space-between; padding: 19px 20px; border: 1px solid var(--border); border-radius: 24px; background: var(--card-solid); box-shadow: var(--shadow-soft); }
 .activeTime { color: var(--accent); font-family: var(--mono); font-size: 36px; font-weight: 800; letter-spacing: -.04em; }
@@ -36,9 +62,7 @@
 .activeWorkoutName { max-width: 45%; color: var(--text); font-size: 13px; font-weight: 750; text-align: right; }
 .activeExerciseCard { overflow: hidden; border: 1px solid var(--border); border-radius: 22px; background: var(--card-solid); box-shadow: var(--shadow-soft); }
 .activeExerciseHeader { display: flex; align-items: center; gap: 9px; padding: 12px; }
-.activeReorder { display: flex; flex: 0 0 auto; flex-direction: column; gap: 3px; }
-.activeReorder button { display: grid; place-items: center; width: 22px; height: 20px; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 7px; background: var(--surface2); font-size: 8px; }
-.activeReorder button:disabled { color: var(--text-muted); opacity: .35; }
+.activeDragHandle { width: 30px; height: 48px; }
 .activeExerciseNumber { min-width: 20px; color: var(--accent); font-family: var(--mono); font-size: 18px; font-weight: 800; text-align: center; }
 .activeExerciseImage { overflow: hidden; flex: 0 0 auto; width: 52px; height: 52px; padding: 0; border: 1px solid var(--border); border-radius: 14px; background: var(--surface2); }
 .activeExerciseImage img { display: block; width: 100%; height: 100%; object-fit: cover; }

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { BookOpen, CalendarDays, ChefHat, Coffee, Cookie, Moon, Plus, Sparkles, Sun, Utensils } from 'lucide-react'
+import { CalendarDays, ChefHat, ChevronLeft, Coffee, Cookie, Moon, Plus, Search, Sparkles, Sun, Utensils } from 'lucide-react'
 import SwipeToDelete from '../common/SwipeToDelete'
 import useFood from '../../hooks/useFood'
 import BarcodeScanner from './BarcodeScanner'
@@ -23,11 +23,16 @@ const MEAL_VISUALS = {
   snack: '/assets/meals/snack-3d.webp',
 }
 const SECTION_TABS = [
-  ['log', 'Дневник', BookOpen],
   ['ai', 'AI-поиск', Sparkles],
-  ['add', 'Добавить', Plus],
+  ['add', 'Поиск и код', Search],
   ['builder', 'Рецепты', ChefHat],
 ]
+
+const shiftIsoDate = (iso, days) => {
+  const date = new Date(`${iso}T12:00:00`)
+  date.setDate(date.getDate() + days)
+  return date.toISOString().split('T')[0]
+}
 
 export default function FoodScreen({ state, dispatch, aiCall, intent }) {
   const food = useFood({ state, dispatch, aiCall })
@@ -36,7 +41,7 @@ export default function FoodScreen({ state, dispatch, aiCall, intent }) {
     selectedFood, setSelectedFood, grams, setGrams, manualMode, setManualMode,
     manual, setManual, aiText, setAiText, aiResults, aiLoading, scanLoading,
     showBarcodeScanner, setShowBarcodeScanner, toast, editingFood, setEditingFood,
-    entry, totals, handleSearch, addFoodItem, addManual, removeFood, updateFood,
+    entry, totals, selectedDate, setSelectedDate, handleSearch, addFoodItem, addManual, removeFood, updateFood,
     handleScan, handleBarcodeDetect, runAI, addAllAiItems, saveRecipe, appendAiText,
   } = food
 
@@ -61,7 +66,17 @@ export default function FoodScreen({ state, dispatch, aiCall, intent }) {
   const ringStyle = {
     background: `conic-gradient(from -90deg, var(--protein) 0 ${proteinEnd}%, var(--amber) ${proteinEnd}% ${fatEnd}%, var(--purple) ${fatEnd}% ${percentage}%, var(--surface3) ${percentage}% 100%)`,
   }
-  const dayTitle = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
+  const dayTitle = new Date(`${selectedDate}T12:00:00`).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
+  const today = new Date().toISOString().split('T')[0]
+  const touchStartX = React.useRef(null)
+  const changeDay = delta => setSelectedDate(current => shiftIsoDate(current, delta))
+  const handleDaySwipeEnd = event => {
+    if (touchStartX.current == null) return
+    const delta = event.changedTouches[0].clientX - touchStartX.current
+    touchStartX.current = null
+    if (Math.abs(delta) < 55) return
+    changeDay(delta < 0 ? 1 : -1)
+  }
   const macros = [
     { label: 'Белки', value: totals.p, max: goals.protein, color: 'var(--protein)' },
     { label: 'Жиры', value: totals.fat, max: goals.fat, color: 'var(--amber)' },
@@ -87,10 +102,17 @@ export default function FoodScreen({ state, dispatch, aiCall, intent }) {
 
       <header className={styles.header}>
         <button className={styles.headerButton} onClick={() => { setTab('log'); setLogMode('calendar') }} aria-label="Открыть календарь"><CalendarDays size={19} /></button>
-        <div className={styles.headerTitle}><h1>Питание</h1><p>Сегодня, {dayTitle}</p></div>
+        <button className={styles.headerTitle} onClick={() => { setTab('log'); setLogMode('list') }}><h1>Питание</h1><p>{selectedDate === today ? 'Сегодня, ' : ''}{dayTitle}</p></button>
         <button className={styles.addButton} onClick={() => setTab('add')} aria-label="Добавить продукт"><Plus size={21} /></button>
       </header>
 
+      <div className={styles.daySwitcher}>
+        <button onClick={() => changeDay(-1)} aria-label="Предыдущий день"><ChevronLeft size={18} /></button>
+        <button className={styles.dayLabel} onClick={() => { setSelectedDate(today); setTab('log') }}><strong>{selectedDate === today ? 'Сегодня' : dayTitle}</strong><span>Свайпните, чтобы сменить день</span></button>
+        <button onClick={() => changeDay(1)} aria-label="Следующий день"><ChevronLeft size={18} /></button>
+      </div>
+
+      <div className={styles.daySwipe} onTouchStart={event => { touchStartX.current = event.touches[0].clientX }} onTouchEnd={handleDaySwipeEnd}>
       <section className={styles.summaryCard}>
         <div className={styles.summaryTop}>
           <div><span className={styles.eyebrow}>Баланс дня</span><h2>Энергия и БЖУ</h2></div>
@@ -125,16 +147,10 @@ export default function FoodScreen({ state, dispatch, aiCall, intent }) {
         </div>
       </section>
 
-      <nav className={styles.sectionTabs} aria-label="Разделы питания">
-        {SECTION_TABS.map(([key, label, Icon]) => (
-          <button key={key} className={tab === key ? styles.sectionTabActive : ''} onClick={() => setTab(key)}><Icon size={16} /><span>{label}</span></button>
-        ))}
-      </nav>
-
       {tab === 'log' && (
         <section className={styles.logSection}>
           <div className={styles.logHeader}>
-            <div><span className={styles.eyebrow}>Сегодня</span><h2>Приёмы пищи</h2></div>
+            <div><span className={styles.eyebrow}>{selectedDate === today ? 'Сегодня' : dayTitle}</span><h2>Приёмы пищи</h2></div>
             <div className={styles.viewToggle}>
               <button className={logMode === 'list' ? styles.viewActive : ''} onClick={() => setLogMode('list')} aria-label="Список"><Utensils size={16} /></button>
               <button className={logMode === 'calendar' ? styles.viewActive : ''} onClick={() => setLogMode('calendar')} aria-label="Календарь"><CalendarDays size={16} /></button>
@@ -145,9 +161,9 @@ export default function FoodScreen({ state, dispatch, aiCall, intent }) {
             <div className={styles.mealList}>
               {entry.foods.length === 0 && (
                 <div className={styles.emptyState}>
-                  <span><Utensils size={25} /></span><h3>Дневник пока пуст</h3>
+                  <span><Utensils size={25} /></span><h3>Записей пока нет</h3>
                   <p>Добавьте первый приём пищи — калории и БЖУ рассчитаются автоматически.</p>
-                  <button onClick={() => setTab('add')}><Plus size={16} /> Добавить продукт</button>
+                  <button onClick={() => setTab('ai')}><Sparkles size={16} /> AI-поиск</button>
                 </div>
               )}
               {Object.entries(MEALS_MAP).map(([mealKey, mealName]) => {
@@ -174,11 +190,18 @@ export default function FoodScreen({ state, dispatch, aiCall, intent }) {
                   </article>
                 )
               })}
-              {entry.foods.length > 0 && <button className={styles.addMeal} onClick={() => setTab('add')}><Plus size={17} /> Добавить приём пищи</button>}
+              {entry.foods.length > 0 && <button className={styles.addMeal} onClick={() => setTab('ai')}><Sparkles size={17} /> Добавить через AI</button>}
             </div>
           )}
         </section>
       )}
+      </div>
+
+      <nav className={styles.sectionTabs} aria-label="Разделы питания">
+        {SECTION_TABS.map(([key, label, Icon]) => (
+          <button key={key} className={tab === key ? styles.sectionTabActive : ''} onClick={() => setTab(key)}><Icon size={16} /><span>{label}</span></button>
+        ))}
+      </nav>
 
       <FoodModule
         tab={tab} meal={meal} meals={MEALS_MAP} mealIcons={MEAL_ICONS} onMealChange={setMeal}
