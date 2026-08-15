@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import { CalendarDays, ChefHat, ChevronLeft, Coffee, Cookie, Moon, Plus, Search, Sparkles, Sun, Utensils } from 'lucide-react'
-import SwipeToDelete from '../common/SwipeToDelete'
+import SwipeActions from '../common/SwipeActions'
 import useFood from '../../hooks/useFood'
 import BarcodeScanner from './BarcodeScanner'
 import EditFoodModal from './EditFoodModal'
@@ -72,7 +72,7 @@ export default function FoodScreen({ state, dispatch, aiCall, intent }) {
   const changeDay = delta => setSelectedDate(current => shiftIsoDate(current, delta))
   const handleDaySwipeStart = event => {
     if (event.pointerType === 'mouse' && event.button !== 0) return
-    if (event.target.closest('button, input, textarea, select, [role="button"]')) return
+    if (event.target.closest(`button, input, textarea, select, [role="button"], .${styles.foodItem}`)) return
     swipeStartX.current = event.clientX
   }
   const handleDaySwipeEnd = event => {
@@ -185,12 +185,12 @@ export default function FoodScreen({ state, dispatch, aiCall, intent }) {
                     </div>
                     <div className={styles.foodItems}>
                       {items.map(item => (
-                        <SwipeToDelete key={item.id} onDelete={() => removeFood(item.id)}>
+                        <SwipeActions key={item.id} onEdit={() => setEditingFood(item)} onDelete={() => removeFood(item.id)} confirmText="Удалить этот продукт?">
                           <div className={styles.foodItem} onClick={() => setEditingFood(item)}>
                             <div><h4>{item.name}</h4><p>{item.weight} г · <span className={styles.protein}>Б {Math.round(item.protein || 0)}</span> <span className={styles.fat}>Ж {Math.round(item.fat || 0)}</span> <span className={styles.carbs}>У {Math.round(item.carbs || 0)}</span></p></div>
                             <strong>{Math.round(item.calories || 0)}</strong>
                           </div>
-                        </SwipeToDelete>
+                        </SwipeActions>
                       ))}
                     </div>
                   </article>
