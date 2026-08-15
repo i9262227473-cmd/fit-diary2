@@ -4,21 +4,13 @@ import {
   CalendarDays,
   Camera,
   ChevronRight,
+  Droplets,
   Mic,
-  Plus,
   ScanLine,
   Search,
-  Sparkles,
   X,
 } from 'lucide-react'
 import styles from './HomeScreen.module.css'
-
-const MEALS = {
-  breakfast: { label: 'Завтрак', image: '/assets/meals/breakfast-3d.webp' },
-  lunch: { label: 'Обед', image: '/assets/meals/lunch-3d.webp' },
-  dinner: { label: 'Ужин', image: '/assets/meals/dinner-3d.webp' },
-  snack: { label: 'Перекус', image: '/assets/meals/snack-3d.webp' },
-}
 
 const FOOD_ACTIONS = [
   { label: 'Описать или сказать', caption: 'AI распознает блюдо по тексту или голосу', Icon: Mic, action: 'ai' },
@@ -80,13 +72,6 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
     setShowFoodActions(false)
     onFoodAction?.(action)
   }
-
-  const mealRows = Object.entries(MEALS).map(([key, meta]) => {
-    const foods = entry.foods.filter(item => item.meal === key)
-    if (!foods.length) return null
-    const calories = Math.round(foods.reduce((sum, item) => sum + (item.calories || 0), 0))
-    return { key, ...meta, foods, calories }
-  }).filter(Boolean)
 
   return (
     <div className={styles.screen}>
@@ -166,53 +151,31 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
         </div>
       </section>
 
-      <button className={styles.foodEntryCard} onClick={() => setShowFoodActions(true)}>
-        <span className={styles.foodIllustration} aria-hidden="true">
-          <span className={styles.foodBowl}>
-            <i className={styles.foodLeaf} />
-            <i className={styles.foodGrain} />
-            <i className={styles.foodBerry} />
-            <b />
+      <div className={styles.featuredGrid}>
+        <button className={`${styles.featureCard} ${styles.foodFeature}`} onClick={() => setShowFoodActions(true)}>
+          <span className={styles.featureHeader}>
+            <small>Питание</small>
+            <ChevronRight size={18} />
           </span>
-          <span className={styles.foodSparkle}>+</span>
-        </span>
-        <span className={styles.foodEntryCopy}>
-          <small>Питание</small>
-          <strong>Добавить еду</strong>
-          <em>Выбрать способ распознавания</em>
-        </span>
-        <ChevronRight size={17} />
-      </button>
+          <span className={styles.foodIllustration} aria-hidden="true">
+            <span className={styles.foodBowl}>
+              <i className={styles.foodLeaf} />
+              <i className={styles.foodGrain} />
+              <i className={styles.foodBerry} />
+              <b />
+            </span>
+          </span>
+          <span className={styles.featureCopy}>
+            <strong>Добавить еду</strong>
+            <em>Выбрать способ</em>
+          </span>
+        </button>
 
-      <section className={styles.mealsSection}>
-        <div className={styles.sectionHeading}>
-          <div><span>Питание</span><h2>Приёмы пищи</h2></div>
-          <button onClick={() => onFoodAction?.('add')}><Plus size={17} /> Добавить</button>
-        </div>
-
-        {mealRows.length > 0 ? (
-          <div className={styles.mealRows}>
-            {mealRows.map(meal => (
-              <button className={styles.mealRow} key={meal.key} onClick={() => onFoodAction?.('log')}>
-                <img src={meal.image} alt="" />
-                <span className={styles.mealCopy}>
-                  <strong>{meal.label}</strong>
-                  <small>{meal.foods.map(food => food.name).join(', ')}</small>
-                </span>
-                <span className={styles.mealCalories}>{meal.calories}<small>ккал</small></span>
-                <ChevronRight size={16} />
-              </button>
-            ))}
-          </div>
-        ) : (
-          <button className={styles.emptyMeal} onClick={() => onFoodAction?.('ai')}>
-            <span><Sparkles size={20} /></span><strong>Добавить первый приём пищи</strong><small>Начать с AI-поиска</small>
-          </button>
-        )}
-      </section>
-
-      <div className={styles.compactGrid}>
-        <button className={styles.compactCard} onClick={() => goTo('workout')}>
+        <button className={`${styles.featureCard} ${styles.workoutFeature}`} onClick={() => goTo('workout')}>
+          <span className={styles.featureHeader}>
+            <small>Тренировка</small>
+            <ChevronRight size={18} />
+          </span>
           <span className={styles.workoutIllustration} aria-hidden="true">
             <span className={styles.dumbbell3d}>
               <span className={styles.dumbbellBar} />
@@ -222,15 +185,25 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
               <span className={`${styles.dumbbellPlate} ${styles.plateOuterRight}`} />
             </span>
           </span>
-          <span><small>Тренировка</small><strong>{currentWorkout?.name || 'Открыть план'}</strong>{workoutExerciseCount > 0 && <em>{workoutExerciseCount} упражнений{currentWorkout?.duration ? ` · ${currentWorkout.duration} мин` : ''}</em>}</span>
-          <ChevronRight size={17} />
+          <span className={styles.featureCopy}>
+            <strong>{currentWorkout?.name || 'Открыть план'}</strong>
+            <em>{workoutExerciseCount > 0 ? `${workoutExerciseCount} упражнений${currentWorkout?.duration ? ` · ${currentWorkout.duration} мин` : ''}` : 'План на сегодня'}</em>
+          </span>
         </button>
-        <section className={styles.compactCard}>
-          <span className={styles.waterGlass} aria-hidden="true"><i style={{ height: `${waterPercent}%` }} /><b /></span>
-          <span><small>Вода</small><strong>{water.consumed} / {water.goal} стаканов</strong><em>{Math.max(water.goal - water.consumed, 0) > 0 ? `Осталось ${Math.max(water.goal - water.consumed, 0) * 250} мл` : 'Цель выполнена'}</em></span>
-          <button className={styles.waterAdd} onClick={() => dispatch({ type: 'SET_WATER', val: Math.min(water.consumed + 1, water.goal) })} aria-label="Добавить стакан"><Plus size={17} /></button>
-        </section>
       </div>
+
+      <section className={styles.waterCard}>
+        <span className={styles.waterGlass} aria-hidden="true"><i style={{ height: `${waterPercent}%` }} /><b /></span>
+        <span className={styles.waterCopy}>
+          <small>Вода</small>
+          <strong>{water.consumed} / {water.goal} стаканов</strong>
+          <em>{Math.max(water.goal - water.consumed, 0) > 0 ? `Осталось ${Math.max(water.goal - water.consumed, 0) * 250} мл` : 'Цель выполнена'}</em>
+        </span>
+        <button className={styles.waterDose} onClick={() => dispatch({ type: 'SET_WATER', val: Math.min(water.consumed + 1, water.goal) })} aria-label="Добавить 250 миллилитров воды">
+          <Droplets size={16} />
+          <span>250 мл</span>
+        </button>
+      </section>
     </div>
   )
 }

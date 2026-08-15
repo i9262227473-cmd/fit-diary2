@@ -27,22 +27,27 @@
 .macroRow strong { display: block; margin-top: 0; color: var(--text); font-size: 19px; font-weight: 780; letter-spacing: -.025em; }
 .macroRow small { color: var(--text-secondary); font-size: 13px; font-weight: 550; }
 
-.foodEntryCard { display: flex; width: 100%; min-height: 88px; align-items: center; gap: 12px; padding: 12px 14px; text-align: left; border: 1px solid var(--border); border-radius: 17px; background: var(--card); box-shadow: inset 0 1px 0 rgba(255,255,255,.035); }
-.foodIllustration { position: relative; display: grid; place-items: center; overflow: hidden; flex: 0 0 auto; width: 62px; height: 62px; border: 1px solid color-mix(in srgb, var(--amber) 27%, var(--border)); border-radius: 15px; background: radial-gradient(circle at 34% 28%, color-mix(in srgb, var(--amber) 22%, transparent), transparent 40%), linear-gradient(145deg, color-mix(in srgb, var(--surface3) 88%, var(--amber) 12%), var(--card-solid)); box-shadow: inset 0 1px 0 rgba(255,255,255,.09), inset 0 -7px 14px rgba(0,0,0,.16), 0 7px 15px rgba(4,10,20,.2); }
+.featuredGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.featureCard { position: relative; display: flex; overflow: hidden; min-width: 0; min-height: 194px; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 14px; text-align: left; border: 1px solid var(--border); border-radius: 20px; background: var(--card); box-shadow: var(--shadow-soft), inset 0 1px 0 rgba(255,255,255,.045); }
+.featureCard::after { content: ''; position: absolute; top: -28px; right: -18px; width: 92px; height: 78px; border-radius: 50%; background: rgba(255,255,255,.04); filter: blur(18px); pointer-events: none; }
+.foodFeature { background: radial-gradient(circle at 48% 45%, color-mix(in srgb, var(--amber) 8%, transparent), transparent 42%), linear-gradient(150deg, var(--surface2), var(--card-solid)); }
+.workoutFeature { background: radial-gradient(circle at 48% 45%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 42%), linear-gradient(150deg, var(--surface2), var(--card-solid)); }
+.featureHeader { position: relative; z-index: 2; display: flex; width: 100%; align-items: center; justify-content: space-between; color: var(--text-muted); }
+.featureHeader small { font-size: 10px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+.featureHeader svg { flex: 0 0 auto; }
+.featureCopy { position: relative; z-index: 2; display: block; min-width: 0; width: 100%; }
+.featureCopy strong { display: block; overflow: hidden; color: var(--text); font-size: 17px; font-weight: 780; line-height: 1.12; letter-spacing: -.02em; text-overflow: ellipsis; }
+.featureCopy em { display: block; overflow: hidden; margin-top: 5px; color: var(--text-muted); font-size: 10px; font-style: normal; font-weight: 600; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+
+.foodIllustration { position: relative; display: grid; place-items: center; overflow: hidden; flex: 0 0 auto; width: 84px; height: 84px; margin: 0 auto; border: 1px solid color-mix(in srgb, var(--amber) 27%, var(--border)); border-radius: 20px; background: radial-gradient(circle at 34% 28%, color-mix(in srgb, var(--amber) 22%, transparent), transparent 40%), linear-gradient(145deg, color-mix(in srgb, var(--surface3) 88%, var(--amber) 12%), var(--card-solid)); box-shadow: inset 0 1px 0 rgba(255,255,255,.09), inset 0 -7px 14px rgba(0,0,0,.16), 0 7px 15px rgba(4,10,20,.2); }
 .foodIllustration::after { content: ''; position: absolute; right: 8px; bottom: 7px; width: 39px; height: 7px; border-radius: 50%; background: rgba(0,0,0,.34); filter: blur(3px); }
-.foodBowl { position: relative; z-index: 1; display: block; width: 44px; height: 35px; margin-top: 5px; border-radius: 50%; background: radial-gradient(ellipse at 50% 42%, #263222 0 39%, #d5e2d4 41% 47%, #819087 49% 53%, transparent 55%); filter: drop-shadow(0 5px 4px rgba(0,0,0,.34)); }
+.foodBowl { position: relative; z-index: 1; display: block; width: 44px; height: 35px; margin-top: 5px; border-radius: 50%; background: radial-gradient(ellipse at 50% 42%, #263222 0 39%, #d5e2d4 41% 47%, #819087 49% 53%, transparent 55%); filter: drop-shadow(0 5px 4px rgba(0,0,0,.34)); transform: scale(1.2); }
 .foodBowl::after { content: ''; position: absolute; right: 5px; bottom: 1px; left: 5px; height: 18px; border: 1px solid rgba(255,255,255,.24); border-top: 0; border-radius: 4px 4px 18px 18px; background: linear-gradient(160deg, #dce8df 0%, #7c9084 50%, #31443a 100%); box-shadow: inset 5px 0 7px rgba(255,255,255,.2), inset -4px -3px 6px rgba(0,0,0,.18); }
 .foodBowl > i { position: absolute; z-index: 2; display: block; }
 .foodLeaf { top: 5px; left: 9px; width: 13px; height: 7px; border-radius: 12px 2px 12px 2px; background: linear-gradient(135deg, #9bed70, #287e39); transform: rotate(-18deg); }
 .foodGrain { top: 8px; right: 8px; width: 14px; height: 8px; border-radius: 50%; background: radial-gradient(circle at 28% 30%, #fff1a8 0 12%, transparent 14%), radial-gradient(circle at 68% 64%, #f1ca59 0 18%, transparent 20%), #bd8a2d; }
 .foodBerry { top: 6px; left: 20px; width: 8px; height: 8px; border-radius: 50%; background: radial-gradient(circle at 32% 25%, #ffb0a6, #df493b 45%, #722117); box-shadow: 0 1px 2px rgba(0,0,0,.35); }
 .foodBowl > b { position: absolute; z-index: 3; top: 2px; left: 12px; width: 14px; height: 3px; border-radius: 50%; background: rgba(255,255,255,.36); transform: rotate(-12deg); }
-.foodSparkle { position: absolute; z-index: 3; top: 7px; right: 8px; color: var(--amber); font-size: 15px; font-weight: 500; line-height: 1; text-shadow: 0 0 8px color-mix(in srgb, var(--amber) 60%, transparent); }
-.foodEntryCopy { min-width: 0; flex: 1; }
-.foodEntryCopy small { display: block; color: var(--text-muted); font-size: 10px; font-weight: 650; }
-.foodEntryCopy strong { display: block; overflow: hidden; margin-top: 3px; color: var(--text); font-size: 15px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
-.foodEntryCopy em { display: block; margin-top: 4px; color: var(--text-muted); font-size: 9px; font-style: normal; font-weight: 600; }
-.foodEntryCard > svg { flex: 0 0 auto; color: var(--text-muted); }
 
 .foodActionsBackdrop { position: fixed; z-index: 800; inset: 0; display: flex; align-items: flex-end; justify-content: center; background: rgba(0,0,0,.58); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); }
 .foodActionsSheet { width: 100%; max-width: 480px; padding: 8px 16px calc(18px + env(safe-area-inset-bottom, 0px)); border: 1px solid var(--border); border-bottom: 0; border-radius: 26px 26px 0 0; background: var(--bg); box-shadow: 0 -20px 50px rgba(0,0,0,.3); animation: sheetFloatIn .26s cubic-bezier(.2,.75,.2,1) both; }
@@ -61,31 +66,10 @@
 .foodActionList small { margin-top: 3px; color: var(--text-muted); font-size: 9px; line-height: 1.35; }
 .foodActionList > button > svg { flex: 0 0 auto; color: var(--text-muted); }
 
-.mealsSection { padding: 16px; border: 1px solid var(--border); border-radius: 22px; background: linear-gradient(155deg, var(--surface2), var(--card-solid)); box-shadow: var(--shadow-soft); }
-.sectionHeading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
-.sectionHeading > div span { color: var(--text-muted); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-.sectionHeading h2 { margin-top: 3px; color: var(--text); font-size: 20px; font-weight: 800; letter-spacing: -.025em; }
-.sectionHeading button { display: flex; align-items: center; gap: 5px; padding: 8px 10px; color: var(--accent); border-radius: 11px; background: var(--accent-dim); font-size: 11px; font-weight: 750; }
-.mealRows { display: flex; flex-direction: column; gap: 7px; }
-.mealRow { display: flex; align-items: center; gap: 12px; width: 100%; min-width: 0; padding: 8px; text-align: left; border: 1px solid var(--border); border-radius: 16px; background: var(--card); }
-.mealRow img { flex: 0 0 auto; width: 60px; height: 60px; object-fit: cover; border: 1px solid rgba(255, 255, 255, .08); border-radius: 14px; background: #111a29; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 5px 11px rgba(4, 10, 20, .18); }
-.mealCopy { min-width: 0; flex: 1; }
-.mealCopy strong { display: block; color: var(--text); font-size: 15px; font-weight: 750; }
-.mealCopy small { display: block; overflow: hidden; margin-top: 4px; color: var(--text-muted); font-size: 11px; font-weight: 550; text-overflow: ellipsis; white-space: nowrap; }
-.mealCalories { flex: 0 0 auto; color: var(--text); font-family: var(--mono); font-size: 14px; font-weight: 600; text-align: right; }
-.mealCalories small { display: block; margin-top: 1px; color: var(--text-muted); font-size: 9px; font-weight: 500; }
-.mealRow > svg { flex: 0 0 auto; color: var(--text-muted); }
-.emptyMeal { display: flex; flex-direction: column; align-items: center; width: 100%; padding: 22px 14px; border: 1px dashed var(--border-strong); border-radius: 17px; background: var(--card); }
-.emptyMeal > span { display: grid; place-items: center; width: 40px; height: 40px; color: var(--accent); border-radius: 13px; background: var(--accent-dim); }
-.emptyMeal strong { margin-top: 9px; color: var(--text); font-size: 11px; font-weight: 750; }
-.emptyMeal small { margin-top: 3px; color: var(--text-muted); font-size: 8px; }
-
-.compactGrid { display: flex; flex-direction: column; gap: 7px; }
-.compactCard { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 12px 14px; text-align: left; border: 1px solid var(--border); border-radius: 17px; background: var(--card); }
-.workoutIllustration { position: relative; display: grid; place-items: center; overflow: hidden; flex: 0 0 auto; width: 62px; height: 62px; border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border)); border-radius: 15px; background: radial-gradient(circle at 34% 28%, color-mix(in srgb, var(--accent-bright) 22%, transparent), transparent 39%), linear-gradient(145deg, color-mix(in srgb, var(--surface3) 82%, var(--accent) 18%), var(--card-solid)); box-shadow: inset 0 1px 0 rgba(255,255,255,.09), inset 0 -7px 14px rgba(0,0,0,.16), 0 7px 15px rgba(4,10,20,.2); }
-.workoutIllustration::before { content: ''; position: absolute; width: 43px; height: 38px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 14%, transparent); box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 19%, transparent); filter: blur(1px); }
+.workoutIllustration { position: relative; display: grid; place-items: center; overflow: hidden; flex: 0 0 auto; width: 84px; height: 84px; margin: 0 auto; border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border)); border-radius: 20px; background: radial-gradient(circle at 34% 28%, color-mix(in srgb, var(--accent-bright) 22%, transparent), transparent 39%), linear-gradient(145deg, color-mix(in srgb, var(--surface3) 82%, var(--accent) 18%), var(--card-solid)); box-shadow: inset 0 1px 0 rgba(255,255,255,.09), inset 0 -7px 14px rgba(0,0,0,.16), 0 7px 15px rgba(4,10,20,.2); }
+.workoutIllustration::before { content: ''; position: absolute; width: 43px; height: 38px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 14%, transparent); box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 19%, transparent); filter: blur(1px); transform: scale(1.25); }
 .workoutIllustration::after { content: ''; position: absolute; right: 8px; bottom: 8px; width: 31px; height: 6px; border-radius: 50%; background: rgba(0,0,0,.4); filter: blur(3px); transform: rotate(-13deg); }
-.dumbbell3d { position: relative; z-index: 1; display: block; width: 44px; height: 31px; filter: drop-shadow(0 4px 4px rgba(0,0,0,.35)); transform: rotate(-14deg); }
+.dumbbell3d { position: relative; z-index: 1; display: block; width: 44px; height: 31px; filter: drop-shadow(0 4px 4px rgba(0,0,0,.35)); transform: rotate(-14deg) scale(1.25); }
 .dumbbellBar { position: absolute; z-index: 1; top: 13px; right: 5px; left: 5px; height: 5px; border: 1px solid rgba(214,255,221,.3); border-radius: 99px; background: linear-gradient(180deg, #d9f4dd 0%, #73947c 37%, #294534 69%, #9bbca3 100%); box-shadow: inset 0 1px 1px rgba(255,255,255,.55), 0 1px 2px rgba(0,0,0,.4); }
 .dumbbellPlate { position: absolute; z-index: 2; display: block; border: 1px solid rgba(176,255,172,.26); background: linear-gradient(90deg, #173724 0%, #3d9950 34%, #79e06e 59%, #29693d 82%, #112b1c 100%); box-shadow: inset 2px 0 2px rgba(255,255,255,.13), inset -2px 0 3px rgba(0,0,0,.32), 0 1px 2px rgba(0,0,0,.32); }
 .dumbbellPlate::before { content: ''; position: absolute; top: 2px; bottom: 2px; left: 2px; width: 2px; border-radius: 99px; background: rgba(218,255,214,.32); }
@@ -93,12 +77,14 @@
 .plateInnerLeft { top: 6px; left: 7px; width: 7px; height: 19px; border-radius: 4px 3px 3px 4px; }
 .plateInnerRight { top: 6px; right: 7px; width: 7px; height: 19px; border-radius: 3px 4px 4px 3px; }
 .plateOuterRight { top: 3px; right: 0; width: 8px; height: 25px; border-radius: 3px 5px 5px 3px; }
-.compactCard > span:nth-child(2) { min-width: 0; flex: 1; }
-.compactCard small { display: block; color: var(--text-muted); font-size: 10px; font-weight: 650; }
-.compactCard strong { display: block; overflow: hidden; margin-top: 3px; color: var(--text); font-size: 14px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
-.compactCard em { display: block; margin-top: 4px; color: var(--text-muted); font-size: 9px; font-style: normal; font-weight: 600; }
-.compactCard > svg { flex: 0 0 auto; color: var(--text-muted); }
-.waterAdd { display: grid; place-items: center; flex: 0 0 auto; width: 30px; height: 30px; color: var(--teal); border-radius: 10px; background: color-mix(in srgb, var(--teal) 12%, transparent); }
+
+.waterCard { display: flex; width: 100%; min-height: 88px; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 17px; background: radial-gradient(circle at 20% 50%, color-mix(in srgb, var(--teal) 7%, transparent), transparent 36%), var(--card); box-shadow: inset 0 1px 0 rgba(255,255,255,.035); }
+.waterCopy { min-width: 0; flex: 1; }
+.waterCopy small { display: block; color: var(--text-muted); font-size: 10px; font-weight: 650; }
+.waterCopy strong { display: block; overflow: hidden; margin-top: 3px; color: var(--text); font-size: 15px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+.waterCopy em { display: block; overflow: hidden; margin-top: 4px; color: var(--text-muted); font-size: 9px; font-style: normal; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.waterDose { display: flex; flex: 0 0 auto; min-width: 68px; height: 48px; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--teal); border: 1px solid color-mix(in srgb, var(--teal) 20%, var(--border)); border-radius: 14px; background: color-mix(in srgb, var(--teal) 11%, transparent); }
+.waterDose span { font-family: var(--mono); font-size: 10px; font-weight: 750; }
 .waterGlass { position: relative; overflow: hidden; flex: 0 0 auto; width: 48px; height: 58px; margin-inline: 7px; border: 2px solid color-mix(in srgb, var(--teal) 38%, var(--border)); border-top-width: 3px; border-radius: 9px 9px 15px 15px; background: linear-gradient(105deg, rgba(255,255,255,.19), rgba(255,255,255,.03) 42%, rgba(255,255,255,.13)); box-shadow: inset 7px 0 10px rgba(255,255,255,.08), 0 6px 13px rgba(10,80,120,.13); }
 .waterGlass::before { content: ''; position: absolute; z-index: 3; top: -1px; right: 3px; left: 3px; height: 5px; border: 1px solid color-mix(in srgb, var(--teal) 35%, transparent); border-radius: 50%; background: rgba(255,255,255,.2); }
 .waterGlass > i { position: absolute; right: 2px; bottom: 2px; left: 2px; min-height: 3px; border-radius: 4px 4px 12px 12px; background: linear-gradient(180deg, #6bdcff, #1689c1); box-shadow: inset 0 4px 7px rgba(255,255,255,.25); transition: height .35s ease; }
@@ -112,6 +98,11 @@
   .ringInner strong { font-size: 32px; }
   .ringInner small { margin-top: 4px; padding-top: 4px; font-size: 9px; }
   .macroRow { padding-inline: 6px; }
+  .featureCard { min-height: 184px; padding: 12px; }
+  .featureCopy strong { font-size: 16px; }
+  .waterCard { gap: 9px; padding-inline: 11px; }
+  .waterGlass { margin-inline: 3px; }
+  .waterDose { min-width: 62px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
