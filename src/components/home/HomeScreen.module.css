@@ -91,6 +91,20 @@
 .waterGlass > i::before { content: ''; position: absolute; top: -3px; right: 0; left: 0; height: 6px; border-radius: 50%; background: #8be6ff; }
 .waterGlass > b { position: absolute; z-index: 4; top: 8px; left: 7px; width: 5px; height: 31px; border-radius: 99px; background: rgba(255,255,255,.38); filter: blur(.4px); }
 
+.assistantCard { position: relative; display: grid; overflow: hidden; min-height: 196px; grid-template-columns: minmax(0, 1.35fr) minmax(112px, .65fr); align-items: center; gap: 6px; margin-top: 12px; padding: 20px; border: 1px solid color-mix(in srgb, var(--purple) 34%, var(--border)); border-radius: 22px; background: radial-gradient(circle at 88% 28%, color-mix(in srgb, var(--purple) 18%, transparent), transparent 30%), linear-gradient(145deg, color-mix(in srgb, var(--purple) 7%, var(--surface2)), var(--card-solid)); box-shadow: 0 18px 42px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.055); }
+.assistantCard::after { content: ''; position: absolute; z-index: 0; right: 8%; bottom: -30px; width: 150px; height: 80px; border-radius: 50%; background: color-mix(in srgb, var(--purple) 13%, transparent); filter: blur(24px); pointer-events: none; }
+.assistantContent { position: relative; z-index: 2; min-width: 0; }
+.assistantEyebrow { display: flex; align-items: center; gap: 6px; color: color-mix(in srgb, var(--purple) 72%, var(--text)); font-size: 9px; font-weight: 850; letter-spacing: .11em; }
+.assistantContent h2 { margin-top: 9px; color: var(--text); font-size: 19px; font-weight: 800; line-height: 1.16; letter-spacing: -.025em; }
+.assistantContent p { display: -webkit-box; overflow: hidden; margin-top: 8px; color: var(--text-secondary); font-size: 10px; font-weight: 550; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.assistantContent button { margin-top: 14px; padding: 10px 13px; color: var(--text); border: 1px solid color-mix(in srgb, var(--purple) 30%, var(--border)); border-radius: 12px; background: linear-gradient(145deg, color-mix(in srgb, var(--purple) 13%, var(--surface3)), var(--card)); font-size: 10px; font-weight: 760; box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
+.assistantOrb { position: relative; z-index: 1; width: 112px; height: 112px; justify-self: end; border: 1px solid color-mix(in srgb, var(--purple) 38%, rgba(255,255,255,.12)); border-radius: 50%; background: radial-gradient(circle at 32% 22%, rgba(255,255,255,.28), transparent 20%), radial-gradient(circle at 64% 68%, color-mix(in srgb, var(--purple) 38%, transparent), transparent 44%), linear-gradient(145deg, color-mix(in srgb, var(--purple) 30%, #27304a), #101827 66%, #080e19); box-shadow: inset 10px 10px 22px rgba(255,255,255,.08), inset -14px -18px 28px rgba(0,0,0,.34), 0 0 28px color-mix(in srgb, var(--purple) 18%, transparent); }
+.assistantOrb::before, .assistantOrb::after, .assistantOrb i, .assistantOrb b { content: ''; position: absolute; display: block; border: 2px solid rgba(232,225,255,.42); border-radius: 50%; }
+.assistantOrb::before { inset: 20px 7px 31px 13px; transform: rotate(18deg); box-shadow: inset 0 4px 10px rgba(255,255,255,.08); }
+.assistantOrb::after { inset: 36px 12px 15px 8px; transform: rotate(-17deg); border-color: color-mix(in srgb, var(--purple) 52%, rgba(255,255,255,.35)); }
+.assistantOrb i { inset: 10px 28px 12px 33px; transform: rotate(42deg); border-color: rgba(255,255,255,.24); }
+.assistantOrb b { top: -9px; right: 12px; width: 4px; height: 4px; border: 0; background: color-mix(in srgb, var(--purple) 62%, white); box-shadow: -15px 22px 0 -1px rgba(255,255,255,.45), 17px 32px 0 -1px color-mix(in srgb, var(--purple) 50%, white), -88px 52px 0 -1px rgba(255,255,255,.35); }
+
 @media (max-width: 370px) {
   .balanceCard { gap: 12px; padding-inline: 14px; }
   .macroRing { width: 154px; height: 154px; }
@@ -103,6 +117,9 @@
   .waterCard { gap: 9px; padding-inline: 11px; }
   .waterGlass { margin-inline: 3px; }
   .waterDose { min-width: 62px; }
+  .assistantCard { min-height: 184px; grid-template-columns: minmax(0, 1fr) 92px; padding: 17px 15px; }
+  .assistantContent h2 { font-size: 17px; }
+  .assistantOrb { width: 92px; height: 92px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

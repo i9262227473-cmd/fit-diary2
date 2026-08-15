@@ -8,9 +8,11 @@ import {
   Mic,
   ScanLine,
   Search,
+  Sparkles,
   X,
 } from 'lucide-react'
 import styles from './HomeScreen.module.css'
+import HomeAssistantSheet from './HomeAssistantSheet'
 
 const FOOD_ACTIONS = [
   { label: 'Описать или сказать', caption: 'AI распознает блюдо по тексту или голосу', Icon: Mic, action: 'ai' },
@@ -36,9 +38,66 @@ const MACRO_ARCS = [
   { start: 125, end: 235 },
 ]
 
+function getHomeInsight({ entry, totals, goals, water }) {
+  const foods = entry.foods || []
+  const workouts = entry.workouts || []
+  const caloriesRemaining = Math.max(Math.round(goals.calories - totals.calories), 0)
+  const proteinRemaining = Math.max(Math.round(goals.protein - totals.protein), 0)
+  const waterRemaining = Math.max(water.goal - water.consumed, 0)
+
+  if (foods.length === 0) {
+    return {
+      title: 'Ваш план на сегодня',
+      body: 'Добавьте первый приём пищи. Я рассчитаю КБЖУ и подскажу, что улучшить.',
+      action: 'food',
+      actionLabel: 'Добавить еду',
+    }
+  }
+
+  if (totals.calories > goals.calories) {
+    return {
+      title: 'Дневная цель достигнута',
+      body: `Сейчас записано ${Math.round(totals.calories)} ккал. Помощник подскажет, как спокойно завершить день без жёстких ограничений.`,
+    }
+  }
+
+  if (proteinRemaining > 0 && totals.calories >= goals.calories * .35) {
+    return {
+      title: `Осталось ${proteinRemaining} г белка`,
+      body: `До цели по калориям остаётся ${caloriesRemaining} ккал. Подберём следующий приём пищи с нужным количеством белка.`,
+      action: 'food',
+      actionLabel: 'Добавить еду',
+    }
+  }
+
+  if (waterRemaining > 0 && water.consumed < water.goal * .55) {
+    return {
+      title: 'Стоит добавить воды',
+      body: `Выпито ${water.consumed} из ${water.goal} стаканов. До дневной цели остаётся ${waterRemaining * 250} мл.`,
+      action: 'water',
+      actionLabel: 'Добавить 250 мл',
+    }
+  }
+
+  if (workouts.length === 0) {
+    return {
+      title: 'Тренировка ещё впереди',
+      body: 'Откройте план на сегодня или спросите помощника, как скорректировать нагрузку и восстановление.',
+      action: 'workout',
+      actionLabel: 'Открыть план',
+    }
+  }
+
+  return {
+    title: 'День идёт по плану',
+    body: `Осталось ${caloriesRemaining} ккал и ${proteinRemaining} г белка. Можно получить итоговую рекомендацию по питанию и восстановлению.`,
+  }
+}
+
 export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall, CalendarView }) {
   const [showCalendar, setShowCalendar] = useState(false)
   const [showFoodActions, setShowFoodActions] = useState(false)
+  const [showAssistant, setShowAssistant] = useState(false)
   const today = new Date().toISOString().split('T')[0]
   const entry = state.entries.find(item => item.date === today) || { date: today, foods: [], workouts: [] }
   const goals = {
@@ -67,10 +126,23 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
   const water = state.water
   const waterPercent = water.goal > 0 ? Math.min(water.consumed / water.goal * 100, 100) : 0
   const workoutExerciseCount = currentWorkout?.exercisesDetail?.length || currentWorkout?.exercises?.length || 0
+  const insight = getHomeInsight({ entry, totals, goals, water })
 
   const chooseFoodAction = action => {
     setShowFoodActions(false)
     onFoodAction?.(action)
+  }
+
+  const runInsightAction = () => {
+    if (insight.action === 'food') {
+      setShowAssistant(false)
+      onFoodAction?.('ai')
+    } else if (insight.action === 'workout') {
+      setShowAssistant(false)
+      goTo('workout')
+    } else if (insight.action === 'water') {
+      dispatch({ type: 'SET_WATER', val: Math.min(water.consumed + 1, water.goal) })
+    }
   }
 
   return (
@@ -82,6 +154,19 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
       </header>
 
       {showCalendar && CalendarView && <CalendarView state={state} dispatch={dispatch} aiCall={aiCall} onClose={() => setShowCalendar(false)} />}
+      {showAssistant && (
+        <HomeAssistantSheet
+          state={state}
+          entry={entry}
+          totals={totals}
+          goals={goals}
+          water={water}
+          insight={insight}
+          aiCall={aiCall}
+          onClose={() => setShowAssistant(false)}
+          onContextAction={runInsightAction}
+        />
+      )}
       {showFoodActions && (
         <div className={styles.foodActionsBackdrop} onClick={() => setShowFoodActions(false)}>
           <div className={styles.foodActionsSheet} onClick={event => event.stopPropagation()}>
@@ -203,6 +288,16 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
           <Droplets size={16} />
           <span>250 мл</span>
         </button>
+      </section>
+
+      <section className={styles.assistantCard}>
+        <div className={styles.assistantContent}>
+          <div className={styles.assistantEyebrow}><Sparkles size={14} />AI-ПОМОЩНИК</div>
+          <h2>{insight.title}</h2>
+          <p>{insight.body}</p>
+          <button onClick={() => setShowAssistant(true)}>Открыть помощника</button>
+        </div>
+        <div className={styles.assistantOrb} aria-hidden="true"><i /><b /></div>
       </section>
     </div>
   )
