@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronRight, Send, Sparkles, X } from 'lucide-react'
 import styles from './HomeAssistantSheet.module.css'
 
@@ -100,7 +101,7 @@ export default function HomeAssistantSheet({
     false,
   )
 
-  return (
+  return createPortal(
     <div className={styles.backdrop} onClick={onClose}>
       <section className={styles.sheet} onClick={event => event.stopPropagation()} aria-label="AI-помощник">
         <div className={styles.handle} />
@@ -161,6 +162,7 @@ export default function HomeAssistantSheet({
           <button onClick={() => ask()} disabled={!input.trim() || loading} aria-label="Отправить"><Send size={18} /></button>
         </div>
       </section>
-    </div>
+    </div>,
+    document.body,
   )
 }
