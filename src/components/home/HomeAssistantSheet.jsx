@@ -1,36 +1,48 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { ChevronRight, Send, Sparkles, X } from 'lucide-react'
 import styles from './HomeAssistantSheet.module.css'
 
 const QUICK_QUESTIONS = [
   'Оцени моё питание сегодня',
   'Что лучше съесть дальше?',
-  'Как улучшить восстановление?',
+  'Учти мои ограничения',
+  'Как скорректировать тренировку?',
 ]
+
+const MAX_QUESTION_LENGTH = 500
+const MAX_HISTORY_MESSAGES = 6
+const MAX_RESPONSE_TOKENS = 180
 
 function buildContext({ state, entry, totals, goals, water }) {
   const profile = state.profile || {}
-  const foods = (entry.foods || [])
+  const foodEntries = entry.foods || []
+  const foods = foodEntries
+    .slice(-8)
     .map(food => `${food.name}: ${Math.round(food.calories || 0)} ккал, Б ${Math.round(food.protein || 0)} г, Ж ${Math.round(food.fat || 0)} г, У ${Math.round(food.carbs || 0)} г`)
     .join('; ') || 'пока ничего не записано'
-  const workouts = (entry.workouts || [])
+  const foodSummary = foodEntries.length > 8
+    ? `${foods}; ещё записей: ${foodEntries.length - 8}`
+    : foods
+  const workoutEntries = entry.workouts || []
+  const workouts = workoutEntries
+    .slice(-3)
     .map(workout => `${workout.name || workout.type || 'Тренировка'}${workout.duration ? `, ${workout.duration} мин` : ''}`)
     .join('; ') || 'тренировок сегодня не записано'
   const userGoals = Array.isArray(profile.goals) ? profile.goals.join(', ') : (profile.goals || 'не указаны')
-  const limitations = profile.hasLimitations && profile.limitationsText
-    ? profile.limitationsText
-    : 'не указаны'
+  const limitations = profile.limitationsText?.trim() || 'не указаны'
 
-  return `Ты AI-помощник приложения Fit Diary. Отвечай по-русски, конкретно, доброжелательно и без критики. Давай практичные рекомендации только по имеющимся данным. Не ставь медицинские диагнозы. При упомянутых ограничениях не предлагай рискованные нагрузки и советуй согласовать существенные изменения с врачом.
+  return `Ты узкопрофильный AI-помощник приложения Fit Diary. Отвечай только о тренировках, технике упражнений, питании, воде, восстановлении и ограничениях физической активности. На вопросы вне этих тем ответь одной фразой: «Я отвечаю только о питании, тренировках и восстановлении».
+
+Учитывай ограничения пользователя прежде любой рекомендации. Не ставь диагнозы, не назначай и не отменяй лекарства, не предлагай стероиды, опасные нагрузки или лечение. При тревожных симптомах рекомендуй прекратить нагрузку и обратиться за медицинской помощью.
 
 Профиль: возраст ${profile.age || 'не указан'}, рост ${profile.height || 'не указан'} см, вес ${profile.weight || 'не указан'} кг, цели: ${userGoals}, ограничения: ${limitations}.
 Цели на день: ${goals.calories} ккал, белки ${goals.protein} г, жиры ${goals.fat} г, углеводы ${goals.carbs} г.
 Факт за сегодня: ${Math.round(totals.calories)} ккал, белки ${Math.round(totals.protein)} г, жиры ${Math.round(totals.fat)} г, углеводы ${Math.round(totals.carbs)} г.
-Еда: ${foods}.
+Еда: ${foodSummary}.
 Вода: ${water.consumed} из ${water.goal} стаканов по 250 мл.
 Тренировки: ${workouts}.
 
-Отвечай коротко: сначала главный вывод, затем 2–3 конкретных действия. Не используй markdown-заголовки.`
+Ответ — не более 70 слов: сразу главный вывод, затем максимум 3 коротких действия. Без вступления, повторения вопроса и markdown-заголовков.`
 }
 
 export default function HomeAssistantSheet({
@@ -48,6 +60,13 @@ export default function HomeAssistantSheet({
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const conversationRef = useRef(null)
+
+  useEffect(() => {
+    const conversation = conversationRef.current
+    if (!conversation) return
+    conversation.scrollTo({ top: conversation.scrollHeight, behavior: 'smooth' })
+  }, [messages, loading, error])
 
   const ask = async (question, showQuestion = true) => {
     const text = (question || input).trim()
@@ -61,11 +80,13 @@ export default function HomeAssistantSheet({
     setLoading(true)
 
     try {
-      const apiHistory = [...messages, userMessage].map(message => ({ role: message.role, content: message.content }))
+      const apiHistory = [...messages, userMessage]
+        .slice(-MAX_HISTORY_MESSAGES)
+        .map(message => ({ role: message.role, content: message.content }))
       const reply = await aiCall([
         { role: 'system', content: buildContext({ state, entry, totals, goals, water }) },
         ...apiHistory,
-      ], 700)
+      ], MAX_RESPONSE_TOKENS)
       setMessages([...visibleHistory, { role: 'assistant', content: reply }])
     } catch {
       setError('Не удалось получить рекомендацию. Проверьте соединение и попробуйте ещё раз.')
@@ -100,11 +121,11 @@ export default function HomeAssistantSheet({
           )}
         </div>
 
-        <div className={styles.conversation}>
+        <div className={styles.conversation} ref={conversationRef} aria-live="polite">
           {messages.length === 0 && !loading && (
             <div className={styles.welcome}>
               <strong>Получить персональную рекомендацию</strong>
-              <p>Помощник учтёт питание, воду, тренировку и ваши цели на сегодня.</p>
+              <p>Короткие ответы о питании, тренировках и восстановлении с учётом ваших ограничений.</p>
               <button onClick={getDailyRecommendation}><Sparkles size={16} />Проанализировать день</button>
             </div>
           )}
@@ -134,6 +155,7 @@ export default function HomeAssistantSheet({
               }
             }}
             placeholder="Задайте вопрос..."
+            maxLength={MAX_QUESTION_LENGTH}
             rows={1}
           />
           <button onClick={() => ask()} disabled={!input.trim() || loading} aria-label="Отправить"><Send size={18} /></button>

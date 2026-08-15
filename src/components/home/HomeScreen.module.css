@@ -2,8 +2,8 @@
 .header { display: grid; grid-template-columns: 42px 1fr 42px; align-items: center; gap: 12px; padding: 0 0 4px; }
 .headerButton { display: grid; place-items: center; width: 42px; height: 42px; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 14px; background: var(--card); }
 .headerTitle { text-align: center; }
-.headerTitle strong { display: block; color: var(--text); font-size: 16px; font-weight: 750; }
-.headerTitle span { display: block; margin-top: 2px; color: var(--text-muted); font-size: 11px; font-weight: 650; text-transform: capitalize; }
+.headerTitle strong { display: block; color: var(--text); font-size: 18px; font-weight: 750; }
+.headerTitle span { display: block; margin-top: 2px; color: var(--text-muted); font-size: 12px; font-weight: 650; text-transform: capitalize; }
 
 .balanceCard { position: relative; display: grid; overflow: hidden; grid-template-columns: 1.03fr .97fr; align-items: center; gap: 14px; padding: 12px 16px; border: 1px solid var(--border); border-radius: 22px; background: radial-gradient(circle at 27% 42%, color-mix(in srgb, var(--protein) 6%, transparent), transparent 38%), linear-gradient(150deg, var(--surface2), var(--card-solid)); box-shadow: var(--shadow-soft), inset 0 1px 0 rgba(255,255,255,.045); }
 .balanceCard::after { content: ''; position: absolute; top: -34px; left: 34px; width: 120px; height: 52px; border-radius: 50%; background: rgba(255,255,255,.055); filter: blur(18px); pointer-events: none; }
@@ -33,11 +33,11 @@
 .foodFeature { background: radial-gradient(circle at 48% 45%, color-mix(in srgb, var(--amber) 8%, transparent), transparent 42%), linear-gradient(150deg, var(--surface2), var(--card-solid)); }
 .workoutFeature { background: radial-gradient(circle at 48% 45%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 42%), linear-gradient(150deg, var(--surface2), var(--card-solid)); }
 .featureHeader { position: relative; z-index: 2; display: flex; width: 100%; align-items: center; justify-content: space-between; color: var(--text-muted); }
-.featureHeader small { font-size: 10px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+.featureHeader small { font-size: 11px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
 .featureHeader svg { flex: 0 0 auto; }
 .featureCopy { position: relative; z-index: 2; display: block; min-width: 0; width: 100%; }
-.featureCopy strong { display: block; overflow: hidden; color: var(--text); font-size: 17px; font-weight: 780; line-height: 1.12; letter-spacing: -.02em; text-overflow: ellipsis; }
-.featureCopy em { display: block; overflow: hidden; margin-top: 5px; color: var(--text-muted); font-size: 10px; font-style: normal; font-weight: 600; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.featureCopy strong { display: block; overflow: hidden; color: var(--text); font-size: 18px; font-weight: 780; line-height: 1.12; letter-spacing: -.02em; text-overflow: ellipsis; }
+.featureCopy em { display: block; overflow: hidden; margin-top: 5px; color: var(--text-muted); font-size: 11px; font-style: normal; font-weight: 600; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
 
 .foodIllustration { position: relative; display: grid; place-items: center; overflow: hidden; flex: 0 0 auto; width: 84px; height: 84px; margin: 0 auto; border: 1px solid color-mix(in srgb, var(--amber) 27%, var(--border)); border-radius: 20px; background: radial-gradient(circle at 34% 28%, color-mix(in srgb, var(--amber) 22%, transparent), transparent 40%), linear-gradient(145deg, color-mix(in srgb, var(--surface3) 88%, var(--amber) 12%), var(--card-solid)); box-shadow: inset 0 1px 0 rgba(255,255,255,.09), inset 0 -7px 14px rgba(0,0,0,.16), 0 7px 15px rgba(4,10,20,.2); }
 .foodIllustration::after { content: ''; position: absolute; right: 8px; bottom: 7px; width: 39px; height: 7px; border-radius: 50%; background: rgba(0,0,0,.34); filter: blur(3px); }
@@ -53,17 +53,17 @@
 .foodActionsSheet { width: 100%; max-width: 480px; padding: 8px 16px calc(18px + env(safe-area-inset-bottom, 0px)); border: 1px solid var(--border); border-bottom: 0; border-radius: 26px 26px 0 0; background: var(--bg); box-shadow: 0 -20px 50px rgba(0,0,0,.3); animation: sheetFloatIn .26s cubic-bezier(.2,.75,.2,1) both; }
 .sheetHandle { width: 38px; height: 4px; margin: 0 auto 15px; border-radius: 99px; background: var(--surface3); }
 .foodActionsHeading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
-.foodActionsHeading span { color: var(--accent); font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.foodActionsHeading span { color: var(--accent); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .foodActionsHeading h2 { margin-top: 3px; color: var(--text); font-size: 20px; font-weight: 800; letter-spacing: -.025em; }
-.foodActionsHeading p { margin-top: 4px; color: var(--text-muted); font-size: 10px; font-weight: 550; }
+.foodActionsHeading p { margin-top: 4px; color: var(--text-muted); font-size: 12px; font-weight: 550; }
 .foodActionsHeading > button { display: grid; place-items: center; flex: 0 0 auto; width: 36px; height: 36px; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 12px; background: var(--surface2); }
 .foodActionList { display: flex; flex-direction: column; gap: 7px; }
 .foodActionList > button { display: flex; align-items: center; gap: 11px; width: 100%; padding: 10px; text-align: left; border: 1px solid var(--border); border-radius: 16px; background: var(--card-solid); }
 .foodActionList > button > span { display: grid; place-items: center; flex: 0 0 auto; width: 44px; height: 44px; color: var(--accent); border-radius: 13px; background: var(--accent-dim); }
 .foodActionList > button > div { min-width: 0; flex: 1; }
 .foodActionList strong, .foodActionList small { display: block; }
-.foodActionList strong { color: var(--text); font-size: 12px; font-weight: 750; }
-.foodActionList small { margin-top: 3px; color: var(--text-muted); font-size: 9px; line-height: 1.35; }
+.foodActionList strong { color: var(--text); font-size: 14px; font-weight: 750; }
+.foodActionList small { margin-top: 3px; color: var(--text-muted); font-size: 11px; line-height: 1.35; }
 .foodActionList > button > svg { flex: 0 0 auto; color: var(--text-muted); }
 
 .workoutIllustration { position: relative; display: grid; place-items: center; overflow: hidden; flex: 0 0 auto; width: 84px; height: 84px; margin: 0 auto; border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border)); border-radius: 20px; background: radial-gradient(circle at 34% 28%, color-mix(in srgb, var(--accent-bright) 22%, transparent), transparent 39%), linear-gradient(145deg, color-mix(in srgb, var(--surface3) 82%, var(--accent) 18%), var(--card-solid)); box-shadow: inset 0 1px 0 rgba(255,255,255,.09), inset 0 -7px 14px rgba(0,0,0,.16), 0 7px 15px rgba(4,10,20,.2); }
@@ -80,9 +80,9 @@
 
 .waterCard { display: flex; width: 100%; min-height: 88px; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 17px; background: radial-gradient(circle at 20% 50%, color-mix(in srgb, var(--teal) 7%, transparent), transparent 36%), var(--card); box-shadow: inset 0 1px 0 rgba(255,255,255,.035); }
 .waterCopy { min-width: 0; flex: 1; }
-.waterCopy small { display: block; color: var(--text-muted); font-size: 10px; font-weight: 650; }
-.waterCopy strong { display: block; overflow: hidden; margin-top: 3px; color: var(--text); font-size: 15px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
-.waterCopy em { display: block; overflow: hidden; margin-top: 4px; color: var(--text-muted); font-size: 9px; font-style: normal; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.waterCopy small { display: block; color: var(--text-muted); font-size: 11px; font-weight: 650; }
+.waterCopy strong { display: block; overflow: hidden; margin-top: 3px; color: var(--text); font-size: 16px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+.waterCopy em { display: block; overflow: hidden; margin-top: 4px; color: var(--text-muted); font-size: 10px; font-style: normal; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .waterDose { display: flex; flex: 0 0 auto; min-width: 68px; height: 48px; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--teal); border: 1px solid color-mix(in srgb, var(--teal) 20%, var(--border)); border-radius: 14px; background: color-mix(in srgb, var(--teal) 11%, transparent); }
 .waterDose span { font-family: var(--mono); font-size: 10px; font-weight: 750; }
 .waterGlass { position: relative; overflow: hidden; flex: 0 0 auto; width: 48px; height: 58px; margin-inline: 7px; border: 2px solid color-mix(in srgb, var(--teal) 38%, var(--border)); border-top-width: 3px; border-radius: 9px 9px 15px 15px; background: linear-gradient(105deg, rgba(255,255,255,.19), rgba(255,255,255,.03) 42%, rgba(255,255,255,.13)); box-shadow: inset 7px 0 10px rgba(255,255,255,.08), 0 6px 13px rgba(10,80,120,.13); }
@@ -94,10 +94,10 @@
 .assistantCard { position: relative; display: grid; overflow: hidden; min-height: 196px; grid-template-columns: minmax(0, 1.35fr) minmax(112px, .65fr); align-items: center; gap: 6px; margin-top: 12px; padding: 20px; border: 1px solid color-mix(in srgb, var(--purple) 34%, var(--border)); border-radius: 22px; background: radial-gradient(circle at 88% 28%, color-mix(in srgb, var(--purple) 18%, transparent), transparent 30%), linear-gradient(145deg, color-mix(in srgb, var(--purple) 7%, var(--surface2)), var(--card-solid)); box-shadow: 0 18px 42px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.055); }
 .assistantCard::after { content: ''; position: absolute; z-index: 0; right: 8%; bottom: -30px; width: 150px; height: 80px; border-radius: 50%; background: color-mix(in srgb, var(--purple) 13%, transparent); filter: blur(24px); pointer-events: none; }
 .assistantContent { position: relative; z-index: 2; min-width: 0; }
-.assistantEyebrow { display: flex; align-items: center; gap: 6px; color: color-mix(in srgb, var(--purple) 72%, var(--text)); font-size: 9px; font-weight: 850; letter-spacing: .11em; }
-.assistantContent h2 { margin-top: 9px; color: var(--text); font-size: 19px; font-weight: 800; line-height: 1.16; letter-spacing: -.025em; }
-.assistantContent p { display: -webkit-box; overflow: hidden; margin-top: 8px; color: var(--text-secondary); font-size: 10px; font-weight: 550; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
-.assistantContent button { margin-top: 14px; padding: 10px 13px; color: var(--text); border: 1px solid color-mix(in srgb, var(--purple) 30%, var(--border)); border-radius: 12px; background: linear-gradient(145deg, color-mix(in srgb, var(--purple) 13%, var(--surface3)), var(--card)); font-size: 10px; font-weight: 760; box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
+.assistantEyebrow { display: flex; align-items: center; gap: 6px; color: color-mix(in srgb, var(--purple) 72%, var(--text)); font-size: 10px; font-weight: 850; letter-spacing: .11em; }
+.assistantContent h2 { margin-top: 9px; color: var(--text); font-size: 20px; font-weight: 800; line-height: 1.16; letter-spacing: -.025em; }
+.assistantContent p { display: -webkit-box; overflow: hidden; margin-top: 8px; color: var(--text-secondary); font-size: 12px; font-weight: 550; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.assistantContent button { margin-top: 14px; padding: 10px 13px; color: var(--text); border: 1px solid color-mix(in srgb, var(--purple) 30%, var(--border)); border-radius: 12px; background: linear-gradient(145deg, color-mix(in srgb, var(--purple) 13%, var(--surface3)), var(--card)); font-size: 11px; font-weight: 760; box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
 .assistantOrb { position: relative; z-index: 1; width: 112px; height: 112px; justify-self: end; border: 1px solid color-mix(in srgb, var(--purple) 38%, rgba(255,255,255,.12)); border-radius: 50%; background: radial-gradient(circle at 32% 22%, rgba(255,255,255,.28), transparent 20%), radial-gradient(circle at 64% 68%, color-mix(in srgb, var(--purple) 38%, transparent), transparent 44%), linear-gradient(145deg, color-mix(in srgb, var(--purple) 30%, #27304a), #101827 66%, #080e19); box-shadow: inset 10px 10px 22px rgba(255,255,255,.08), inset -14px -18px 28px rgba(0,0,0,.34), 0 0 28px color-mix(in srgb, var(--purple) 18%, transparent); }
 .assistantOrb::before, .assistantOrb::after, .assistantOrb i, .assistantOrb b { content: ''; position: absolute; display: block; border: 2px solid rgba(232,225,255,.42); border-radius: 50%; }
 .assistantOrb::before { inset: 20px 7px 31px 13px; transform: rotate(18deg); box-shadow: inset 0 4px 10px rgba(255,255,255,.08); }
@@ -118,7 +118,7 @@
   .waterGlass { margin-inline: 3px; }
   .waterDose { min-width: 62px; }
   .assistantCard { min-height: 184px; grid-template-columns: minmax(0, 1fr) 92px; padding: 17px 15px; }
-  .assistantContent h2 { font-size: 17px; }
+  .assistantContent h2 { font-size: 19px; }
   .assistantOrb { width: 92px; height: 92px; }
 }
 
