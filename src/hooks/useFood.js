@@ -7,11 +7,10 @@ import {
 } from '../data/searchUtils'
 import { sameMacros, saveCachedFood } from '../data/userFoodCache'
 import {
-  findSharedFoodByBarcode,
-  saveSharedBarcodeFood,
+  resolveBarcodeProduct,
   searchSharedFoods,
 } from '../data/sharedFoodApi'
-import { lookupBarcode } from '../components/food/BarcodeScanner'
+import { compressImage } from '../utils/image'
 
 function mergeFoodResults(primary, secondary, limit = 8) {
   const merged = []
@@ -28,41 +27,18 @@ function mergeFoodResults(primary, secondary, limit = 8) {
   return merged
 }
 
-function compressImage(file, maxSize = 1024, quality = 0.85) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
+function extractProductBarcode(value) {
+  const raw = String(value || '').trim()
+  if (/^\d{8,14}$/.test(raw)) return raw
 
-    reader.onload = event => {
-      const image = new Image()
+  const gs1 = raw.match(/(?:^|\D)01(\d{14})(?:\D|$)/)
+  if (gs1) return gs1[1]
 
-      image.onload = () => {
-        const canvas = document.createElement('canvas')
-        let width = image.width
-        let height = image.height
-
-        if (width > maxSize || height > maxSize) {
-          if (width > height) {
-            height = Math.round((height * maxSize) / width)
-            width = maxSize
-          } else {
-            width = Math.round((width * maxSize) / height)
-            height = maxSize
-          }
-        }
-
-        canvas.width = width
-        canvas.height = height
-        canvas.getContext('2d').drawImage(image, 0, 0, width, height)
-        resolve(canvas.toDataURL('image/jpeg', quality).split(',')[1])
-      }
-
-      image.onerror = reject
-      image.src = event.target.result
-    }
-
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
+  const candidates = raw.match(/\d{8,14}/g) || []
+  return candidates.sort((a, b) => {
+    const preferred = length => ({ 13: 4, 14: 3, 12: 2, 8: 1 }[length] || 0)
+    return preferred(b.length) - preferred(a.length)
+  })[0] || ''
 }
 
 function getMealByTime() {
@@ -90,6 +66,7 @@ export default function useFood({ state, dispatch, aiCall }) {
   const [aiLoading, setAiLoading] = useState(false)
   const [scanLoading, setScanLoading] = useState(false)
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false)
+  const [missingBarcode, setMissingBarcode] = useState(null)
   const [toast, setToast] = useState(null)
   const [editingFood, setEditingFood] = useState(null)
   const searchRequestRef = useRef(0)
@@ -266,26 +243,26 @@ export default function useFood({ state, dispatch, aiCall }) {
     setScanLoading(true)
 
     try {
-      const normalizedCode = String(code).match(/(?:01|gtin=)?(\d{8,14})/i)?.[1] || String(code).replace(/\D/g, '')
-      if (normalizedCode.length < 6) {
+      const normalizedCode = extractProductBarcode(code)
+      if (!/^\d{8,14}$/.test(normalizedCode)) {
         alert('Код распознан, но в нём нет номера продукта. Попробуйте другой код или добавьте продукт вручную.')
         return
       }
-      let food = await findSharedFoodByBarcode(normalizedCode)
+      const result = await resolveBarcodeProduct(normalizedCode)
+      const food = result.food
 
-      if (!food) {
-        const externalFood = await lookupBarcode(normalizedCode)
-        food = externalFood
-          ? (await saveSharedBarcodeFood(normalizedCode, externalFood)) || externalFood
-          : null
-      }
-
-      if (food?.name) {
+      if (result.status === 'found' && food?.name) {
         saveCachedFood(food)
         setSelectedFood(food)
         setQuery(food.name)
+      } else if (result.status === 'needs_capture') {
+        setMissingBarcode({
+          barcode: normalizedCode,
+          reason: result.reason,
+          suggestion: result.suggestion || null,
+        })
       } else {
-        alert('Продукт по этому штрихкоду не найден в базе. Попробуйте фото или добавьте вручную.')
+        alert(result.error || 'Не удалось проверить штрихкод. Попробуйте ещё раз.')
       }
     } catch (error) {
       console.error('barcode lookup error:', error)
@@ -293,6 +270,14 @@ export default function useFood({ state, dispatch, aiCall }) {
     } finally {
       setScanLoading(false)
     }
+  }
+
+  const completeMissingBarcode = food => {
+    saveCachedFood(food)
+    setSelectedFood(food)
+    setQuery(food.name)
+    setMissingBarcode(null)
+    showToast('Продукт добавлен в общую базу')
   }
 
   const runAI = async () => {
@@ -431,6 +416,8 @@ export default function useFood({ state, dispatch, aiCall }) {
     scanLoading,
     showBarcodeScanner,
     setShowBarcodeScanner,
+    missingBarcode,
+    setMissingBarcode,
     toast,
     editingFood,
     setEditingFood,
@@ -445,6 +432,7 @@ export default function useFood({ state, dispatch, aiCall }) {
     updateFood,
     handleScan,
     handleBarcodeDetect,
+    completeMissingBarcode,
     runAI,
     addAllAiItems,
     saveRecipe,

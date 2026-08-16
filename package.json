@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@zxing/browser": "^0.1.5",
     "dejavu-fonts-ttf": "^2.37.3",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.8.0",

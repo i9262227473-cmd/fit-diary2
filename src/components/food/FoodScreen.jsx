@@ -6,6 +6,7 @@ import BarcodeScanner from './BarcodeScanner'
 import EditFoodModal from './EditFoodModal'
 import FoodCalendar from './FoodCalendar'
 import FoodModule from './FoodModule'
+import MissingBarcodeProduct from './MissingBarcodeProduct'
 import NutritionGoalsModal from './NutritionGoalsModal'
 import styles from './FoodScreen.module.css'
 
@@ -42,9 +43,10 @@ export default function FoodScreen({ state, dispatch, aiCall, intent, onSaveGoal
     tab, setTab, logMode, setLogMode, meal, setMeal, query, setQuery, results, setResults,
     selectedFood, setSelectedFood, grams, setGrams, manualMode, setManualMode,
     manual, setManual, aiText, setAiText, aiResults, aiLoading, scanLoading,
-    showBarcodeScanner, setShowBarcodeScanner, toast, editingFood, setEditingFood,
+    showBarcodeScanner, setShowBarcodeScanner, missingBarcode, setMissingBarcode,
+    toast, editingFood, setEditingFood,
     entry, totals, selectedDate, setSelectedDate, handleSearch, addFoodItem, addManual, removeFood, updateFood,
-    handleScan, handleBarcodeDetect, runAI, addAllAiItems, saveRecipe, appendAiText,
+    handleScan, handleBarcodeDetect, completeMissingBarcode, runAI, addAllAiItems, saveRecipe, appendAiText,
   } = food
 
   const inputStyle = {
@@ -105,6 +107,7 @@ export default function FoodScreen({ state, dispatch, aiCall, intent, onSaveGoal
       {editingFood && <EditFoodModal food={editingFood} onSave={updateFood} onClose={() => setEditingFood(null)} />}
       {showGoals && <NutritionGoalsModal goals={goals} onSave={saveGoals} onClose={() => setShowGoals(false)} />}
       {showBarcodeScanner && <BarcodeScanner onDetect={handleBarcodeDetect} onClose={() => setShowBarcodeScanner(false)} />}
+      {missingBarcode && <MissingBarcodeProduct product={missingBarcode} onComplete={completeMissingBarcode} onClose={() => setMissingBarcode(null)} />}
 
       <header className={styles.header}>
         <button className={styles.headerButton} onClick={() => changeDay(-1)} aria-label="Предыдущий день"><ChevronLeft size={20} /></button>

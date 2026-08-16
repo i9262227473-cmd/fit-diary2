@@ -62,10 +62,45 @@ export async function findSharedFoodByBarcode(code) {
   }
 }
 
-export async function saveSharedBarcodeFood(barcode, food) {
+export async function resolveBarcodeProduct(code) {
+  try {
+    const headers = await getAuthorizationHeaders()
+    if (!headers) return { status: 'unauthorized' }
+
+    const response = await fetch(`${API_URL}/foods/resolve-barcode/${encodeURIComponent(code)}`, { headers })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      return { status: data.status || 'temporary_error', error: data.error || 'Не удалось проверить штрихкод' }
+    }
+
+    return {
+      ...data,
+      food: data.food ? normalizeSharedFood(data.food) : null,
+    }
+  } catch (error) {
+    console.warn('Barcode resolver error:', error)
+    return { status: 'temporary_error', error: 'Нет соединения с сервером' }
+  }
+}
+
+export async function recognizeBarcodeProduct(frontB64, nutritionB64) {
+  const headers = await getAuthorizationHeaders(true)
+  if (!headers) throw new Error('Для распознавания необходимо войти в приложение')
+
+  const response = await fetch(`${API_URL}/ai-vision/barcode-product`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ frontB64, nutritionB64 }),
+  })
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(data.error || 'Не удалось распознать фотографии')
+  return data
+}
+
+export async function saveVerifiedBarcodeFood(barcode, food) {
   try {
     const headers = await getAuthorizationHeaders(true)
-    if (!headers) return null
+    if (!headers) throw new Error('Для сохранения необходимо войти в приложение')
 
     const response = await fetch(`${API_URL}/foods/upsert`, {
       method: 'POST',
@@ -77,14 +112,15 @@ export async function saveSharedBarcodeFood(barcode, food) {
         prot100: Number(food.prot100) || 0,
         fat100: Number(food.fat100) || 0,
         carbs100: Number(food.carbs100) || 0,
-        source: 'openfoodfacts',
+        source: 'user_verified',
       }),
     })
 
-    if (!response.ok) return null
-    return normalizeSharedFood(await response.json())
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.error || 'Не удалось сохранить продукт')
+    return normalizeSharedFood(data)
   } catch (error) {
-    console.warn('Shared food save error:', error)
-    return null
+    console.warn('Verified food save error:', error)
+    throw error
   }
 }
