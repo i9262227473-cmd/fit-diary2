@@ -54,7 +54,7 @@ export default function DashboardPage() {
     <div className={styles.page}>
       <div className={styles.content}>
         {tab === 'home'     && <HomeScreen CalendarView={CombinedCalendar} state={state} dispatch={dispatch} goTo={setTab} onFoodAction={openFood} name={name} aiCall={aiCall} />}
-        {tab === 'food'     && <FoodScreen     state={state} dispatch={dispatch} aiCall={aiCall} intent={foodIntent} />}
+        {tab === 'food'     && <FoodScreen     state={state} dispatch={dispatch} aiCall={aiCall} intent={foodIntent} onSaveGoals={saveProfile} />}
         {tab === 'analysis' && <ProgressScreen state={state} />}
         {tab === 'workout'  && <WorkoutScreen  state={state} dispatch={dispatch} aiCall={aiCall} PlanScreen={PlanScreen} onActiveChange={setWorkoutActive} />}
         {tab === 'profile'  && <ProfileScreen  profile={profile} saveProfile={saveProfile} signOut={signOut} aiCall={aiCall} theme={theme} onThemeChange={setTheme} />}

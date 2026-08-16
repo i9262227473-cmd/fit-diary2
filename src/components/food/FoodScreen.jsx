@@ -1,11 +1,12 @@
-import React, { useEffect } from 'react'
-import { CalendarDays, ChefHat, ChevronLeft, Coffee, Cookie, Moon, Plus, Search, Sparkles, Sun, Utensils } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
+import { CalendarDays, ChefHat, ChevronLeft, ChevronRight, Coffee, Cookie, Moon, Pencil, Plus, Search, Sparkles, Sun, Utensils } from 'lucide-react'
 import SwipeActions from '../common/SwipeActions'
 import useFood from '../../hooks/useFood'
 import BarcodeScanner from './BarcodeScanner'
 import EditFoodModal from './EditFoodModal'
 import FoodCalendar from './FoodCalendar'
 import FoodModule from './FoodModule'
+import NutritionGoalsModal from './NutritionGoalsModal'
 import styles from './FoodScreen.module.css'
 
 const MEALS_MAP = { breakfast: 'Завтрак', lunch: 'Обед', dinner: 'Ужин', snack: 'Перекус' }
@@ -34,7 +35,8 @@ const shiftIsoDate = (iso, days) => {
   return date.toISOString().split('T')[0]
 }
 
-export default function FoodScreen({ state, dispatch, aiCall, intent }) {
+export default function FoodScreen({ state, dispatch, aiCall, intent, onSaveGoals }) {
+  const [showGoals, setShowGoals] = useState(false)
   const food = useFood({ state, dispatch, aiCall })
   const {
     tab, setTab, logMode, setLogMode, meal, setMeal, query, setQuery, results, setResults,
@@ -58,14 +60,6 @@ export default function FoodScreen({ state, dispatch, aiCall, intent }) {
   }
   const remaining = Math.max(0, goals.calories - Math.round(totals.cal))
   const percentage = goals.calories > 0 ? Math.min(Math.round(totals.cal / goals.calories * 100), 100) : 0
-  const macroCalories = totals.p * 4 + totals.fat * 9 + totals.c * 4
-  const proteinShare = macroCalories > 0 ? totals.p * 4 / macroCalories : .34
-  const fatShare = macroCalories > 0 ? totals.fat * 9 / macroCalories : .33
-  const proteinEnd = percentage * proteinShare
-  const fatEnd = proteinEnd + percentage * fatShare
-  const ringStyle = {
-    background: `conic-gradient(from -90deg, var(--protein) 0 ${proteinEnd}%, var(--amber) ${proteinEnd}% ${fatEnd}%, var(--purple) ${fatEnd}% ${percentage}%, var(--surface3) ${percentage}% 100%)`,
-  }
   const dayTitle = new Date(`${selectedDate}T12:00:00`).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
   const today = new Date().toISOString().split('T')[0]
   const swipeStartX = React.useRef(null)
@@ -85,8 +79,13 @@ export default function FoodScreen({ state, dispatch, aiCall, intent }) {
   const macros = [
     { label: 'Белки', value: totals.p, max: goals.protein, color: 'var(--protein)' },
     { label: 'Жиры', value: totals.fat, max: goals.fat, color: 'var(--amber)' },
-    { label: 'Углеводы', value: totals.c, max: goals.carbs, color: 'var(--teal)' },
+    { label: 'Углеводы', value: totals.c, max: goals.carbs, color: 'var(--purple)' },
   ]
+
+  const saveGoals = async nextGoals => {
+    await onSaveGoals?.({ ...state.profile, ...nextGoals })
+    setShowGoals(false)
+  }
 
   useEffect(() => {
     if (!intent) return
@@ -104,49 +103,40 @@ export default function FoodScreen({ state, dispatch, aiCall, intent }) {
     <div className={styles.screen}>
       {toast && <div className={styles.toast}>{toast}</div>}
       {editingFood && <EditFoodModal food={editingFood} onSave={updateFood} onClose={() => setEditingFood(null)} />}
+      {showGoals && <NutritionGoalsModal goals={goals} onSave={saveGoals} onClose={() => setShowGoals(false)} />}
       {showBarcodeScanner && <BarcodeScanner onDetect={handleBarcodeDetect} onClose={() => setShowBarcodeScanner(false)} />}
 
       <header className={styles.header}>
-        <button className={styles.headerButton} onClick={() => { setTab('log'); setLogMode('calendar') }} aria-label="Открыть календарь"><CalendarDays size={19} /></button>
-        <button className={styles.headerTitle} onClick={() => { setTab('log'); setLogMode('list') }}><h1>Питание</h1><p>{selectedDate === today ? 'Сегодня, ' : ''}{dayTitle}</p></button>
-        <button className={styles.addButton} onClick={() => setTab('add')} aria-label="Добавить продукт"><Plus size={21} /></button>
+        <button className={styles.headerButton} onClick={() => changeDay(-1)} aria-label="Предыдущий день"><ChevronLeft size={20} /></button>
+        <button className={styles.headerTitle} onClick={() => { setTab('log'); setLogMode('calendar') }}><h1>Питание</h1><p>{selectedDate === today ? 'Сегодня, ' : ''}{dayTitle}</p></button>
+        <button className={styles.headerButton} onClick={() => changeDay(1)} aria-label="Следующий день"><ChevronRight size={20} /></button>
       </header>
-
-      <div className={styles.daySwitcher}>
-        <button onClick={() => changeDay(-1)} aria-label="Предыдущий день"><ChevronLeft size={18} /></button>
-        <button className={styles.dayLabel} onClick={() => { setSelectedDate(today); setTab('log') }}><strong>{selectedDate === today ? 'Сегодня' : dayTitle}</strong><span>Свайпните, чтобы сменить день</span></button>
-        <button onClick={() => changeDay(1)} aria-label="Следующий день"><ChevronLeft size={18} /></button>
-      </div>
 
       <div className={styles.daySwipe} onPointerDown={handleDaySwipeStart} onPointerUp={handleDaySwipeEnd} onPointerCancel={() => { swipeStartX.current = null }}>
       <section className={styles.summaryCard}>
         <div className={styles.summaryTop}>
-          <div><span className={styles.eyebrow}>Баланс дня</span><h2>Энергия и БЖУ</h2></div>
-          <span className={styles.percent}>{percentage}%</span>
+          <div><span className={styles.eyebrow}>Баланс дня</span><h2>Питание</h2></div>
+          <button className={styles.editGoals} onClick={() => setShowGoals(true)}><Pencil size={14} /><span>Изменить цели</span></button>
         </div>
-        <div className={styles.energyRow}>
-          <div className={styles.ringColumn}>
-            <div className={styles.macroRing} style={ringStyle}>
-              <div className={styles.ringInner}>
-                <strong>{Math.round(totals.cal)}</strong>
-                <span>ккал</span>
-              </div>
-            </div>
-            <span className={styles.ringGoal}>из {goals.calories} ккал</span>
+        <div className={styles.energyCompact}>
+          <div className={styles.energyConsumed}>
+            <span>Съедено</span>
+            <strong>{Math.round(totals.cal)} <small>/ {goals.calories} ккал</small></strong>
           </div>
-          <div className={styles.energyNumbers}>
-            <div><span>Съедено</span><strong>{Math.round(totals.cal)}</strong><small>ккал</small></div>
-            <div><span>Осталось</span><strong className={styles.remaining}>{remaining}</strong><small>ккал</small></div>
+          <div className={styles.energyRemaining}>
+            <span>Осталось</span>
+            <strong className={totals.cal > goals.calories ? styles.overGoal : ''}>{totals.cal > goals.calories ? Math.round(totals.cal - goals.calories) : remaining}</strong>
+            <small>{totals.cal > goals.calories ? 'сверх цели' : 'ккал'}</small>
           </div>
         </div>
+        <div className={styles.calorieTrack} aria-label={`Выполнено ${percentage}% цели по калориям`}><span style={{ width: `${percentage}%` }} /></div>
         <div className={styles.macroGrid}>
           {macros.map(macro => {
             const color = macro.max > 0 && macro.value > macro.max ? 'var(--red)' : macro.color
-            const width = macro.max > 0 ? Math.min(macro.value / macro.max * 100, 100) : 0
             return (
               <div className={styles.macro} key={macro.label}>
-                <div className={styles.macroMeta}><span>{macro.label}</span><strong style={{ color }}>{Math.round(macro.value)} <small>/ {macro.max} г</small></strong></div>
-                <div className={styles.macroTrack}><span style={{ width: `${width}%`, background: color }} /></div>
+                <span className={styles.macroLabel}><i style={{ background: color }} />{macro.label}</span>
+                <strong style={{ color }}>{Math.round(macro.value)} <small>/ {macro.max} г</small></strong>
               </div>
             )
           })}
@@ -157,9 +147,12 @@ export default function FoodScreen({ state, dispatch, aiCall, intent }) {
         <section className={styles.logSection}>
           <div className={styles.logHeader}>
             <div><span className={styles.eyebrow}>{selectedDate === today ? 'Сегодня' : dayTitle}</span><h2>Приёмы пищи</h2></div>
-            <div className={styles.viewToggle}>
-              <button className={logMode === 'list' ? styles.viewActive : ''} onClick={() => setLogMode('list')} aria-label="Список"><Utensils size={16} /></button>
-              <button className={logMode === 'calendar' ? styles.viewActive : ''} onClick={() => setLogMode('calendar')} aria-label="Календарь"><CalendarDays size={16} /></button>
+            <div className={styles.logActions}>
+              <button className={styles.addFood} onClick={() => setTab('ai')}><Plus size={15} /><span>Добавить</span></button>
+              <div className={styles.viewToggle}>
+                <button className={logMode === 'list' ? styles.viewActive : ''} onClick={() => setLogMode('list')} aria-label="Список"><Utensils size={16} /></button>
+                <button className={logMode === 'calendar' ? styles.viewActive : ''} onClick={() => setLogMode('calendar')} aria-label="Календарь"><CalendarDays size={16} /></button>
+              </div>
             </div>
           </div>
           {logMode === 'calendar' && <FoodCalendar entries={state.entries} goals={goals} />}
