@@ -1,27 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
+import { API_URL, useStore } from '../../store'
 
 export async function lookupBarcode(code) {
-  const response = await fetch(
-    `https://world.openfoodfacts.org/api/v2/product/${code}.json?fields=product_name,product_name_ru,nutriments`,
-  )
+  const token = await useStore.getState().getValidToken()
+  if (!token) throw new Error('NO_AUTH')
 
+  const response = await fetch(`${API_URL}/foods/openfoodfacts/${encodeURIComponent(code)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+
+  if (response.status === 404) return null
   if (!response.ok) throw new Error('HTTP_ERROR')
 
-  const data = await response.json()
-  if (data.status !== 1 || !data.product) return null
-
-  const product = data.product
-  const nutrients = product.nutriments || {}
-
-  return {
-    name: product.product_name_ru || product.product_name || `Штрихкод ${code}`,
-    cal100: Math.round(nutrients['energy-kcal_100g'] || nutrients['energy-kcal'] || 0),
-    prot100: Math.round((nutrients.proteins_100g || 0) * 10) / 10,
-    fat100: Math.round((nutrients.fat_100g || 0) * 10) / 10,
-    carbs100: Math.round((nutrients.carbohydrates_100g || 0) * 10) / 10,
-  }
+  return response.json()
 }
 
 export default function BarcodeScanner({ onDetect, onClose }) {
