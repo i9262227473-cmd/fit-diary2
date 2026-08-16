@@ -43,8 +43,8 @@ export default function AiFoodSearch({
         </div>
 
         <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 12 }}>
-          Опиши, что съел — AI определит калории и БЖУ. Распознанные продукты
-          сохраняются, поэтому в следующий раз поиск сможет найти их без AI.
+          Опиши, что съел. Сначала проверим сохранённые и общие продукты, а AI
+          подключится только в том случае, если совпадение не найдено.
         </p>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
@@ -165,6 +165,12 @@ export default function AiFoodSearch({
                     <div style={{ fontSize: 14, fontWeight: 500 }}>
                       {item.food.name}
                     </div>
+
+                    {item.source === 'database' && (
+                      <div style={{ fontSize: 11, color: 'var(--accent)', marginTop: 3 }}>
+                        Найдено в базе без AI
+                      </div>
+                    )}
 
                     <div
                       style={{

@@ -1,7 +1,32 @@
-import { useState } from 'react'
-import { searchFoodSmart } from '../data/searchUtils'
-import { saveCachedFood } from '../data/userFoodCache'
+import { useRef, useState } from 'react'
+import {
+  extractFoodWeight,
+  findConfidentLocalFood,
+  pickConfidentFoodMatch,
+  searchFoodSmart,
+} from '../data/searchUtils'
+import { sameMacros, saveCachedFood } from '../data/userFoodCache'
+import {
+  findSharedFoodByBarcode,
+  saveSharedBarcodeFood,
+  searchSharedFoods,
+} from '../data/sharedFoodApi'
 import { lookupBarcode } from '../components/food/BarcodeScanner'
+
+function mergeFoodResults(primary, secondary, limit = 8) {
+  const merged = []
+
+  for (const food of [...primary, ...secondary]) {
+    const normalizedName = food.name.trim().toLocaleLowerCase('ru-RU')
+    const duplicate = merged.some(item => (
+      item.name.trim().toLocaleLowerCase('ru-RU') === normalizedName || sameMacros(item, food)
+    ))
+    if (!duplicate) merged.push(food)
+    if (merged.length === limit) break
+  }
+
+  return merged
+}
 
 function compressImage(file, maxSize = 1024, quality = 0.85) {
   return new Promise((resolve, reject) => {
@@ -67,6 +92,7 @@ export default function useFood({ state, dispatch, aiCall }) {
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false)
   const [toast, setToast] = useState(null)
   const [editingFood, setEditingFood] = useState(null)
+  const searchRequestRef = useRef(0)
 
   const today = new Date().toISOString().split('T')[0]
   const entry = state.entries.find(item => item.date === selectedDate) || { date: selectedDate, foods: [], workouts: [] }
@@ -85,10 +111,23 @@ export default function useFood({ state, dispatch, aiCall }) {
     setTimeout(() => setToast(null), 2000)
   }
 
-  const handleSearch = value => {
+  const handleSearch = async value => {
+    const requestId = searchRequestRef.current + 1
+    searchRequestRef.current = requestId
     setQuery(value)
     setSelectedFood(null)
-    setResults(value.length > 1 ? searchFoodSmart(value).slice(0, 8) : [])
+
+    if (value.trim().length < 2) {
+      setResults([])
+      return
+    }
+
+    const localResults = searchFoodSmart(value).slice(0, 8)
+    setResults(localResults)
+
+    const sharedResults = await searchSharedFoods(value, 8)
+    if (searchRequestRef.current !== requestId) return
+    setResults(mergeFoodResults(sharedResults, localResults))
   }
 
   const addFoodItem = (food, amount, mealKey) => {
@@ -232,9 +271,16 @@ export default function useFood({ state, dispatch, aiCall }) {
         alert('Код распознан, но в нём нет номера продукта. Попробуйте другой код или добавьте продукт вручную.')
         return
       }
-      const food = await lookupBarcode(normalizedCode)
+      let food = await findSharedFoodByBarcode(normalizedCode)
 
-      if (food && food.cal100 > 0) {
+      if (!food) {
+        const externalFood = await lookupBarcode(normalizedCode)
+        food = externalFood
+          ? (await saveSharedBarcodeFood(normalizedCode, externalFood)) || externalFood
+          : null
+      }
+
+      if (food?.name) {
         saveCachedFood(food)
         setSelectedFood(food)
         setQuery(food.name)
@@ -256,6 +302,20 @@ export default function useFood({ state, dispatch, aiCall }) {
     setAiResults(null)
 
     try {
+      const localFood = findConfidentLocalFood(aiText)
+      const sharedFoods = localFood ? [] : await searchSharedFoods(aiText, 8)
+      const databaseFood = localFood || pickConfidentFoodMatch(aiText, sharedFoods)
+
+      if (databaseFood) {
+        setAiResults([{
+          food: databaseFood,
+          grams: extractFoodWeight(aiText),
+          source: 'database',
+        }])
+        setAiLoading(false)
+        return
+      }
+
       const prompt = `Ты нутрициолог. Твоя задача — по описанию еды вернуть точные значения КБЖУ, используя стандартные табличные данные о составе продуктов (как в справочниках USDA / базах пищевой ценности).
 
 ПРАВИЛА РАСЧЁТА:
@@ -282,6 +342,7 @@ export default function useFood({ state, dispatch, aiCall }) {
             carbs100: parseFloat(item.carbs100) || 0,
           },
           grams: parseFloat(item.grams) || 100,
+          source: 'ai',
         }))
 
         parsed.forEach(item => saveCachedFood(item.food))

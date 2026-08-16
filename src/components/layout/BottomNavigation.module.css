@@ -1,12 +1,13 @@
 .shell {
   position: fixed;
-  left: 0;
-  right: 0;
+  left: 50%;
+  width: min(100%, 480px);
   bottom: 0;
   z-index: 20;
   flex-shrink: 0;
   padding: 8px 12px max(10px, env(safe-area-inset-bottom, 0px));
   background: linear-gradient(to top, var(--bg) 62%, transparent);
+  transform: translateX(-50%);
 }
 
 .nav {
