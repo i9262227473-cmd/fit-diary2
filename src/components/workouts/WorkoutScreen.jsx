@@ -1,5 +1,5 @@
 import React from 'react'
-import { CalendarDays, Check, ChevronLeft, ChevronRight, Dumbbell, Edit2, Play, Plus, Sparkles } from 'lucide-react'
+import { Check, ChevronLeft, Dumbbell, Edit2, Play, Plus } from 'lucide-react'
 import { EFF_LABEL, EXERCISE_DB as FULL_EXERCISE_DB, findAlternatives } from '../../data/exerciseDatabase'
 import { getExerciseMedia } from '../../data/exerciseMedia'
 import useWorkout from '../../hooks/useWorkout'
@@ -13,7 +13,29 @@ import WorkoutCalendar from './WorkoutCalendar'
 import WorkoutComplete from './WorkoutComplete'
 import WorkoutDetail from './WorkoutDetail'
 import ExerciseDragHandle from './ExerciseDragHandle'
+import {
+  WorkoutBrainIcon,
+  WorkoutCalendarIcon,
+  WorkoutChevronIcon,
+  WorkoutDumbbellIcon,
+  WorkoutListIcon,
+  WorkoutPlayIcon,
+  WorkoutPlusIcon,
+  WorkoutRepeatIcon,
+} from './WorkoutUiIcons'
 import styles from './WorkoutScreen.module.css'
+
+function formatWorkoutDate(value) {
+  const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!match) return value || ''
+  const [, year, month, day] = match
+  const date = new Date(Number(year), Number(month) - 1, Number(day))
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    ...(Number(year) === new Date().getFullYear() ? {} : { year: 'numeric' }),
+  }).format(date)
+}
 
 export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onActiveChange }) {
   const {
@@ -23,12 +45,51 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
     histMode, setHistMode, templates, tplSaved, pickerFor, setPickerFor, pendingLoad, setPendingLoad,
     allWorkouts, workoutsByDate, workoutPlace, filteredEx, addEx, updateRest, updateSet, removeSet,
     moveExercise, updateComment, addSet, removeEx, replaceEx, applyProgression, saveToPlan,
-    saveAsTemplate, deleteTemplate, startFromTemplate, toggleSet, completeWorkout, saveWorkout,
+    saveAsTemplate, deleteTemplate, startFromTemplate, repeatWorkout, toggleSet, completeWorkout, saveWorkout,
     removeWorkout, saveWorkoutAnalysis, startFromPlan, resolveWeightTransfer,
   } = useWorkout({ state, dispatch })
 
   const M_COLORS = { Грудь:'var(--accent)', Спина:'#3b82f6', Ноги:'#f59e0b', Плечи:'#8b5cf6', Трицепс:'#ec4899', Бицепс:'#f97316', Кор:'#06b6d4', Кардио:'#ef4444' }
   const MUSCLE_MEDIA = { Грудь:'chest', Спина:'back', Ноги:'legs', Плечи:'shoulders', Трицепс:'triceps', Бицепс:'biceps', Кор:'core', Кардио:'cardio' }
+
+  const featured = (() => {
+    try {
+      const savedPlan = JSON.parse(localStorage.getItem('workout-plan-v4-pro') || 'null')
+      const days = savedPlan?.plan?.days
+      if (Array.isArray(days) && days.length) {
+        const todayIndex = (new Date().getDay() + 6) % 7
+        for (let offset = 0; offset < days.length; offset += 1) {
+          const index = (todayIndex + offset) % days.length
+          if (days[index]?.exercises?.length) return { kind: 'plan', source: days[index], index, offset }
+        }
+      }
+    } catch {}
+    if (templates[0]) return { kind: 'template', source: templates[0] }
+    if (allWorkouts[0]) return { kind: 'history', source: allWorkouts[0] }
+    return null
+  })()
+  const featuredExercises = featured?.source?.exercisesDetail?.length
+    ? featured.source.exercisesDetail
+    : (featured?.source?.exercises || [])
+  const featuredFirstExercise = typeof featuredExercises[0] === 'string' ? featuredExercises[0] : featuredExercises[0]?.name
+  const featuredMedia = getExerciseMedia(featuredFirstExercise)
+  const featuredName = featured?.kind === 'plan' && featured.source.muscles?.length
+    ? featured.source.muscles.join(' + ')
+    : featured?.source?.name || featured?.source?.type || 'Тренировка'
+  const featuredMeta = `${featuredExercises.length} упражнений${featured?.source?.duration ? ` · ${featured.source.duration} мин` : ' · ~60 мин'}`
+  const featuredDay = featured?.kind === 'plan'
+    ? (featured.offset === 0 ? 'Сегодня' : featured.source.name)
+    : featured?.kind === 'history' ? 'Повтор последней' : 'Готова к запуску'
+
+  const startFeatured = () => {
+    if (!featured) {
+      setPlanDayIdx(null)
+      setWk({ name: '', exercises: [] })
+      setView('builder')
+    } else if (featured.kind === 'plan') startFromPlan(featured.source, featured.index, 'active')
+    else if (featured.kind === 'template') startFromTemplate(featured.source, 'active')
+    else repeatWorkout(featured.source, 'active')
+  }
 
   React.useEffect(() => {
     onActiveChange?.(view === 'active')
@@ -39,37 +100,64 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
     return (
       <div className={styles.historyScreen}>
         {showRestTimer && <RestTimer duration={restInfo.duration} exerciseName={restInfo.exercise} setInfo={restInfo.setInfo} onClose={() => setShowRestTimer(false)} />}
+        {pendingLoad && <WeightTransferModal onConfirm={() => resolveWeightTransfer(true)} onDecline={() => resolveWeightTransfer(false)} onClose={() => setPendingLoad(null)} />}
         {viewWorkout && <WorkoutDetail workout={viewWorkout} onClose={() => setViewWorkout(null)} aiCall={aiCall} onSaveAnalysis={saveWorkoutAnalysis} />}
         <div className={styles.historyHeading}>
-          <span>Тренировки</span>
-          <h1>История</h1>
+          <h1>Тренировки</h1>
         </div>
         <div className={styles.historyActions}>
-          <button onClick={() => setView('templates')}>
-            <span><Dumbbell size={20} /></span>
+          <button className={styles.primaryAction} onClick={() => setView('templates')}>
+            <span><WorkoutDumbbellIcon size={27} /></span>
             <strong>Мои тренировки</strong>
             <small>Шаблоны и программы</small>
           </button>
           <button onClick={() => setView('plan')}>
-            <span><Sparkles size={20} /></span>
+            <span><WorkoutBrainIcon size={28} /></span>
             <strong>AI-план</strong>
             <small>Персональная программа</small>
           </button>
           <button className={styles.newWorkout} onClick={() => { setPlanDayIdx(null); setWk({ name: '', exercises: [] }); setView('builder') }}>
-            <span><Plus size={21} /></span>
+            <span><WorkoutPlusIcon size={27} /></span>
             <strong>Новая</strong>
             <small>Создать тренировку</small>
           </button>
         </div>
-        <div className={styles.historyToggle}>
-          {[['list', 'Список'], ['calendar', 'Календарь']].map(([k, v]) => (
-            <button key={k} className={histMode === k ? styles.toggleActive : ''} onClick={() => setHistMode(k)}>{k === 'calendar' && <CalendarDays size={15} />}{v}</button>
-          ))}
+        <section className={`${styles.featuredWorkout} ${!featured ? styles.featuredEmpty : ''}`}>
+          <div className={styles.featuredCopy}>
+            <span>{featured ? 'Следующая тренировка' : 'Начните с программы'}</span>
+            <h2>{featured ? featuredName : 'Создайте тренировку'}</h2>
+            <div className={styles.featuredFacts}>
+              <small><WorkoutCalendarIcon size={19} active />{featured ? featuredDay : 'Когда удобно'}</small>
+              <small><WorkoutDumbbellIcon size={19} />{featured ? featuredMeta : 'Добавьте упражнения'}</small>
+            </div>
+            <button className={styles.featuredStart} onClick={startFeatured}>
+              <WorkoutPlayIcon size={24} light />
+              {featured ? 'Начать' : 'Создать'}
+            </button>
+          </div>
+          <div className={styles.featuredVisual} aria-hidden="true">
+            {featuredMedia
+              ? <img src={featuredMedia.start} alt="" />
+              : <WorkoutDumbbellIcon size={72} />}
+          </div>
+        </section>
+        <div className={styles.historySectionHeader}>
+          <h2>История</h2>
+          <div className={styles.historyToggle}>
+            {[['list', 'Список'], ['calendar', 'Календарь']].map(([k, v]) => (
+              <button key={k} className={histMode === k ? styles.toggleActive : ''} onClick={() => setHistMode(k)}>
+                {k === 'list'
+                  ? <WorkoutListIcon size={21} active={histMode === k} />
+                  : <WorkoutCalendarIcon size={21} active={histMode === k} />}
+                <span>{v}</span>
+              </button>
+            ))}
+          </div>
         </div>
         {histMode === 'calendar' && <WorkoutCalendar workoutsByDate={workoutsByDate} onPickWorkout={setViewWorkout} onDeleteWorkout={removeWorkout} />}
         {histMode === 'list' && (allWorkouts.length === 0 ? (
           <div className={styles.emptyHistory}>
-            <span><Dumbbell size={25} /></span>
+            <span><WorkoutDumbbellIcon size={34} /></span>
             <strong>Тренировок пока нет</strong>
             <small>Создайте первую тренировку или выберите AI-план</small>
           </div>
@@ -78,15 +166,21 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
           const media = getExerciseMedia(firstExercise)
           return (
             <SwipeToDelete key={w.id} onDelete={() => removeWorkout(w.id, w.entryDate)} confirmText="Удалить эту тренировку?">
-              <button className={styles.historyCard} onClick={() => setViewWorkout(w)}>
-                {media ? <img src={media.start} alt="" /> : <span className={styles.historyFallback}><Dumbbell size={24} /></span>}
-                <span className={styles.historyCopy}>
-                  <strong>{w.name || w.type || 'Тренировка'}</strong>
-                  <small>{w.exercises?.length || w.exercisesDetail?.length || 0} упражнений · {w.duration || 0} мин</small>
-                  <small>{w.entryDate}</small>
-                </span>
-                <ChevronRight size={18} />
-              </button>
+              <div className={styles.historyCard}>
+                <button className={styles.historyMain} onClick={() => setViewWorkout(w)}>
+                  {media ? <img src={media.start} alt="" /> : <span className={styles.historyFallback}><WorkoutDumbbellIcon size={30} /></span>}
+                  <span className={styles.historyCopy}>
+                    <strong>{w.name || w.type || 'Тренировка'}</strong>
+                    <small>{w.exercises?.length || w.exercisesDetail?.length || 0} упражнений · {w.duration || 0} мин</small>
+                    <small>{formatWorkoutDate(w.entryDate)}</small>
+                  </span>
+                  <span className={styles.historyChevron}><WorkoutChevronIcon size={19} /></span>
+                </button>
+                <button className={styles.repeatWorkout} onClick={() => repeatWorkout(w, 'active')} aria-label={`Повторить тренировку ${w.name || w.type || ''}`}>
+                  <WorkoutRepeatIcon size={23} />
+                  <small>Повторить</small>
+                </button>
+              </div>
             </SwipeToDelete>
           )
         })}</div>)}
