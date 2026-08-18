@@ -245,6 +245,33 @@ export default function useWorkout({ state, dispatch }) {
     if ((tpl.exercises || []).some(ex => suggestWeightFor(ex.name)?.weight)) { setPendingLoad({ type: 'template', tpl, mode }); return }
     applyTemplateLoad(tpl, mode, false)
   }
+  const repeatWorkout = (workout, mode = 'active') => {
+    if (!workout) return
+    const details = workout.exercisesDetail?.length
+      ? workout.exercisesDetail
+      : (workout.exercises || []).map(name => ({ name }))
+    const tpl = {
+      id: `repeat-${workout.id || Date.now()}`,
+      name: workout.name || workout.type || 'Тренировка',
+      exercises: details.map(ex => {
+        const dbEx = EXERCISE_DB.find(item => item.name.toLowerCase() === String(ex.name || '').toLowerCase())
+        const sets = ex.sets?.length
+          ? ex.sets.map(set => ({ reps: set.reps || '8-12', weight: set.weight || '0' }))
+          : [{ reps: '8-12', weight: '0' }]
+        return {
+          exerciseId: dbEx?.id,
+          name: ex.name,
+          muscle: ex.muscle || dbEx?.muscle || 'Кор',
+          type: ex.type || dbEx?.type || 'compound',
+          targetReps: sets[0]?.reps || '8-12',
+          restSec: ex.restSec || getDefaultRestSec(ex.muscle || dbEx?.muscle || 'Кор'),
+          sets,
+        }
+      }).filter(ex => ex.name),
+    }
+    if (!tpl.exercises.length) return
+    startFromTemplate(tpl, mode)
+  }
   const toggleSet = (eI, sI) => {
     const ex = wk.exercises[eI]
     const set = ex.sets[sI]
@@ -305,7 +332,7 @@ export default function useWorkout({ state, dispatch }) {
     histMode, setHistMode, templates, tplSaved, pickerFor, setPickerFor, pendingLoad, setPendingLoad,
     allWorkouts, workoutsByDate, workoutPlace, filteredEx, addEx, updateRest, updateSet, removeSet,
     moveExercise, updateComment, addSet, removeEx, replaceEx, applyProgression, saveToPlan,
-    saveAsTemplate, deleteTemplate, startFromTemplate, toggleSet, completeWorkout, saveWorkout,
+    saveAsTemplate, deleteTemplate, startFromTemplate, repeatWorkout, toggleSet, completeWorkout, saveWorkout,
     removeWorkout, saveWorkoutAnalysis, startFromPlan, resolveWeightTransfer,
   }
 }
