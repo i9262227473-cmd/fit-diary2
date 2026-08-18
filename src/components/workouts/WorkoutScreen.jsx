@@ -3,8 +3,10 @@ import { Check, ChevronLeft, Dumbbell, Edit2, Play, Plus } from 'lucide-react'
 import { EFF_LABEL, EXERCISE_DB as FULL_EXERCISE_DB, findAlternatives, findExerciseByName } from '../../data/exerciseDatabase'
 import { getExerciseMedia } from '../../data/exerciseMedia'
 import useWorkout from '../../hooks/useWorkout'
+import useDragReorder from '../../hooks/useDragReorder'
 import { formatLongTime as fmtTimeLong, getDefaultRestSeconds as getDefaultRestSec } from '../../utils/workoutUi'
 import SwipeToDelete from '../common/SwipeToDelete'
+import SwipeActions from '../common/SwipeActions'
 import RestTimer from './RestTimer'
 import SetPickerModal from './SetPickerModal'
 import TechniqueModal from './TechniqueModal'
@@ -44,14 +46,19 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
     planDayIdx, setPlanDayIdx, planSaved, viewWorkout, setViewWorkout, techFor, setTechFor,
     histMode, setHistMode, templates, tplSaved, pickerFor, setPickerFor, pendingLoad, setPendingLoad,
     allWorkouts, workoutsByDate, workoutPlace, filteredEx, addEx, updateRest, updateSet, removeSet,
-    moveExercise, updateComment, addSet, removeEx, replaceEx, applyProgression, saveToPlan,
+    updateComment, addSet, removeEx, replaceEx, applyProgression, saveToPlan,
     saveAsTemplate, deleteTemplate, startFromTemplate, repeatWorkout, toggleSet, completeWorkout, saveWorkout,
     removeWorkout, saveWorkoutAnalysis, startFromPlan, resolveWeightTransfer,
     pendingDraft, resumeDraft, discardDraft,
+    reorderExercises, editingWorkout, startEditWorkout, cancelEditWorkout, saveEditedWorkout,
   } = useWorkout({ state, dispatch })
 
   const M_COLORS = { Грудь:'var(--accent)', Спина:'#3b82f6', Ноги:'#f59e0b', Плечи:'#8b5cf6', Трицепс:'#ec4899', Бицепс:'#f97316', Кор:'#06b6d4', Кардио:'#ef4444' }
   const MUSCLE_MEDIA = { Грудь:'chest', Спина:'back', Ноги:'legs', Плечи:'shoulders', Трицепс:'triceps', Бицепс:'biceps', Кор:'core', Кардио:'cardio' }
+
+  // Живое перетаскивание упражнений (builder/active) с раздвиганием соседей —
+  // общий инстанс на оба вида, т.к. рендерится только один из них.
+  const dragReorder = useDragReorder({ items: wk.exercises, getId: ex => ex.uid, onReorder: reorderExercises })
 
   const featured = (() => {
     try {
@@ -178,7 +185,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
           const firstExercise = w.exercisesDetail?.[0]?.name || w.exercises?.[0]
           const media = getExerciseMedia(firstExercise)
           return (
-            <SwipeToDelete key={w.id} onDelete={() => removeWorkout(w.id, w.entryDate)} confirmText="Удалить эту тренировку?">
+            <SwipeActions key={w.id} radius={19} onEdit={() => startEditWorkout(w)} onDelete={() => removeWorkout(w.id, w.entryDate)} confirmText="Удалить эту тренировку?">
               <div className={styles.historyCard}>
                 <button className={styles.historyMain} onClick={() => setViewWorkout(w)}>
                   {media ? <img src={media.start} alt="" /> : <span className={styles.historyFallback}><WorkoutDumbbellIcon size={30} /></span>}
@@ -194,7 +201,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
                   <small>Повторить</small>
                 </button>
               </div>
-            </SwipeToDelete>
+            </SwipeActions>
           )
         })}</div>)}
       </div>
@@ -216,10 +223,10 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
           />
         )}
         <div className={styles.builderHeading}>
-          <button onClick={() => setView('list')} className={styles.backButton}>
+          <button onClick={() => editingWorkout ? cancelEditWorkout() : setView('list')} className={styles.backButton}>
             <ChevronLeft size={18} />
           </button>
-          <span style={{ fontSize: 18, fontWeight: 700 }}>Конструктор</span>
+          <span style={{ fontSize: 18, fontWeight: 700 }}>{editingWorkout ? 'Изменение тренировки' : 'Конструктор'}</span>
         </div>
         <input className={styles.builderName}
           placeholder="Название тренировки" value={wk.name} onChange={e => setWk(w => ({...w, name: e.target.value}))} />
@@ -244,9 +251,9 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
           </div>
         </div>
         {wk.exercises.map((ex, eI) => (
-          <div key={ex.uid || eI} className={styles.builderExercise}>
+          <div key={ex.uid || eI} ref={dragReorder.setItemRef(ex.uid)} style={dragReorder.getItemStyle(ex.uid)} className={styles.builderExercise}>
             <div className={styles.builderExerciseHeader}>
-              <ExerciseDragHandle index={eI} count={wk.exercises.length} onMove={moveExercise} className={styles.dragHandle} />
+              <ExerciseDragHandle dragHandleProps={dragReorder.getHandleProps(ex.uid)} className={styles.dragHandle} />
               <span style={{ padding: '3px 10px', borderRadius: 50, fontSize: 11, color: '#000', background: M_COLORS[ex.muscle] || 'var(--accent)', fontWeight: 600 }}>{ex.muscle}</span>
               <button onClick={() => setTechFor({ name: ex.name, muscle: ex.muscle })} className={styles.builderExerciseTitle}>
                 {ex.name}
@@ -315,20 +322,30 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
             />
           </div>
         ))}
-        {wk.exercises.length > 0 && (
-          <button onClick={() => { resetTimer(); setRunning(true); setView('active') }} style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 14, padding: '15px', fontSize: 14, fontWeight: 700, width: '100%', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            Начать тренировку
-          </button>
-        )}
-        {wk.exercises.length > 0 && (
-          <button onClick={saveAsTemplate} style={{ background: tplSaved ? 'var(--accent)' : 'transparent', color: tplSaved ? '#000' : 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 14, padding: '13px', fontSize: 13, fontWeight: 700, width: '100%', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            {tplSaved ? '✓ Сохранено в мои тренировки' : 'Сохранить как шаблон'}
-          </button>
-        )}
-        {wk.exercises.length > 0 && planDayIdx !== null && (
-          <button onClick={saveToPlan} style={{ background: planSaved ? 'var(--accent)' : 'transparent', color: planSaved ? '#000' : 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 14, padding: '13px', fontSize: 13, fontWeight: 700, width: '100%', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            {planSaved ? '✓ Сохранено в план' : 'Сохранить в план'}
-          </button>
+        {editingWorkout ? (
+          wk.exercises.length > 0 && (
+            <button onClick={saveEditedWorkout} style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 14, padding: '15px', fontSize: 14, fontWeight: 700, width: '100%', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Сохранить изменения
+            </button>
+          )
+        ) : (
+          <>
+            {wk.exercises.length > 0 && (
+              <button onClick={() => { resetTimer(); setRunning(true); setView('active') }} style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 14, padding: '15px', fontSize: 14, fontWeight: 700, width: '100%', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Начать тренировку
+              </button>
+            )}
+            {wk.exercises.length > 0 && (
+              <button onClick={saveAsTemplate} style={{ background: tplSaved ? 'var(--accent)' : 'transparent', color: tplSaved ? '#000' : 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 14, padding: '13px', fontSize: 13, fontWeight: 700, width: '100%', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                {tplSaved ? '✓ Сохранено в мои тренировки' : 'Сохранить как шаблон'}
+              </button>
+            )}
+            {wk.exercises.length > 0 && planDayIdx !== null && (
+              <button onClick={saveToPlan} style={{ background: planSaved ? 'var(--accent)' : 'transparent', color: planSaved ? '#000' : 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 14, padding: '13px', fontSize: 13, fontWeight: 700, width: '100%', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                {planSaved ? '✓ Сохранено в план' : 'Сохранить в план'}
+              </button>
+            )}
+          </>
         )}
       </div>
     )
@@ -359,9 +376,9 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
         {wk.exercises.map((ex, eI) => {
           const media = getExerciseMedia(ex.name)
           return (
-          <div key={ex.uid || eI} className={styles.activeExerciseCard}>
+          <div key={ex.uid || eI} ref={dragReorder.setItemRef(ex.uid)} style={dragReorder.getItemStyle(ex.uid)} className={styles.activeExerciseCard}>
             <div className={styles.activeExerciseHeader}>
-              <ExerciseDragHandle index={eI} count={wk.exercises.length} onMove={moveExercise} className={styles.activeDragHandle} />
+              <ExerciseDragHandle dragHandleProps={dragReorder.getHandleProps(ex.uid)} className={styles.activeDragHandle} />
               <span className={styles.activeExerciseNumber}>{eI+1}</span>
               {media && <button className={styles.activeExerciseImage} onClick={() => setTechFor({ name: ex.name, muscle: ex.muscle })}><img src={media.start} alt="" /></button>}
               <div className={styles.activeExerciseTitle}>

@@ -1,34 +1,16 @@
-import { useRef } from 'react'
 import { GripVertical } from 'lucide-react'
 
-export default function ExerciseDragHandle({ index, count, onMove, className = '' }) {
-  const startY = useRef(null)
-
-  const begin = event => {
-    startY.current = event.touches?.[0]?.clientY ?? event.clientY
-  }
-
-  const end = event => {
-    if (startY.current == null) return
-    const endY = event.changedTouches?.[0]?.clientY ?? event.clientY
-    const delta = endY - startY.current
-    startY.current = null
-    if (Math.abs(delta) < 34) return
-    const direction = delta > 0 ? 1 : -1
-    if ((direction < 0 && index === 0) || (direction > 0 && index === count - 1)) return
-    onMove(index, direction)
-  }
-
+// Ручка «перетащить» упражнение. Сама логика перетаскивания (живое
+// перемещение с раздвиганием соседей, как переупорядочивание иконок на
+// iPhone) — в хуке useDragReorder; сюда приходят уже готовые обработчики.
+export default function ExerciseDragHandle({ dragHandleProps, className = '' }) {
   return (
     <button
       type="button"
       className={className}
       aria-label="Перетащить упражнение"
-      title="Проведите вверх или вниз"
-      onTouchStart={begin}
-      onTouchEnd={end}
-      onPointerDown={begin}
-      onPointerUp={end}
+      title="Зажмите и потяните, чтобы изменить порядок"
+      {...dragHandleProps}
     >
       <GripVertical size={20} />
     </button>

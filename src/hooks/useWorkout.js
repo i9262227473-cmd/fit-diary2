@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { normReps } from '../pages/planUtils'
 import { saveExerciseResult, suggestWeightFor, acceptProgression } from '../pages/progressTracking'
-import { EXERCISE_DB, MUSCLE_GROUPS, EFF_ORDER } from '../data/exerciseDatabase'
+import { EXERCISE_DB, MUSCLE_GROUPS, EFF_ORDER, findExerciseByName } from '../data/exerciseDatabase'
 import { createStableId as uid, getDefaultRestSeconds as getDefaultRestSec } from '../utils/workoutUi'
 import { useStore } from '../store'
 import { syncWorkoutData, syncExerciseProgress } from '../data/workoutSync'
@@ -151,11 +151,18 @@ export default function useWorkout({ state, dispatch }) {
     clearDraft()
     setPendingDraft(null)
   }
+  // Редактирование уже завершённой тренировки из истории (свайп → «Изменить»).
+  // Пока идёт редактирование, черновик в WK_DRAFT_KEY не пишем — иначе после
+  // выхода без сохранения баннер «незавершённая тренировка» предложил бы
+  // продолжить чужую отредактированную копию как новую тренировку.
+  const [editingWorkout, setEditingWorkout] = useState(null)
+
   useEffect(() => {
+    if (editingWorkout) return
     if (view !== 'builder' && view !== 'active') return
     if (!wk.exercises.length) { clearDraft(); return }
     try { localStorage.setItem(WK_DRAFT_KEY, JSON.stringify({ wk, view, elapsedSec: timer, savedAt: Date.now() })) } catch {}
-  }, [wk, view, timer])
+  }, [wk, view, timer, editingWorkout])
 
   const [showRestTimer, setShowRestTimer] = useState(false)
   const [restInfo, setRestInfo] = useState({ exercise: '', setInfo: '', duration: 90 })
@@ -209,6 +216,14 @@ export default function useWorkout({ state, dispatch }) {
     if (j < 0 || j >= exs.length) return w
     ;[exs[eI], exs[j]] = [exs[j], exs[eI]]
     return { ...w, exercises: exs }
+  })
+  // Полный новый порядок упражнений по их uid — используется при
+  // перетаскивании (useDragReorder), в отличие от moveExercise (сдвиг на 1).
+  const reorderExercises = (newOrderUids) => setWk(w => {
+    const byUid = new Map(w.exercises.map(e => [e.uid, e]))
+    const reordered = newOrderUids.map(id => byUid.get(id)).filter(Boolean)
+    if (reordered.length !== w.exercises.length) return w
+    return { ...w, exercises: reordered }
   })
   const updateComment = (eI, val) => setWk(w => { const exs = [...w.exercises]; exs[eI] = { ...exs[eI], comment: val }; return { ...w, exercises: exs } })
   const addSet = eI => setWk(w => { const exs = [...w.exercises]; const prev = exs[eI].sets[exs[eI].sets.length - 1]; exs[eI] = { ...exs[eI], sets: [...exs[eI].sets, { ...prev, id: uid(), done: false }] }; return { ...w, exercises: exs } })
@@ -334,6 +349,59 @@ export default function useWorkout({ state, dispatch }) {
     if (!targetEntry) return
     dispatch({ type: 'SAVE_ENTRY', entry: { ...targetEntry, workouts: (targetEntry.workouts || []).filter(w => w.id !== wId) } })
   }
+  // Редактирование уже завершённой тренировки из истории (свайп → «Изменить»).
+  // Открывает её в конструкторе как обычные упражнения/подходы; в отличие от
+  // повтора тренировки (repeatWorkout) — не начинает новую тренировку с нуля,
+  // а по сохранению перезаписывает именно эту запись в истории.
+  const startEditWorkout = (workout) => {
+    if (!workout) return
+    const details = workout.exercisesDetail?.length
+      ? workout.exercisesDetail
+      : (workout.exercises || []).map(name => ({ name }))
+    const exercises = details.map(ex => {
+      const dbEx = findExerciseByName(ex.name)
+      return {
+        uid: uid(),
+        exerciseId: dbEx?.id,
+        name: ex.name,
+        muscle: ex.muscle || dbEx?.muscle || 'Кор',
+        type: ex.type || dbEx?.type || 'compound',
+        comment: ex.comment || '',
+        targetReps: ex.sets?.[0]?.reps || '8-12',
+        restSec: getDefaultRestSec(ex.muscle || dbEx?.muscle || 'Кор'),
+        suggestedWeight: null,
+        sets: (ex.sets?.length ? ex.sets : [{ reps: '8-12', weight: '0', done: true }]).map(s => ({ id: uid(), reps: s.reps, weight: s.weight, done: s.done !== undefined ? s.done : true })),
+      }
+    }).filter(ex => ex.name)
+    if (!exercises.length) return
+    clearDraft()
+    setWk({ name: workout.name || 'Тренировка', exercises })
+    setPlanDayIdx(null)
+    setEditingWorkout({ entryDate: workout.entryDate, original: workout })
+    setRunning(false)
+    setView('builder')
+  }
+  const cancelEditWorkout = () => {
+    setEditingWorkout(null)
+    setWk({ name: '', exercises: [] })
+    setView('list')
+  }
+  const saveEditedWorkout = () => {
+    if (!editingWorkout) return
+    const targetEntry = state.entries.find(e => e.date === editingWorkout.entryDate)
+    if (!targetEntry) return
+    const updatedWorkout = {
+      ...editingWorkout.original,
+      name: wk.name || 'Тренировка',
+      exercises: wk.exercises.map(e => e.name),
+      exercisesDetail: wk.exercises.map(e => ({ name: e.name, muscle: e.muscle, comment: e.comment || '', sets: e.sets.map(s => ({ reps: s.reps, weight: s.weight, done: s.done })) })),
+    }
+    dispatch({ type: 'SAVE_ENTRY', entry: { ...targetEntry, workouts: (targetEntry.workouts || []).map(w => w.id === editingWorkout.original.id ? updatedWorkout : w) } })
+    if (viewWorkout && viewWorkout.id === editingWorkout.original.id) setViewWorkout(updatedWorkout)
+    setEditingWorkout(null)
+    setWk({ name: '', exercises: [] })
+    setView('list')
+  }
   const saveWorkoutAnalysis = (workout, text) => {
     const targetEntry = state.entries.find(e => e.date === workout.entryDate)
     if (!targetEntry) return
@@ -373,8 +441,9 @@ export default function useWorkout({ state, dispatch }) {
     planDayIdx, setPlanDayIdx, planSaved, viewWorkout, setViewWorkout, techFor, setTechFor,
     histMode, setHistMode, templates, tplSaved, pickerFor, setPickerFor, pendingLoad, setPendingLoad,
     allWorkouts, workoutsByDate, workoutPlace, filteredEx, addEx, updateRest, updateSet, removeSet,
-    moveExercise, updateComment, addSet, removeEx, replaceEx, applyProgression, saveToPlan,
+    moveExercise, reorderExercises, updateComment, addSet, removeEx, replaceEx, applyProgression, saveToPlan,
     saveAsTemplate, deleteTemplate, startFromTemplate, repeatWorkout, toggleSet, completeWorkout, saveWorkout,
     removeWorkout, saveWorkoutAnalysis, startFromPlan, resolveWeightTransfer,
+    editingWorkout, startEditWorkout, cancelEditWorkout, saveEditedWorkout,
   }
 }
