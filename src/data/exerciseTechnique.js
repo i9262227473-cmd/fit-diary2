@@ -7,6 +7,8 @@
 // Предупреждения носят общий медицинский характер (приложением пользуются разные люди).
 // При наличии заболеваний сердца, суставов, позвоночника — обязательна консультация врача.
 
+import { fuzzyMatchName } from '../utils/fuzzyMatch'
+
 export const TECHNIQUE = {
 
   // ═══════════ ГРУДЬ ═══════════
@@ -2308,36 +2310,14 @@ export const TECHNIQUE = {
 
 }
 
-// Стоп-слова, которые не считаем значимыми при нечётком сравнении названий
-const TECH_STOPWORDS = new Set(['в','на','с','из','за','к','и','рук','руки','руками','для'])
-
 export function getTechnique(name) {
   if (!name) return null
   const key = String(name).trim().toLowerCase()
   if (TECHNIQUE[key]) return TECHNIQUE[key]
-  // Fallback для старых записей, где название чуть отличается от текущего
-  // (например «Разгибания рук на блоке (трицепс)» вместо «Разгибание на блоке»).
-  // 1) убираем уточнения в скобках; 2) сравниваем по набору значимых корней слов.
-  const clean = s => s.replace(/\(.*?\)/g, '').trim()
-  const rootsOf = s => clean(s)
-    .split(/\s+/)
-    .filter(Boolean)
-    .filter(w => !TECH_STOPWORDS.has(w))
-    .map(w => w.slice(0, Math.max(4, w.length - 2))) // грубый корень слова (без окончания)
-
-  const keyRoots = rootsOf(key)
-  if (keyRoots.length === 0) return null
-
-  const keys = Object.keys(TECHNIQUE)
-  let bestMatch = null
-  let bestScore = 0
-  for (const k of keys) {
-    const kRoots = rootsOf(k)
-    if (kRoots.length === 0) continue
-    const overlap = keyRoots.filter(r => kRoots.some(kr => kr.startsWith(r) || r.startsWith(kr))).length
-    const score = overlap / Math.max(keyRoots.length, kRoots.length)
-    if (score > bestScore) { bestScore = score; bestMatch = k }
-  }
-  // Порог 0.6 — большинство слов должны совпасть, чтобы не подставить неверную технику
-  return bestScore >= 0.6 ? TECHNIQUE[bestMatch] : null
+  // Fallback для старых записей и AI-плана, где название чуть отличается от
+  // канонического (например «Разгибания рук на блоке (трицепс)» вместо
+  // «Разгибание на блоке») — общая логика нечёткого сопоставления, см.
+  // utils/fuzzyMatch.js (используется также при поиске альтернатив упражнения).
+  const matchedKey = fuzzyMatchName(name, Object.keys(TECHNIQUE))
+  return matchedKey ? TECHNIQUE[matchedKey] : null
 }

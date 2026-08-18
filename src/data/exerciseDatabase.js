@@ -12,6 +12,8 @@
 // Сортировка в UI: сначала по eff (best → good → base → alt), фильтр по place.
 // Замена: показываем другие упражнения с тем же swap, подходящие под место тренировки.
 
+import { fuzzyMatchName } from '../utils/fuzzyMatch'
+
 export const EFF_LABEL = { best: 'Лучшее', good: 'Хорошее', base: 'Базовое', alt: 'Альтернатива' }
 export const EFF_ORDER = { best: 0, good: 1, base: 2, alt: 3 }
 export const PLACE_LABEL = { gym: 'Зал', home: 'Дом', both: 'Везде' }
@@ -225,6 +227,22 @@ export const MUSCLE_GROUPS = ['Грудь', 'Спина', 'Ноги', 'Плеч�
 // Уникальные виды оборудования, встречающиеся в базе (для будущего фильтра
 // «что есть в моём зале» — просто список того, что реально используется).
 export const EQUIPMENT_LIST = [...new Set(EXERCISE_DB.map(e => e.equipment))].sort()
+
+// Найти упражнение в базе по названию: сначала точное совпадение (без учёта
+// регистра), затем нечёткое — по значимым корням слов. Нужно потому что
+// названия упражнений в AI-плане генерируются свободным текстом и не всегда
+// совпадают со справочником дословно (например, «Жим гантелей лёжа на скамье
+// с наклоном» вместо канонического «Жим гантелей на наклонной») — без этого
+// поиск альтернатив («Заменить») не находил упражнение в базе и показывал
+// «нет подходящих альтернатив» почти для всех упражнений из AI-плана.
+export function findExerciseByName(name) {
+  if (!name) return null
+  const key = String(name).trim().toLowerCase()
+  const exact = EXERCISE_DB.find(e => e.name.toLowerCase() === key)
+  if (exact) return exact
+  const matchedName = fuzzyMatchName(name, EXERCISE_DB.map(e => e.name))
+  return matchedName ? EXERCISE_DB.find(e => e.name === matchedName) : null
+}
 
 // Найти альтернативы упражнению (та же swap-группа, подходящие под место), отсортированные по эффективности
 export function findAlternatives(exercise, place) {

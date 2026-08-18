@@ -1,6 +1,6 @@
 import React from 'react'
 import { Check, ChevronLeft, Dumbbell, Edit2, Play, Plus } from 'lucide-react'
-import { EFF_LABEL, EXERCISE_DB as FULL_EXERCISE_DB, findAlternatives } from '../../data/exerciseDatabase'
+import { EFF_LABEL, EXERCISE_DB as FULL_EXERCISE_DB, findAlternatives, findExerciseByName } from '../../data/exerciseDatabase'
 import { getExerciseMedia } from '../../data/exerciseMedia'
 import useWorkout from '../../hooks/useWorkout'
 import { formatLongTime as fmtTimeLong, getDefaultRestSeconds as getDefaultRestSec } from '../../utils/workoutUi'
@@ -268,7 +268,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
                   <button onClick={() => setSwapFor(null)} style={{ width: 24, height: 24, borderRadius: 6, background: '#222', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 14 }}>×</button>
                 </div>
                 {(() => {
-                  const dbEx = FULL_EXERCISE_DB.find(e => e.id === ex.exerciseId) || FULL_EXERCISE_DB.find(e => e.name.toLowerCase() === (ex.name||'').toLowerCase())
+                  const dbEx = FULL_EXERCISE_DB.find(e => e.id === ex.exerciseId) || findExerciseByName(ex.name)
                   const alts = dbEx ? findAlternatives(dbEx, workoutPlace) : []
                   if (alts.length === 0) return <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 0' }}>Нет подходящих альтернатив для вашего места тренировок</div>
                   return <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -377,7 +377,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
                   <button onClick={() => setSwapFor(null)}>×</button>
                 </div>
                 {(() => {
-                  const dbEx = FULL_EXERCISE_DB.find(e => e.id === ex.exerciseId) || FULL_EXERCISE_DB.find(e => e.name.toLowerCase() === (ex.name||'').toLowerCase())
+                  const dbEx = FULL_EXERCISE_DB.find(e => e.id === ex.exerciseId) || findExerciseByName(ex.name)
                   const alts = dbEx ? findAlternatives(dbEx, workoutPlace) : []
                   if (alts.length === 0) return <div className={styles.activeNoAlternatives}>Нет подходящих альтернатив для вашего места тренировок</div>
                   return <div className={styles.activeAlternatives}>
