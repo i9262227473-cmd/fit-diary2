@@ -219,6 +219,12 @@ export const EXERCISE_DB = [
   { id:268,name:'Степпер (лестница-тренажёр)',     muscle:'Кардио',place:'gym',  equipment:'Тренажёр',    eff:'good', swap:'cardio',     type:'compound' },
   { id:269,name:'Лыжный тренажёр (SkiErg)',        muscle:'Кардио',place:'gym',  equipment:'Тренажёр',    eff:'good', swap:'cardio',     type:'compound' },
   { id:270,name:'Рывок гири',                      muscle:'Кардио',place:'gym',  equipment:'Гиря',        eff:'best', swap:'cardio',     type:'compound' },
+
+  // ═══════════ СПРИНТЫ И БЕГ (доп.) ═══════════
+  { id:271,name:'Спринт на короткую дистанцию (30-60 м)', muscle:'Кардио',place:'home', equipment:'Своё тело', eff:'best', swap:'sprint', type:'compound' },
+  { id:272,name:'Спринт на беговой дорожке',        muscle:'Кардио',place:'gym',  equipment:'Беговая дорожка', eff:'best', swap:'sprint', type:'compound' },
+  { id:273,name:'Челночный бег',                    muscle:'Кардио',place:'home', equipment:'Своё тело',   eff:'good', swap:'sprint',     type:'compound' },
+  { id:274,name:'Бег по лестнице/в гору',           muscle:'Кардио',place:'home', equipment:'Своё тело',   eff:'good', swap:'sprint',     type:'compound' },
 ]
 
 // Уникальные мышечные группы (для фильтра в UI)

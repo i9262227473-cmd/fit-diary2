@@ -1,5 +1,5 @@
 import React from 'react'
-import { Check, ChevronLeft, Dumbbell, Edit2, Play, Plus } from 'lucide-react'
+import { Check, ChevronLeft, Dumbbell, Edit2, Library, Play, Plus } from 'lucide-react'
 import { EFF_LABEL, EXERCISE_DB as FULL_EXERCISE_DB, findAlternatives, findExerciseByName } from '../../data/exerciseDatabase'
 import { getExerciseMedia } from '../../data/exerciseMedia'
 import useWorkout from '../../hooks/useWorkout'
@@ -14,6 +14,7 @@ import WeightTransferModal from './WeightTransferModal'
 import WorkoutCalendar from './WorkoutCalendar'
 import WorkoutComplete from './WorkoutComplete'
 import WorkoutDetail from './WorkoutDetail'
+import WorkoutLibrary from './WorkoutLibrary'
 import ExerciseDragHandle from './ExerciseDragHandle'
 import {
   WorkoutBrainIcon,
@@ -135,6 +136,11 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
             <span><WorkoutBrainIcon size={28} /></span>
             <strong>AI-план</strong>
             <small>Персональная программа</small>
+          </button>
+          <button onClick={() => setView('library')}>
+            <span><Library size={26} /></span>
+            <strong>Программы</strong>
+            <small>Готовые программы</small>
           </button>
           <button className={styles.newWorkout} onClick={() => { setPlanDayIdx(null); setWk({ name: '', exercises: [] }); setView('builder') }}>
             <span><WorkoutPlusIcon size={27} /></span>
@@ -500,6 +506,15 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
       <>
         {pendingLoad && <WeightTransferModal onConfirm={() => resolveWeightTransfer(true)} onDecline={() => resolveWeightTransfer(false)} onClose={() => setPendingLoad(null)} />}
         <PlanScreen onBack={() => setView('list')} aiCall={aiCall} profile={state.profile} onStartWorkout={startFromPlan} />
+      </>
+    )
+  }
+
+  if (view === 'library') {
+    return (
+      <>
+        {pendingLoad && <WeightTransferModal onConfirm={() => resolveWeightTransfer(true)} onDecline={() => resolveWeightTransfer(false)} onClose={() => setPendingLoad(null)} />}
+        <WorkoutLibrary onBack={() => setView('list')} onStart={(program) => startFromTemplate(program, 'active')} />
       </>
     )
   }
