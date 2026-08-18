@@ -47,6 +47,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
     moveExercise, updateComment, addSet, removeEx, replaceEx, applyProgression, saveToPlan,
     saveAsTemplate, deleteTemplate, startFromTemplate, repeatWorkout, toggleSet, completeWorkout, saveWorkout,
     removeWorkout, saveWorkoutAnalysis, startFromPlan, resolveWeightTransfer,
+    pendingDraft, resumeDraft, discardDraft,
   } = useWorkout({ state, dispatch })
 
   const M_COLORS = { Грудь:'var(--accent)', Спина:'#3b82f6', Ноги:'#f59e0b', Плечи:'#8b5cf6', Трицепс:'#ec4899', Бицепс:'#f97316', Кор:'#06b6d4', Кардио:'#ef4444' }
@@ -105,6 +106,18 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
         <div className={styles.historyHeading}>
           <h1>Тренировки</h1>
         </div>
+        {pendingDraft && (
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'12px 14px', margin:'0 0 14px', borderRadius:14, background:'var(--surface2)', border:'1px solid var(--border)' }}>
+            <div style={{ minWidth:0 }}>
+              <strong style={{ display:'block', fontSize:14, color:'var(--text)' }}>Есть незавершённая тренировка</strong>
+              <small style={{ color:'var(--text-muted)', fontSize:12 }}>{pendingDraft.wk?.exercises?.length || 0} упражнений в черновике</small>
+            </div>
+            <div style={{ display:'flex', gap:8, flexShrink:0 }}>
+              <button onClick={discardDraft} style={{ padding:'8px 12px', borderRadius:10, background:'var(--surface3)', color:'var(--text-muted)', fontSize:13, fontWeight:600 }}>Удалить</button>
+              <button onClick={resumeDraft} style={{ padding:'8px 12px', borderRadius:10, background:'var(--accent)', color:'#000', fontSize:13, fontWeight:700 }}>Продолжить</button>
+            </div>
+          </div>
+        )}
         <div className={styles.historyActions}>
           <button className={styles.primaryAction} onClick={() => setView('templates')}>
             <span><WorkoutDumbbellIcon size={27} /></span>

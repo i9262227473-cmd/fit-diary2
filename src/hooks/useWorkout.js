@@ -107,6 +107,12 @@ export default function useWorkout({ state, dispatch }) {
   const resetTimer = () => { setTimerResetKey(k => k + 1); setTimer(0) }
   useWakeLock(view === 'active')
 
+  // Незавершённый черновик из конструктора (упражнения добавлены, но тренировка
+  // не начата и не сохранена). Раньше при заходе на вкладку сразу молча
+  // перекидывало в конструктор — теперь просто показываем баннер на главном
+  // экране, а конструктор открывается только по явному выбору пользователя.
+  const [pendingDraft, setPendingDraft] = useState(null)
+
   const draftRestoredRef = useRef(false)
   useEffect(() => {
     if (draftRestoredRef.current) return
@@ -117,19 +123,34 @@ export default function useWorkout({ state, dispatch }) {
       const draft = JSON.parse(raw)
       if (!draft?.wk?.exercises?.length) return
       if (Date.now() - (draft.savedAt || 0) > 24 * 60 * 60 * 1000) { localStorage.removeItem(WK_DRAFT_KEY); return }
-      setWk(draft.wk)
       if (draft.view === 'active') {
+        // Тренировка реально идёт (таймер запущен) — сюда возвращаем сразу,
+        // это ожидаемо: пользователь мог просто переключиться на другую вкладку.
+        setWk(draft.wk)
         setTimer(draft.elapsedSec || 0)
         setRunning(true)
         setView('active')
       } else {
-        setView('builder')
+        // Тренировка не начата — просто предлагаем продолжить баннером,
+        // не отбирая у пользователя главный экран вкладки.
+        setPendingDraft(draft)
       }
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const clearDraft = () => { try { localStorage.removeItem(WK_DRAFT_KEY) } catch {} }
+  const resumeDraft = () => {
+    if (!pendingDraft) return
+    setWk(pendingDraft.wk)
+    setPlanDayIdx(null)
+    setView('builder')
+    setPendingDraft(null)
+  }
+  const discardDraft = () => {
+    clearDraft()
+    setPendingDraft(null)
+  }
   useEffect(() => {
     if (view !== 'builder' && view !== 'active') return
     if (!wk.exercises.length) { clearDraft(); return }
@@ -347,6 +368,7 @@ export default function useWorkout({ state, dispatch }) {
 
   return {
     view, setView, wk, setWk, exSearch, setExSearch, running, setRunning, timer, resetTimer,
+    pendingDraft, resumeDraft, discardDraft,
     showRestTimer, setShowRestTimer, restInfo, showComplete, swapFor, setSwapFor,
     planDayIdx, setPlanDayIdx, planSaved, viewWorkout, setViewWorkout, techFor, setTechFor,
     histMode, setHistMode, templates, tplSaved, pickerFor, setPickerFor, pendingLoad, setPendingLoad,
