@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { CalendarDays, ChefHat, ChevronLeft, ChevronRight, Coffee, Cookie, Moon, Pencil, Plus, Search, Sparkles, Sun, Utensils } from 'lucide-react'
+import { ChefHat, Coffee, Cookie, Moon, Search, Sparkles, Sun } from 'lucide-react'
 import SwipeActions from '../common/SwipeActions'
 import useFood from '../../hooks/useFood'
 import BarcodeScanner from './BarcodeScanner'
@@ -8,6 +8,7 @@ import FoodCalendar from './FoodCalendar'
 import FoodModule from './FoodModule'
 import MissingBarcodeProduct from './MissingBarcodeProduct'
 import NutritionGoalsModal from './NutritionGoalsModal'
+import { FoodAiIcon, FoodBowlIcon, FoodCalendarIcon, FoodChevronIcon, FoodPencilIcon, FoodPlusIcon } from './FoodUiIcons'
 import styles from './FoodScreen.module.css'
 
 const MEALS_MAP = { breakfast: 'Завтрак', lunch: 'Обед', dinner: 'Ужин', snack: 'Перекус' }
@@ -52,7 +53,7 @@ export default function FoodScreen({ state, dispatch, aiCall, intent, onSaveGoal
   const inputStyle = {
     width: '100%', padding: '13px 16px', background: 'var(--surface2)',
     border: '1px solid var(--border)', borderRadius: 12, color: 'var(--text)',
-    fontSize: 15, outline: 'none', boxSizing: 'border-box',
+    fontSize: 16, outline: 'none', boxSizing: 'border-box',
   }
   const goals = {
     calories: state.profile?.calorieGoal || 2200,
@@ -110,16 +111,16 @@ export default function FoodScreen({ state, dispatch, aiCall, intent, onSaveGoal
       {missingBarcode && <MissingBarcodeProduct product={missingBarcode} onComplete={completeMissingBarcode} onClose={() => setMissingBarcode(null)} />}
 
       <header className={styles.header}>
-        <button className={styles.headerButton} onClick={() => changeDay(-1)} aria-label="Предыдущий день"><ChevronLeft size={20} /></button>
+        <button className={styles.headerButton} onClick={() => changeDay(-1)} aria-label="Предыдущий день"><FoodChevronIcon direction="left" size={22} /></button>
         <button className={styles.headerTitle} onClick={() => { setTab('log'); setLogMode('calendar') }}><h1>Питание</h1><p>{selectedDate === today ? 'Сегодня, ' : ''}{dayTitle}</p></button>
-        <button className={styles.headerButton} onClick={() => changeDay(1)} aria-label="Следующий день"><ChevronRight size={20} /></button>
+        <button className={styles.headerButton} onClick={() => changeDay(1)} aria-label="Следующий день"><FoodChevronIcon direction="right" size={22} /></button>
       </header>
 
       <div className={styles.daySwipe} onPointerDown={handleDaySwipeStart} onPointerUp={handleDaySwipeEnd} onPointerCancel={() => { swipeStartX.current = null }}>
       <section className={styles.summaryCard}>
         <div className={styles.summaryTop}>
           <div><span className={styles.eyebrow}>Баланс дня</span><h2>Питание</h2></div>
-          <button className={styles.editGoals} onClick={() => setShowGoals(true)}><Pencil size={14} /><span>Изменить цели</span></button>
+          <button className={styles.editGoals} onClick={() => setShowGoals(true)}><FoodPencilIcon size={20} /><span>Изменить цели</span></button>
         </div>
         <div className={styles.energyCompact}>
           <div className={styles.energyConsumed}>
@@ -151,10 +152,10 @@ export default function FoodScreen({ state, dispatch, aiCall, intent, onSaveGoal
           <div className={styles.logHeader}>
             <div><span className={styles.eyebrow}>{selectedDate === today ? 'Сегодня' : dayTitle}</span><h2>Приёмы пищи</h2></div>
             <div className={styles.logActions}>
-              <button className={styles.addFood} onClick={() => setTab('ai')}><Plus size={15} /><span>Добавить</span></button>
+              <button className={styles.addFood} onClick={() => setTab('ai')}><FoodPlusIcon size={20} /><span>Добавить</span></button>
               <div className={styles.viewToggle}>
-                <button className={logMode === 'list' ? styles.viewActive : ''} onClick={() => setLogMode('list')} aria-label="Список"><Utensils size={16} /></button>
-                <button className={logMode === 'calendar' ? styles.viewActive : ''} onClick={() => setLogMode('calendar')} aria-label="Календарь"><CalendarDays size={16} /></button>
+                <button className={logMode === 'list' ? styles.viewActive : ''} onClick={() => setLogMode('list')} aria-label="Список"><FoodBowlIcon size={22} active={logMode === 'list'} /></button>
+                <button className={logMode === 'calendar' ? styles.viewActive : ''} onClick={() => setLogMode('calendar')} aria-label="Календарь"><FoodCalendarIcon size={21} active={logMode === 'calendar'} /></button>
               </div>
             </div>
           </div>
@@ -163,9 +164,9 @@ export default function FoodScreen({ state, dispatch, aiCall, intent, onSaveGoal
             <div className={styles.mealList}>
               {entry.foods.length === 0 && (
                 <div className={styles.emptyState}>
-                  <span><Utensils size={25} /></span><h3>Записей пока нет</h3>
+                  <span><FoodBowlIcon size={34} /></span><h3>Записей пока нет</h3>
                   <p>Добавьте первый приём пищи — калории и БЖУ рассчитаются автоматически.</p>
-                  <button onClick={() => setTab('ai')}><Sparkles size={16} /> AI-поиск</button>
+                  <button onClick={() => setTab('ai')}><FoodAiIcon size={21} /> AI-поиск</button>
                 </div>
               )}
               {Object.entries(MEALS_MAP).map(([mealKey, mealName]) => {
@@ -192,7 +193,7 @@ export default function FoodScreen({ state, dispatch, aiCall, intent, onSaveGoal
                   </article>
                 )
               })}
-              {entry.foods.length > 0 && <button className={styles.addMeal} onClick={() => setTab('ai')}><Sparkles size={17} /> Добавить через AI</button>}
+              {entry.foods.length > 0 && <button className={styles.addMeal} onClick={() => setTab('ai')}><FoodAiIcon size={20} /> Добавить через AI</button>}
             </div>
           )}
         </section>
