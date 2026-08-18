@@ -3,6 +3,17 @@ import { normReps } from '../pages/planUtils'
 import { saveExerciseResult, suggestWeightFor, acceptProgression } from '../pages/progressTracking'
 import { EXERCISE_DB, MUSCLE_GROUPS, EFF_ORDER } from '../data/exerciseDatabase'
 import { createStableId as uid, getDefaultRestSeconds as getDefaultRestSec } from '../utils/workoutUi'
+import { useStore } from '../store'
+import { syncWorkoutData, syncExerciseProgress } from '../data/workoutSync'
+
+// Отправить план/шаблоны или прогрессию на сервер в фоне (не блокируя UI).
+// Раньше это жило только в localStorage и терялось при смене устройства.
+const syncPlanInBackground = () => {
+  useStore.getState().getValidToken().then(syncWorkoutData).catch(() => {})
+}
+const syncProgressInBackground = () => {
+  useStore.getState().getValidToken().then(syncExerciseProgress).catch(() => {})
+}
 
 const WK_DRAFT_KEY = 'workout-draft-v1'
 const PLAN_KEY = 'workout-plan-v4-pro'
@@ -187,6 +198,7 @@ export default function useWorkout({ state, dispatch }) {
     const ex = exs[eI]
     if (!ex.suggestedWeight) return w
     const nw = acceptProgression(ex.name) || ex.suggestedWeight
+    syncProgressInBackground()
     exs[eI] = { ...ex, suggestedWeight: null, sets: ex.sets.map(s => ({ ...s, weight: String(nw) })) }
     return { ...w, exercises: exs }
   })
@@ -211,6 +223,7 @@ export default function useWorkout({ state, dispatch }) {
       localStorage.setItem(PLAN_KEY, JSON.stringify(plan))
       setPlanSaved(true)
       setTimeout(() => setPlanSaved(false), 2000)
+      syncPlanInBackground()
     } catch (e) { console.warn('saveToPlan error', e) }
   }
 
@@ -229,8 +242,14 @@ export default function useWorkout({ state, dispatch }) {
     setTemplates(next)
     setTplSaved(true)
     setTimeout(() => setTplSaved(false), 2000)
+    syncPlanInBackground()
   }
-  const deleteTemplate = (id) => { const next = getTemplates().filter(t => t.id !== id); saveTemplatesList(next); setTemplates(next) }
+  const deleteTemplate = (id) => {
+    const next = getTemplates().filter(t => t.id !== id)
+    saveTemplatesList(next)
+    setTemplates(next)
+    syncPlanInBackground()
+  }
 
   const buildExercisesFromTemplate = (tpl, transferWeights) => (tpl.exercises || []).map(ex => {
     const saved = suggestWeightFor(ex.name)
@@ -285,6 +304,7 @@ export default function useWorkout({ state, dispatch }) {
     const calBurned = Math.round(finalMin * 7.5)
     const today2 = new Date().toISOString().split('T')[0]
     wk.exercises.forEach(ex => saveExerciseResult({ name: ex.name, sets: ex.sets, targetReps: ex.targetReps || ex.sets?.[0]?.reps }, today2))
+    syncProgressInBackground()
     dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, workouts: [...(entry.workouts || []), { id: Date.now(), name: wk.name || 'Тренировка', exercises: wk.exercises.map(e => e.name), exercisesDetail: wk.exercises.map(e => ({ name: e.name, muscle: e.muscle, comment: e.comment || '', sets: e.sets.map(s => ({ reps: s.reps, weight: s.weight, done: s.done })) })), duration: finalMin, caloriesBurned: calBurned, ...restFeedback }] } })
     clearDraft(); setWk({ name: '', exercises: [] }); resetTimer(); setShowComplete(false); setView('list')
   }

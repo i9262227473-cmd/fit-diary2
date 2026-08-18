@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Dumbbell } from 'lucide-react'
 import { useStore, API_URL } from './store'
+import { fetchJSON } from './data/cloudSync'
+import { syncWorkoutData, syncExerciseProgress, restoreWorkoutDataIfEmpty, restoreExerciseProgressIfEmpty } from './data/workoutSync'
 
 import AuthPage from './pages/AuthPage'
 import OnboardingPage from './pages/OnboardingPage'
@@ -10,6 +12,26 @@ import DashboardPage from './pages/DashboardPage'
 export default function App() {
   const { user, profile, session, isLoggingIn } = useStore()
   const [loading, setLoading] = useState(true)
+
+  // Разовая подстраховка для уже залогиненных пользователей: план
+  // тренировок/шаблоны/прогрессия могли годами жить только в localStorage.
+  // При первом запуске после обновления — подтягиваем с сервера то, чего
+  // нет локально, и выгружаем на сервер то, что есть только локально.
+  // Дальше синк идёт уже по месту изменения (см. data/workoutSync.js).
+  useEffect(() => {
+    if (!user || !session) return
+    const run = async () => {
+      const token = await useStore.getState().getValidToken()
+      if (!token) return
+      const rawProfile = await fetchJSON(token, '/profile')
+      restoreWorkoutDataIfEmpty(rawProfile?.saved_workouts)
+      await restoreExerciseProgressIfEmpty(token)
+      await syncWorkoutData(token)
+      await syncExerciseProgress(token)
+    }
+    run().catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, session])
 
   useEffect(() => {
     const init = async () => {

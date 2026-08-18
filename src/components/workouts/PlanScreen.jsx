@@ -1,6 +1,14 @@
 import React, { useState } from 'react'
 import { ChevronLeft, Edit2, Play } from 'lucide-react'
 import { normReps } from '../../pages/planUtils'
+import { useStore } from '../../store'
+import { syncWorkoutData } from '../../data/workoutSync'
+
+// Отправить план на сервер в фоне (не блокируя UI) — раньше план хранился
+// только в localStorage и терялся при смене устройства/очистке браузера.
+const syncPlanInBackground = () => {
+  useStore.getState().getValidToken().then(syncWorkoutData).catch(() => {})
+}
 
 // ─── PLAN CONSTANTS ───────────────────────────────────────────────────────────
 const PLAN_KEY = 'workout-plan-v4-pro'
@@ -191,6 +199,7 @@ ${hasLimitations ? '6. ОБЯЗАТЕЛЬНО исключить опасные 
       const translated = translatePlan(parsed)
       setPlan(translated)
       localStorage.setItem(PLAN_KEY, JSON.stringify(translated))
+      syncPlanInBackground()
       setExpandedDay(0)
     } catch (e) {
       if (e.message === 'TIMEOUT') setError('AI слишком долго отвечает (>60с). Попробуй ещё раз.')
@@ -307,7 +316,7 @@ ${hasLimitations ? '6. ОБЯЗАТЕЛЬНО исключить опасные 
               </div>
             </div>
           )}
-          <button onClick={() => { setPlan(null); localStorage.removeItem(PLAN_KEY); setError(null); setExpandedDay(null) }}
+          <button onClick={() => { setPlan(null); localStorage.removeItem(PLAN_KEY); syncPlanInBackground(); setError(null); setExpandedDay(null) }}
             style={{ padding:'12px', background:'transparent', border:'1px solid #2e2e2e', borderRadius:14, color:'#6b7280', cursor:'pointer', fontSize:13 }}>
             ↻ Пересоздать план
           </button>

@@ -1,8 +1,8 @@
 ﻿import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-
-// в”Ђв”Ђ РђРґСЂРµСЃ СЃРѕР±СЃС‚РІРµРЅРЅРѕРіРѕ Р±СЌРєРµРЅРґР° (Timeweb, HTTPS С‡РµСЂРµР· nginx) в”Ђв”Ђ
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.sudbase.ru'
+import { API_URL } from '../data/apiConfig'
+import { syncWithRetry, flushSyncQueue } from '../data/cloudSync'
+import { restoreWorkoutDataIfEmpty, restoreExerciseProgressIfEmpty } from '../data/workoutSync'
 
 const jsonHeaders = (token) => {
   const h = { 'Content-Type': 'application/json' }
@@ -53,22 +53,6 @@ const loadEntries = async (token) => {
   } catch (e) {
     console.warn('Entries load error:', e)
     return null
-  }
-}
-
-const syncEntry = async (token, entry) => {
-  try {
-    await fetch(`${API_URL}/entries`, {
-      method: 'POST',
-      headers: jsonHeaders(token),
-      body: JSON.stringify({
-        date: entry.date,
-        foods: entry.foods || [],
-        workouts: entry.workouts || [],
-      })
-    })
-  } catch (e) {
-    console.warn('Entry sync error:', e)
   }
 }
 
@@ -150,11 +134,20 @@ export const useStore = create(
             })
           }
 
-          // Р—Р°РіСЂСѓР¶Р°РµРј РґРЅРµРІРЅРёРє СЃ СЃРµСЂРІРµСЂР°
+          // Загружаем дневник с сервера
           const remoteEntries = await loadEntries(data.access_token)
           if (remoteEntries && remoteEntries.length > 0) {
             set({ entries: remoteEntries })
           }
+
+          // Восстанавливаем план тренировок/шаблоны/прогрессию, если локально
+          // их ещё нет (новое устройство или очищенный браузер) — раньше это
+          // хранилось только в localStorage и терялось при смене устройства.
+          restoreWorkoutDataIfEmpty(profileRaw?.saved_workouts)
+          restoreExerciseProgressIfEmpty(data.access_token)
+
+          // Догоняем всё, что не успело синкнуться в прошлый раз (офлайн и т.п.)
+          flushSyncQueue(() => get().getValidToken())
 
           return data
         } finally {
@@ -171,34 +164,26 @@ export const useStore = create(
         const { session, getValidToken } = get()
         set({ profile: profileData })
         if (!session) return
-        try {
-          const token = await getValidToken()
-          await fetch(`${API_URL}/profile`, {
-            method: 'PUT',
-            headers: jsonHeaders(token),
-            body: JSON.stringify({
-              name: profileData.name,
-              role: profileData.role,
-              level: profileData.level,
-              goals: profileData.goals,
-              has_limitations: profileData.hasLimitations,
-              limitations_text: profileData.limitationsText,
-              age: profileData.age ? +profileData.age : null,
-              weight: profileData.weight ? +profileData.weight : null,
-              height: profileData.height ? +profileData.height : null,
-              gender: profileData.gender,
-              activity: profileData.activity,
-              calorie_goal: profileData.calorieGoal,
-              protein_goal: profileData.proteinGoal,
-              fat_goal: profileData.fatGoal,
-              carb_goal: profileData.carbGoal,
-              bmi: profileData.bmi ? +profileData.bmi : null,
-              completed_at: profileData.completedAt,
-            })
-          })
-        } catch (e) {
-          console.warn('Profile save error:', e)
-        }
+        const token = await getValidToken()
+        await syncWithRetry(token, 'PUT', '/profile', {
+          name: profileData.name,
+          role: profileData.role,
+          level: profileData.level,
+          goals: profileData.goals,
+          has_limitations: profileData.hasLimitations,
+          limitations_text: profileData.limitationsText,
+          age: profileData.age ? +profileData.age : null,
+          weight: profileData.weight ? +profileData.weight : null,
+          height: profileData.height ? +profileData.height : null,
+          gender: profileData.gender,
+          activity: profileData.activity,
+          calorie_goal: profileData.calorieGoal,
+          protein_goal: profileData.proteinGoal,
+          fat_goal: profileData.fatGoal,
+          carb_goal: profileData.carbGoal,
+          bmi: profileData.bmi ? +profileData.bmi : null,
+          completed_at: profileData.completedAt,
+        })
       },
 
       resetProfile: () => set({ profile: null }),
@@ -228,7 +213,11 @@ export const useStore = create(
         const { session, getValidToken } = get()
         if (session) {
           const token = await getValidToken()
-          await syncEntry(token, entry)
+          await syncWithRetry(token, 'POST', '/entries', {
+            date: entry.date,
+            foods: entry.foods || [],
+            workouts: entry.workouts || [],
+          })
         }
       },
 
@@ -252,6 +241,14 @@ export const useStore = create(
     }
   )
 )
+
+// Как только связь восстановилась — сразу пробуем отправить всё, что
+// накопилось в очереди (см. data/cloudSync.js).
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => {
+    flushSyncQueue(() => useStore.getState().getValidToken())
+  })
+}
 
 export { API_URL }
 
