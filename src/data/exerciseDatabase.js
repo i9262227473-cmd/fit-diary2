@@ -124,10 +124,107 @@ export const EXERCISE_DB = [
   { id:125,name:'Бёрпи',                           muscle:'Кардио',place:'home', equipment:'Своё тело',   eff:'best', swap:'cardio',        type:'compound' },
   { id:126,name:'Бег на месте / высокие колени',   muscle:'Кардио',place:'home', equipment:'Своё тело',   eff:'base', swap:'cardio',        type:'compound' },
   { id:127,name:'Джампинг-джек',                   muscle:'Кардио',place:'home', equipment:'Своё тело',   eff:'base', swap:'cardio',        type:'compound' },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ДОПОЛНЕНИЕ: упражнения под всё остальное оборудование, которое бывает
+  // в зале (тренажёр Смита, гиря, EZ-гриф, трэп-гриф, TRX, лэндмайн, сани,
+  // канаты, приводящий/отводящий тренажёры, машина для ягодичного моста и т.д.)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // ═══════════ ГРУДЬ (доп.) ═══════════
+  { id:200,name:'Жим штанги в Смите лёжа',         muscle:'Грудь', place:'gym',  equipment:'Тренажёр Смита', eff:'good', swap:'chest_press', type:'compound' },
+  { id:201,name:'Жим штанги на скамье с отриц. наклоном', muscle:'Грудь', place:'gym',  equipment:'Штанга',   eff:'good', swap:'chest_press', type:'compound' },
+  { id:202,name:'Жим гантелей на скамье с отриц. наклоном', muscle:'Грудь', place:'gym', equipment:'Гантели', eff:'good', swap:'chest_press', type:'compound' },
+  { id:203,name:'Разводка гантелей на наклонной скамье', muscle:'Грудь', place:'gym',  equipment:'Гантели',   eff:'good', swap:'chest_fly',  type:'isolation' },
+  { id:204,name:'Жим гантелей на фитболе',         muscle:'Грудь', place:'gym',  equipment:'Фитбол',      eff:'alt',  swap:'chest_press', type:'compound' },
+  { id:205,name:'Отжимания в петлях TRX',          muscle:'Грудь', place:'gym',  equipment:'Петли TRX',   eff:'good', swap:'chest_press', type:'compound' },
+  { id:206,name:'Жим Свенда (сведение с блином)',  muscle:'Грудь', place:'both', equipment:'Блин',        eff:'alt',  swap:'chest_fly',  type:'isolation' },
+  { id:207,name:'Пуловер в тренажёре',             muscle:'Грудь', place:'gym',  equipment:'Тренажёр',    eff:'good', swap:'chest_fly',  type:'isolation' },
+
+  // ═══════════ СПИНА (доп.) ═══════════
+  { id:208,name:'Тяга штанги в Смите в наклоне',   muscle:'Спина', place:'gym',  equipment:'Тренажёр Смита', eff:'good', swap:'back_horiz', type:'compound' },
+  { id:209,name:'Шраги со штангой',                muscle:'Спина', place:'gym',  equipment:'Штанга',      eff:'best', swap:'traps',      type:'isolation' },
+  { id:210,name:'Шраги с гантелями',               muscle:'Спина', place:'both', equipment:'Гантели',     eff:'good', swap:'traps',      type:'isolation' },
+  { id:211,name:'Шраги в тренажёре',               muscle:'Спина', place:'gym',  equipment:'Тренажёр',    eff:'good', swap:'traps',      type:'isolation' },
+  { id:212,name:'Тяга гантели в упоре грудью на скамье', muscle:'Спина', place:'gym', equipment:'Гантели', eff:'good', swap:'back_horiz', type:'compound' },
+  { id:213,name:'Гиперэкстензия с отягощением',    muscle:'Спина', place:'gym',  equipment:'Гантели',     eff:'good', swap:'lower_back', type:'isolation' },
+  { id:214,name:'Обратная гиперэкстензия в тренажёре', muscle:'Спина', place:'gym', equipment:'Тренажёр', eff:'good', swap:'lower_back', type:'isolation' },
+  { id:215,name:'Подтягивания узким обратным хватом', muscle:'Спина', place:'gym', equipment:'Турник',    eff:'good', swap:'back_vert',  type:'compound' },
+  { id:216,name:'Тяга в петлях TRX',               muscle:'Спина', place:'gym',  equipment:'Петли TRX',   eff:'good', swap:'back_horiz', type:'compound' },
+  { id:217,name:'Тяга гири в наклоне',             muscle:'Спина', place:'both', equipment:'Гиря',        eff:'good', swap:'back_horiz', type:'compound' },
+  { id:218,name:'Тяга лэндмайна одной рукой',      muscle:'Спина', place:'gym',  equipment:'Лэндмайн',    eff:'good', swap:'back_horiz', type:'compound' },
+
+  // ═══════════ НОГИ (доп.) ═══════════
+  { id:219,name:'Присед в Смите',                  muscle:'Ноги',  place:'gym',  equipment:'Тренажёр Смита', eff:'good', swap:'quad',     type:'compound' },
+  { id:220,name:'Присед с гирей (кубковый)',       muscle:'Ноги',  place:'both', equipment:'Гиря',        eff:'good', swap:'quad',       type:'compound' },
+  { id:221,name:'Пистолетик (присед на одной ноге)', muscle:'Ноги', place:'home', equipment:'Своё тело',  eff:'best', swap:'quad',       type:'compound' },
+  { id:222,name:'Жим одной ногой в тренажёре',     muscle:'Ноги',  place:'gym',  equipment:'Тренажёр',    eff:'good', swap:'quad',       type:'compound' },
+  { id:223,name:'Степ-ап с гантелями',             muscle:'Ноги',  place:'both', equipment:'Степ-платформа', eff:'good', swap:'quad',    type:'compound' },
+  { id:224,name:'Сисси-приседания',                muscle:'Ноги',  place:'gym',  equipment:'Своё тело',   eff:'alt',  swap:'quad_iso',   type:'isolation' },
+  { id:225,name:'Выпады со штангой',               muscle:'Ноги',  place:'gym',  equipment:'Штанга',      eff:'good', swap:'quad',       type:'compound' },
+  { id:226,name:'Ходьба выпадами с гантелями',     muscle:'Ноги',  place:'both', equipment:'Гантели',     eff:'good', swap:'quad',       type:'compound' },
+  { id:227,name:'Становая тяга с трэп-грифом',     muscle:'Ноги',  place:'gym',  equipment:'Трэп-гриф',   eff:'best', swap:'hamstring',  type:'compound' },
+  { id:228,name:'Доброе утро',                     muscle:'Ноги',  place:'gym',  equipment:'Штанга',      eff:'good', swap:'hamstring',  type:'compound' },
+  { id:229,name:'Мёртвая тяга на одной ноге с гантелью', muscle:'Ноги', place:'both', equipment:'Гантели', eff:'good', swap:'hamstring', type:'compound' },
+  { id:230,name:'Сгибание ног сидя в тренажёре',   muscle:'Ноги',  place:'gym',  equipment:'Тренажёр',    eff:'good', swap:'hamstring',  type:'isolation' },
+  { id:231,name:'Взмахи гирей (свинг)',            muscle:'Ноги',  place:'both', equipment:'Гиря',        eff:'best', swap:'glutes',     type:'compound' },
+  { id:232,name:'Тяга бёдрами в тренажёре',        muscle:'Ноги',  place:'gym',  equipment:'Тренажёр',    eff:'best', swap:'glutes',     type:'isolation' },
+  { id:233,name:'Ягодичный мост в Смите',          muscle:'Ноги',  place:'gym',  equipment:'Тренажёр Смита', eff:'good', swap:'glutes',   type:'compound' },
+  { id:234,name:'Сведение ног в тренажёре',        muscle:'Ноги',  place:'gym',  equipment:'Тренажёр',    eff:'good', swap:'adductor',   type:'isolation' },
+  { id:235,name:'Разведение ног в тренажёре',      muscle:'Ноги',  place:'gym',  equipment:'Тренажёр',    eff:'good', swap:'abductor',   type:'isolation' },
+  { id:236,name:'Ослиные подъёмы на икры',         muscle:'Ноги',  place:'gym',  equipment:'Тренажёр',    eff:'good', swap:'calves',     type:'isolation' },
+  { id:237,name:'Подъём на икры со штангой стоя',  muscle:'Ноги',  place:'gym',  equipment:'Штанга',      eff:'good', swap:'calves',     type:'isolation' },
+
+  // ═══════════ ПЛЕЧИ (доп.) ═══════════
+  { id:238,name:'Жим Арнольда',                    muscle:'Плечи', place:'both', equipment:'Гантели',     eff:'best', swap:'shoulder_press', type:'compound' },
+  { id:239,name:'Жим в Смите сидя',                muscle:'Плечи', place:'gym',  equipment:'Тренажёр Смита', eff:'good', swap:'shoulder_press', type:'compound' },
+  { id:240,name:'Жим гири',                        muscle:'Плечи', place:'both', equipment:'Гиря',        eff:'good', swap:'shoulder_press', type:'compound' },
+  { id:241,name:'Жим штанги в лэндмайне',          muscle:'Плечи', place:'gym',  equipment:'Лэндмайн',    eff:'good', swap:'shoulder_press', type:'compound' },
+  { id:242,name:'Махи гантелями лёжа на боку',     muscle:'Плечи', place:'gym',  equipment:'Гантели',     eff:'good', swap:'side_delt',  type:'isolation' },
+
+  // ═══════════ ТРИЦЕПС (доп.) ═══════════
+  { id:243,name:'Разгибание руки с гантелью в наклоне (кикбэк)', muscle:'Трицепс', place:'both', equipment:'Гантели', eff:'good', swap:'triceps_iso', type:'isolation' },
+  { id:244,name:'Жим гантелей узким хватом',       muscle:'Трицепс',place:'both',equipment:'Гантели',     eff:'good', swap:'triceps',    type:'compound' },
+  { id:245,name:'Алмазные отжимания',              muscle:'Трицепс',place:'home',equipment:'Своё тело',   eff:'good', swap:'triceps',    type:'compound' },
+  { id:246,name:'Отжимания в тренажёре (трицепс)', muscle:'Трицепс',place:'gym', equipment:'Тренажёр',    eff:'good', swap:'triceps',    type:'compound' },
+
+  // ═══════════ БИЦЕПС (доп.) ═══════════
+  { id:247,name:'Подъём EZ-штанги на бицепс',      muscle:'Бицепс', place:'gym', equipment:'EZ-штанга',   eff:'best', swap:'biceps',     type:'isolation' },
+  { id:248,name:'Подъём гантелей на наклонной скамье', muscle:'Бицепс', place:'gym', equipment:'Гантели', eff:'good', swap:'biceps',     type:'isolation' },
+  { id:249,name:'Паучий подъём (спайдер-керл)',    muscle:'Бицепс', place:'gym', equipment:'Штанга',      eff:'good', swap:'biceps',     type:'isolation' },
+  { id:250,name:'Подъём штанги обратным хватом',   muscle:'Бицепс', place:'gym', equipment:'Штанга',      eff:'good', swap:'biceps',     type:'isolation' },
+  { id:251,name:'Сгибание рук с гирей',            muscle:'Бицепс', place:'both',equipment:'Гиря',        eff:'alt',  swap:'biceps',     type:'isolation' },
+
+  // ═══════════ КОР / ПРЕСС (доп.) ═══════════
+  { id:252,name:'Подъём коленей в тренажёре (римский стул)', muscle:'Кор', place:'gym', equipment:'Тренажёр', eff:'good', swap:'abs',    type:'isolation' },
+  { id:253,name:'Скручивания в тренажёре',         muscle:'Кор',   place:'gym',  equipment:'Тренажёр',    eff:'good', swap:'abs',        type:'isolation' },
+  { id:254,name:'Дровосек в блоке',                muscle:'Кор',   place:'gym',  equipment:'Блок',        eff:'good', swap:'obliques',   type:'isolation' },
+  { id:255,name:'Наклоны в сторону с гантелью',    muscle:'Кор',   place:'both', equipment:'Гантели',     eff:'good', swap:'obliques',   type:'isolation' },
+  { id:256,name:'Ротация в лэндмайне',             muscle:'Кор',   place:'gym',  equipment:'Лэндмайн',    eff:'good', swap:'obliques',   type:'isolation' },
+  { id:257,name:'Подъём ног на наклонной скамье',  muscle:'Кор',   place:'gym',  equipment:'Скамья',      eff:'good', swap:'abs',        type:'isolation' },
+  { id:258,name:'Турецкий подъём с гирей',         muscle:'Кор',   place:'gym',  equipment:'Гиря',        eff:'best', swap:'core_static', type:'compound' },
+  { id:259,name:'Скручивания в петлях TRX',        muscle:'Кор',   place:'gym',  equipment:'Петли TRX',   eff:'good', swap:'core_static', type:'isolation' },
+  { id:260,name:'Бросок медбола в стену',          muscle:'Кор',   place:'gym',  equipment:'Медбол',      eff:'good', swap:'abs',        type:'compound' },
+
+  // ═══════════ КАРДИО (доп.) ═══════════
+  { id:261,name:'Скалолаз (маунтин клаймберс)',    muscle:'Кардио',place:'home', equipment:'Своё тело',   eff:'best', swap:'cardio',     type:'compound' },
+  { id:262,name:'Приседания с выпрыгиванием',      muscle:'Кардио',place:'home', equipment:'Своё тело',   eff:'good', swap:'cardio',     type:'compound' },
+  { id:263,name:'Прыжки на тумбу (бокс-джампы)',   muscle:'Кардио',place:'gym',  equipment:'Тумба',       eff:'good', swap:'cardio',     type:'compound' },
+  { id:264,name:'Толкание/тяга саней',             muscle:'Кардио',place:'gym',  equipment:'Сани',        eff:'best', swap:'cardio',     type:'compound' },
+  { id:265,name:'Боевые канаты',                   muscle:'Кардио',place:'gym',  equipment:'Канаты',      eff:'good', swap:'cardio',     type:'compound' },
+  { id:266,name:'Прогулка фермера',                muscle:'Кардио',place:'both', equipment:'Гантели',     eff:'good', swap:'cardio',     type:'compound' },
+  { id:267,name:'Аэробайк (Assault Bike)',         muscle:'Кардио',place:'gym',  equipment:'Тренажёр',    eff:'best', swap:'cardio',     type:'compound' },
+  { id:268,name:'Степпер (лестница-тренажёр)',     muscle:'Кардио',place:'gym',  equipment:'Тренажёр',    eff:'good', swap:'cardio',     type:'compound' },
+  { id:269,name:'Лыжный тренажёр (SkiErg)',        muscle:'Кардио',place:'gym',  equipment:'Тренажёр',    eff:'good', swap:'cardio',     type:'compound' },
+  { id:270,name:'Рывок гири',                      muscle:'Кардио',place:'gym',  equipment:'Гиря',        eff:'best', swap:'cardio',     type:'compound' },
 ]
 
 // Уникальные мышечные группы (для фильтра в UI)
 export const MUSCLE_GROUPS = ['Грудь', 'Спина', 'Ноги', 'Плечи', 'Трицепс', 'Бицепс', 'Кор', 'Кардио']
+
+// Уникальные виды оборудования, встречающиеся в базе (для будущего фильтра
+// «что есть в моём зале» — просто список того, что реально используется).
+export const EQUIPMENT_LIST = [...new Set(EXERCISE_DB.map(e => e.equipment))].sort()
 
 // Найти альтернативы упражнению (та же swap-группа, подходящие под место), отсортированные по эффективности
 export function findAlternatives(exercise, place) {
