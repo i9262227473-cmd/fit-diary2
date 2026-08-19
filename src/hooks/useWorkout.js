@@ -453,9 +453,12 @@ export default function useWorkout({ state, dispatch, aiCall }) {
     const list = getCustomPlans()
     const withDefaults = { id: plan.id || uid(), name: (plan.name || '').trim() || 'Мой план', days: plan.days, progressIndex: 0 }
     const idx = list.findIndex(p => p.id === withDefaults.id)
+    // При редактировании состав/порядок дней мог измениться, поэтому указатель
+    // «на каком дне остановились» сбрасываем на начало, а не пытаемся угадать,
+    // куда он теперь соответствует.
     const next = idx === -1
       ? [withDefaults, ...list]
-      : list.map((p, i) => i === idx ? { ...p, name: withDefaults.name, days: withDefaults.days } : p)
+      : list.map((p, i) => i === idx ? { ...p, name: withDefaults.name, days: withDefaults.days, progressIndex: 0 } : p)
     saveCustomPlansList(next)
     setCustomPlans(next)
   }

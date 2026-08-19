@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ChevronDown, ChevronLeft, ChevronUp, Dumbbell, FileText, Plus, Play } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronUp, Dumbbell, Edit2, FileText, Plus, Play } from 'lucide-react'
 import SwipeToDelete from '../common/SwipeToDelete'
 import { parseTextToDays } from '../../hooks/useWorkout'
 
@@ -15,13 +15,25 @@ export default function WorkoutPlansScreen({ plans, templates, aiCall, onBack, o
   const [parsing, setParsing] = useState(false)
   const [parseError, setParseError] = useState('')
   const [pickerOpen, setPickerOpen] = useState(false)
+  // id плана, который сейчас редактируется через «Изменить» — null при создании нового
+  const [editingPlanId, setEditingPlanId] = useState(null)
 
-  const startBuilder = () => {
-    setPlanName(''); setDays([]); setPasteText(''); setParseError('')
+  const startBuilder = (planToEdit = null) => {
+    if (planToEdit) {
+      setPlanName(planToEdit.name || '')
+      setDays((planToEdit.days || []).map(day => ({
+        name: day.name,
+        exercises: (day.exercises || []).map(ex => ({ ...ex, sets: (ex.sets || []).map(s => ({ ...s })) })),
+      })))
+      setEditingPlanId(planToEdit.id)
+    } else {
+      setPlanName(''); setDays([]); setEditingPlanId(null)
+    }
+    setPasteText(''); setParseError('')
     setPasteOpen(false); setPickerOpen(false)
     setMode('builder')
   }
-  const cancelBuilder = () => setMode('list')
+  const cancelBuilder = () => { setEditingPlanId(null); setMode('list') }
 
   const handleParse = async () => {
     if (!pasteText.trim() || parsing) return
@@ -72,7 +84,8 @@ export default function WorkoutPlansScreen({ plans, templates, aiCall, onBack, o
   const canSave = planName.trim().length > 0 && days.some(d => d.exercises.length > 0)
   const save = () => {
     if (!canSave) return
-    onSavePlan({ name: planName.trim(), days: days.filter(d => d.exercises.length) })
+    onSavePlan({ id: editingPlanId || undefined, name: planName.trim(), days: days.filter(d => d.exercises.length) })
+    setEditingPlanId(null)
     setMode('list')
   }
 
@@ -86,7 +99,7 @@ export default function WorkoutPlansScreen({ plans, templates, aiCall, onBack, o
           <span style={{ fontSize: 18, fontWeight: 700 }}>Мои планы</span>
         </div>
 
-        <button onClick={startBuilder} style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 14, padding: '14px', fontSize: 14, fontWeight: 700, width: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        <button onClick={() => startBuilder()} style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 14, padding: '14px', fontSize: 14, fontWeight: 700, width: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
           <Plus size={18} /> Новый план
         </button>
 
@@ -102,10 +115,15 @@ export default function WorkoutPlansScreen({ plans, templates, aiCall, onBack, o
           return (
             <div key={plan.id} style={{ background: '#1a1a1a', borderRadius: 18, overflow: 'hidden', border: '1px solid #2e2e2e' }}>
               <SwipeToDelete onDelete={() => onDeletePlan(plan.id)} confirmText="Удалить этот план?" radius={0}>
-                <button onClick={() => setExpandedId(isOpen ? null : plan.id)} style={{ width: '100%', textAlign: 'left', padding: '14px 16px', background: '#1a1a1a', border: 'none', cursor: 'pointer' }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{plan.name}</div>
-                  <div style={{ fontSize: 12, color: '#6b7280', fontFamily: 'var(--mono)' }}>{dayList.length} {dayList.length === 1 ? 'день' : 'дней'}</div>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', background: '#1a1a1a' }}>
+                  <button onClick={() => setExpandedId(isOpen ? null : plan.id)} style={{ flex: 1, minWidth: 0, textAlign: 'left', padding: '14px 16px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{plan.name}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', fontFamily: 'var(--mono)' }}>{dayList.length} {dayList.length === 1 ? 'день' : 'дней'}</div>
+                  </button>
+                  <button onClick={() => startBuilder(plan)} aria-label="Изменить план" style={{ width: 36, height: 36, borderRadius: 10, background: 'transparent', border: 'none', color: 'var(--accent)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 10, flexShrink: 0 }}>
+                    <Edit2 size={16} />
+                  </button>
+                </div>
               </SwipeToDelete>
               {isOpen && (
                 <div style={{ borderTop: '1px solid #2a2a2a' }}>
@@ -135,7 +153,7 @@ export default function WorkoutPlansScreen({ plans, templates, aiCall, onBack, o
         <button onClick={cancelBuilder} style={{ width: 36, height: 36, borderRadius: 10, background: '#1a1a1a', border: '1px solid #2e2e2e', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <ChevronLeft size={18} color="#9ca3af" />
         </button>
-        <span style={{ fontSize: 18, fontWeight: 700 }}>Новый план</span>
+        <span style={{ fontSize: 18, fontWeight: 700 }}>{editingPlanId ? 'Изменение плана' : 'Новый план'}</span>
       </div>
 
       <input
@@ -227,7 +245,7 @@ export default function WorkoutPlansScreen({ plans, templates, aiCall, onBack, o
       )}
 
       <button onClick={save} disabled={!canSave} style={{ background: canSave ? 'var(--accent)' : '#2a2a2a', color: canSave ? '#000' : '#6b7280', border: 'none', borderRadius: 14, padding: '15px', fontSize: 14, fontWeight: 700, width: '100%', cursor: canSave ? 'pointer' : 'default', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-        Сохранить план
+        {editingPlanId ? 'Сохранить изменения' : 'Сохранить план'}
       </button>
     </div>
   )
