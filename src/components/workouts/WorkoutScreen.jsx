@@ -1,8 +1,8 @@
 import React from 'react'
-import { Check, ChevronLeft, Dumbbell, Edit2, Library, Play, Plus } from 'lucide-react'
+import { Check, ChevronLeft, ClipboardList, Dumbbell, Edit2, Library, Play, Plus } from 'lucide-react'
 import { EFF_LABEL, EXERCISE_DB as FULL_EXERCISE_DB, findAlternatives, findExerciseByName } from '../../data/exerciseDatabase'
 import { getExerciseMedia } from '../../data/exerciseMedia'
-import useWorkout from '../../hooks/useWorkout'
+import useWorkout, { getAiPlanProgress, nextDayIndexWithExercises } from '../../hooks/useWorkout'
 import useDragReorder from '../../hooks/useDragReorder'
 import { formatLongTime as fmtTimeLong, getDefaultRestSeconds as getDefaultRestSec } from '../../utils/workoutUi'
 import SwipeToDelete from '../common/SwipeToDelete'
@@ -15,6 +15,7 @@ import WorkoutCalendar from './WorkoutCalendar'
 import WorkoutComplete from './WorkoutComplete'
 import WorkoutDetail from './WorkoutDetail'
 import WorkoutLibrary from './WorkoutLibrary'
+import WorkoutPlansScreen from './WorkoutPlansScreen'
 import ExerciseDragHandle from './ExerciseDragHandle'
 import {
   WorkoutBrainIcon,
@@ -23,7 +24,6 @@ import {
   WorkoutDumbbellIcon,
   WorkoutListIcon,
   WorkoutPlayIcon,
-  WorkoutPlusIcon,
   WorkoutRepeatIcon,
 } from './WorkoutUiIcons'
 import styles from './WorkoutScreen.module.css'
@@ -44,7 +44,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
   const {
     view, setView, wk, setWk, exSearch, setExSearch, running, setRunning, timer, resetTimer,
     showRestTimer, setShowRestTimer, restInfo, showComplete, swapFor, setSwapFor,
-    planDayIdx, setPlanDayIdx, planSaved, viewWorkout, setViewWorkout, techFor, setTechFor,
+    planDayIdx, planSaved, viewWorkout, setViewWorkout, techFor, setTechFor,
     histMode, setHistMode, templates, tplSaved, pickerFor, setPickerFor, pendingLoad, setPendingLoad,
     allWorkouts, workoutsByDate, workoutPlace, filteredEx, addEx, toggleEx, updateRest, updateSet, removeSet,
     updateComment, addSet, removeEx, replaceEx, applyProgression, saveToPlan,
@@ -53,7 +53,8 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
     pendingDraft, resumeDraft, discardDraft,
     reorderExercises, editingWorkout, startEditWorkout, cancelEditWorkout, saveEditedWorkout,
     editingTemplateId, startEditTemplate, cancelEditTemplate, saveEditedTemplate,
-  } = useWorkout({ state, dispatch })
+    customPlans, saveCustomPlan, deleteCustomPlan, startFromCustomPlanDay, clearPlanContext,
+  } = useWorkout({ state, dispatch, aiCall })
 
   const M_COLORS = { Грудь:'var(--accent)', Спина:'#3b82f6', Ноги:'#f59e0b', Плечи:'#8b5cf6', Трицепс:'#ec4899', Бицепс:'#f97316', Кор:'#06b6d4', Кардио:'#ef4444' }
   const MUSCLE_MEDIA = { Грудь:'chest', Спина:'back', Ноги:'legs', Плечи:'shoulders', Трицепс:'triceps', Бицепс:'biceps', Кор:'core', Кардио:'cardio' }
@@ -63,27 +64,34 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
   const dragReorder = useDragReorder({ items: wk.exercises, getId: ex => ex.uid, onReorder: reorderExercises })
 
   const featured = (() => {
-    const planCandidate = (() => {
+    // Порядок дня внутри плана — по указателю «на каком дне остановились»
+    // (продвигается по завершению тренировки), а не по дню недели: если
+    // пропустить день, план не сбивается и просто ждёт дальше.
+    const aiPlanCandidate = (() => {
       try {
         const savedPlan = JSON.parse(localStorage.getItem('workout-plan-v4-pro') || 'null')
         const days = savedPlan?.plan?.days
-        if (Array.isArray(days) && days.length) {
-          const todayIndex = (new Date().getDay() + 6) % 7
-          for (let offset = 0; offset < days.length; offset += 1) {
-            const index = (todayIndex + offset) % days.length
-            if (days[index]?.exercises?.length) return { kind: 'plan', source: days[index], index, offset }
-          }
-        }
-      } catch {}
-      return null
+        if (!Array.isArray(days) || !days.length) return null
+        let idx = getAiPlanProgress()
+        if (!days[idx]?.exercises?.length) idx = nextDayIndexWithExercises(days, idx - 1)
+        if (!days[idx]?.exercises?.length) return null
+        return { kind: 'plan', source: days[idx], index: idx }
+      } catch { return null }
     })()
     const templateCandidate = templates[0] ? { kind: 'template', source: templates[0] } : null
     const historyCandidate = allWorkouts[0] ? { kind: 'history', source: allWorkouts[0] } : null
+    const customPlanCandidateFor = (plan) => {
+      if (!plan?.days?.length) return null
+      let idx = plan.progressIndex || 0
+      if (!plan.days[idx]?.exercises?.length) idx = nextDayIndexWithExercises(plan.days, idx - 1)
+      if (!plan.days[idx]?.exercises?.length) return null
+      return { kind: 'customPlan', source: plan.days[idx], planId: plan.id, planName: plan.name, index: idx }
+    }
 
     // Предпочитаем источник, который пользователь реально запускал последним
     // (метка пишется в useWorkout при старте тренировки), а не жёсткий
     // приоритет план → шаблон → история — иначе «Следующая тренировка»
-    // игнорирует собственные шаблоны пользователя, пока жив AI-план.
+    // игнорирует собственные шаблоны/планы пользователя, пока жив AI-план.
     let lastUsed = null
     try { lastUsed = JSON.parse(localStorage.getItem('workout-last-used-source-v1') || 'null') } catch {}
     if (lastUsed?.kind === 'template' && lastUsed.id) {
@@ -94,9 +102,14 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
       const match = allWorkouts.find(w => w.id === lastUsed.id)
       if (match) return { kind: 'history', source: match }
     }
-    if (lastUsed?.kind === 'plan' && planCandidate) return planCandidate
+    if (lastUsed?.kind === 'plan' && aiPlanCandidate) return aiPlanCandidate
+    if (lastUsed?.kind === 'customPlan' && lastUsed.id) {
+      const plan = customPlans.find(p => p.id === lastUsed.id)
+      const cand = customPlanCandidateFor(plan)
+      if (cand) return cand
+    }
 
-    return planCandidate || templateCandidate || historyCandidate
+    return aiPlanCandidate || templateCandidate || historyCandidate
   })()
   const featuredExercises = featured?.source?.exercisesDetail?.length
     ? featured.source.exercisesDetail
@@ -107,16 +120,22 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
     ? featured.source.muscles.join(' + ')
     : featured?.source?.name || featured?.source?.type || 'Тренировка'
   const featuredMeta = `${featuredExercises.length} упражнений${featured?.source?.duration ? ` · ${featured.source.duration} мин` : ' · ~60 мин'}`
-  const featuredDay = featured?.kind === 'plan'
-    ? (featured.offset === 0 ? 'Сегодня' : featured.source.name)
-    : featured?.kind === 'history' ? 'Повтор последней' : 'Готова к запуску'
+  const featuredDay = featured?.kind === 'plan' ? 'AI-план'
+    : featured?.kind === 'customPlan' ? (featured.planName || 'Свой план')
+    : featured?.kind === 'template' ? 'Ваш шаблон'
+    : featured?.kind === 'history' ? 'Повтор последней'
+    : 'Готова к запуску'
 
   const startFeatured = () => {
     if (!featured) {
-      setPlanDayIdx(null)
+      clearPlanContext()
       setWk({ name: '', exercises: [] })
       setView('builder')
     } else if (featured.kind === 'plan') startFromPlan(featured.source, featured.index, 'active')
+    else if (featured.kind === 'customPlan') {
+      const plan = customPlans.find(p => p.id === featured.planId)
+      if (plan) startFromCustomPlanDay(plan, featured.index, 'active')
+    }
     else if (featured.kind === 'template') startFromTemplate(featured.source, 'active')
     else repeatWorkout(featured.source, 'active')
   }
@@ -163,10 +182,10 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
             <strong>Программы</strong>
             <small>Готовые программы</small>
           </button>
-          <button className={styles.newWorkout} onClick={() => { setPlanDayIdx(null); setWk({ name: '', exercises: [] }); setView('builder') }}>
-            <span><WorkoutPlusIcon size={27} /></span>
-            <strong>Новая</strong>
-            <small>Создать тренировку</small>
+          <button className={styles.newWorkout} onClick={() => setView('plans')}>
+            <span><ClipboardList size={26} /></span>
+            <strong>Мои планы</strong>
+            <small>Свои программы</small>
           </button>
         </div>
         <section className={`${styles.featuredWorkout} ${!featured ? styles.featuredEmpty : ''}`}>
@@ -493,7 +512,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
           <span style={{ fontSize: 18, fontWeight: 700 }}>Мои тренировки</span>
         </div>
 
-        <button onClick={() => { setPlanDayIdx(null); setWk({ name: '', exercises: [] }); setView('builder') }} style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 14, padding: '14px', fontSize: 14, fontWeight: 700, width: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        <button onClick={() => { clearPlanContext(); setWk({ name: '', exercises: [] }); setView('builder') }} style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 14, padding: '14px', fontSize: 14, fontWeight: 700, width: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
           <Plus size={18} /> Собрать новую
         </button>
 
@@ -542,6 +561,23 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
       <>
         {pendingLoad && <WeightTransferModal onConfirm={() => resolveWeightTransfer(true)} onDecline={() => resolveWeightTransfer(false)} onClose={() => setPendingLoad(null)} />}
         <WorkoutLibrary onBack={() => setView('list')} onStart={(program) => startFromTemplate(program, 'active', 'library')} />
+      </>
+    )
+  }
+
+  if (view === 'plans') {
+    return (
+      <>
+        {pendingLoad && <WeightTransferModal onConfirm={() => resolveWeightTransfer(true)} onDecline={() => resolveWeightTransfer(false)} onClose={() => setPendingLoad(null)} />}
+        <WorkoutPlansScreen
+          plans={customPlans}
+          templates={templates}
+          aiCall={aiCall}
+          onBack={() => setView('list')}
+          onSavePlan={saveCustomPlan}
+          onDeletePlan={deleteCustomPlan}
+          onStartDay={(plan, dayIdx, mode) => startFromCustomPlanDay(plan, dayIdx, mode)}
+        />
       </>
     )
   }

@@ -19,6 +19,8 @@ const WK_DRAFT_KEY = 'workout-draft-v1'
 const PLAN_KEY = 'workout-plan-v4-pro'
 const TEMPLATES_KEY = 'workout-templates-v1'
 const LAST_USED_SOURCE_KEY = 'workout-last-used-source-v1'
+const CUSTOM_PLANS_KEY = 'workout-custom-plans-v1'
+const AI_PLAN_PROGRESS_KEY = 'workout-plan-progress-v1'
 
 // Метка «откуда реально запустили последнюю тренировку» — читается на
 // главном экране «Тренировки» для карточки «Следующая тренировка», чтобы
@@ -27,6 +29,102 @@ const LAST_USED_SOURCE_KEY = 'workout-last-used-source-v1'
 // собственные шаблоны.
 function markLastUsedSource(kind, id) {
   try { localStorage.setItem(LAST_USED_SOURCE_KEY, JSON.stringify({ kind, id: id ?? null, ts: Date.now() })) } catch {}
+}
+
+function getCustomPlans() {
+  try {
+    const raw = localStorage.getItem(CUSTOM_PLANS_KEY)
+    if (!raw) return []
+    const arr = JSON.parse(raw)
+    return Array.isArray(arr) ? arr : []
+  } catch { return [] }
+}
+function saveCustomPlansList(list) {
+  try { localStorage.setItem(CUSTOM_PLANS_KEY, JSON.stringify(list)) } catch (e) { console.warn('saveCustomPlans error', e) }
+}
+
+// Указатель «на каком дне остановились» — свой для AI-плана (в localStorage)
+// и для каждого «Своего плана» (в самом объекте плана, поле progressIndex).
+// Продвигается только по факту завершённой и сохранённой тренировки, а не по
+// дню недели — чтобы пропущенный день не сбивал план, он просто ждёт дальше.
+export function getAiPlanProgress() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(AI_PLAN_PROGRESS_KEY) || 'null')
+    return typeof raw?.dayIndex === 'number' ? raw.dayIndex : 0
+  } catch { return 0 }
+}
+function setAiPlanProgressIndex(dayIndex) {
+  try { localStorage.setItem(AI_PLAN_PROGRESS_KEY, JSON.stringify({ dayIndex })) } catch {}
+}
+// Следующий день с упражнениями после completedIndex (по кругу, начиная со
+// следующего). Если во всех днях пусто — вернёт completedIndex без изменений.
+export function nextDayIndexWithExercises(days, completedIndex) {
+  if (!Array.isArray(days) || !days.length) return 0
+  for (let step = 1; step <= days.length; step += 1) {
+    const idx = (completedIndex + step) % days.length
+    if (days[idx]?.exercises?.length) return idx
+  }
+  return completedIndex
+}
+function advanceAiPlanProgress(completedDayIdx) {
+  try {
+    const savedPlan = JSON.parse(localStorage.getItem(PLAN_KEY) || 'null')
+    const days = savedPlan?.plan?.days
+    if (!Array.isArray(days) || !days.length) return
+    setAiPlanProgressIndex(nextDayIndexWithExercises(days, completedDayIdx))
+  } catch {}
+}
+
+// Разобрать вставленный пользователем текст (план от тренера, скопированный
+// откуда-то текст и т.п.) в дни с упражнениями через ИИ. Возвращает массив
+// дней в том же формате хранения, что и у шаблонов ({name, exercises:[...]}),
+// либо бросает исключение, если ИИ не смог вернуть валидный результат.
+export async function parseTextToDays(text, aiCall) {
+  if (!aiCall || !text?.trim()) throw new Error('empty')
+  const prompt = `Ты помогаешь разобрать текст тренировочного плана (может быть скопирован из любого источника — от тренера, из интернета, произвольные заметки) в строгий JSON.
+
+Текст:
+"""
+${text.trim()}
+"""
+
+Верни ТОЛЬКО JSON без markdown и пояснений, вот в такой форме:
+{"days":[{"name":"Название дня (например: День 1 — Спина и бицепс)","exercises":[{"name":"Название упражнения на русском","sets":3,"reps":"8-12","restSec":90}]}]}
+
+Правила:
+- Если в тексте несколько тренировочных дней — верни несколько объектов в "days".
+- Если день один — верни один объект.
+- "sets" — целое число подходов. "reps" — строка (например "8-12" или "10").
+- "restSec" — отдых в секундах между подходами, если не указано — поставь разумное значение (60-120) по типу упражнения.
+- Название упражнения переведи на русский и пиши в общепринятой форме.
+- Не выдумывай упражнения, которых нет в тексте.`
+  const reply = await aiCall([{ role: 'user', content: prompt }], 1200)
+  const cleaned = (reply || '').replace(/```json/gi, '').replace(/```/g, '').trim()
+  const jsonStart = cleaned.indexOf('{')
+  const jsonEnd = cleaned.lastIndexOf('}')
+  if (jsonStart === -1 || jsonEnd === -1) throw new Error('no-json')
+  const parsed = JSON.parse(cleaned.slice(jsonStart, jsonEnd + 1))
+  const rawDays = Array.isArray(parsed?.days) ? parsed.days : []
+  const normalizedDays = rawDays.map(day => ({
+    name: day.name || 'День',
+    exercises: (Array.isArray(day.exercises) ? day.exercises : []).map(ex => {
+      const dbEx = findExerciseByName(ex.name) || EXERCISE_DB.find(item => item.name.toLowerCase() === String(ex.name || '').toLowerCase())
+      const reps = ex.reps ? String(ex.reps) : '8-12'
+      const setsCount = Math.max(1, parseInt(ex.sets) || 3)
+      const muscle = dbEx?.muscle || ex.muscle || 'Кор'
+      return {
+        exerciseId: dbEx?.id,
+        name: dbEx?.name || ex.name || 'Упражнение',
+        muscle,
+        type: dbEx?.type || ex.type || 'compound',
+        targetReps: reps,
+        restSec: parseInt(ex.restSec) || getDefaultRestSec(muscle),
+        sets: Array.from({ length: setsCount }, () => ({ reps, weight: '0' })),
+      }
+    }).filter(ex => ex.name),
+  })).filter(day => day.exercises.length)
+  if (!normalizedDays.length) throw new Error('empty-result')
+  return normalizedDays
 }
 
 function getTemplates() {
@@ -107,7 +205,7 @@ function useWakeLock(active) {
   }, [active])
 }
 
-export default function useWorkout({ state, dispatch }) {
+export default function useWorkout({ state, dispatch, aiCall }) {
   const [view, setView] = useState('list')
   const [wk, setWk] = useState({ name: '', exercises: [] })
   const [exSearch, setExSearch] = useState('')
@@ -154,6 +252,7 @@ export default function useWorkout({ state, dispatch }) {
     if (!pendingDraft) return
     setWk(pendingDraft.wk)
     setPlanDayIdx(null)
+    setCustomPlanCtx(null)
     setView('builder')
     setPendingDraft(null)
   }
@@ -190,6 +289,10 @@ export default function useWorkout({ state, dispatch }) {
   const [tplSaved, setTplSaved] = useState(false)
   const [pickerFor, setPickerFor] = useState(null)
   const [pendingLoad, setPendingLoad] = useState(null)
+  const [customPlans, setCustomPlans] = useState(() => getCustomPlans())
+  // {planId, dayIdx} — какой день какого «Своего плана» сейчас активен, чтобы
+  // при завершении тренировки продвинуть указатель именно у этого плана.
+  const [customPlanCtx, setCustomPlanCtx] = useState(null)
 
   const today = new Date().toISOString().split('T')[0]
   const entry = state.entries.find(e => e.date === today) || { date: today, foods: [], workouts: [] }
@@ -342,13 +445,64 @@ export default function useWorkout({ state, dispatch }) {
     syncPlanInBackground()
   }
 
+  // «Свои планы» — многодневные планы, собранные пользователем (вставкой
+  // текста, распознаваемой ИИ, и/или добавлением уже сохранённых тренировок).
+  // Хранятся отдельно от AI-плана и от одиночных шаблонов.
+  const saveCustomPlan = (plan) => {
+    if (!plan?.days?.length) return
+    const list = getCustomPlans()
+    const withDefaults = { id: plan.id || uid(), name: (plan.name || '').trim() || 'Мой план', days: plan.days, progressIndex: 0 }
+    const idx = list.findIndex(p => p.id === withDefaults.id)
+    const next = idx === -1
+      ? [withDefaults, ...list]
+      : list.map((p, i) => i === idx ? { ...p, name: withDefaults.name, days: withDefaults.days } : p)
+    saveCustomPlansList(next)
+    setCustomPlans(next)
+  }
+  const deleteCustomPlan = (id) => {
+    const next = getCustomPlans().filter(p => p.id !== id)
+    saveCustomPlansList(next)
+    setCustomPlans(next)
+  }
+  const applyCustomPlanDayLoad = (plan, dayIdx, mode, transferWeights) => {
+    const day = plan?.days?.[dayIdx]
+    if (!day) return
+    setWk({ name: day.name || plan.name, exercises: buildExercisesFromTemplate({ exercises: day.exercises || [] }, transferWeights) })
+    setPlanDayIdx(null); resetTimer()
+    if (mode === 'builder') { setRunning(false); setView('builder') } else { setRunning(true); setView('active') }
+    if (mode !== 'builder') { markLastUsedSource('customPlan', plan.id); setCustomPlanCtx({ planId: plan.id, dayIdx }) }
+    else setCustomPlanCtx(null)
+  }
+  const startFromCustomPlanDay = (plan, dayIdx, mode = 'active') => {
+    const day = plan?.days?.[dayIdx]
+    if (!day) return
+    if ((day.exercises || []).some(ex => suggestWeightFor(ex.name)?.weight)) { setPendingLoad({ type: 'customPlanDay', plan, dayIdx, mode }); return }
+    applyCustomPlanDayLoad(plan, dayIdx, mode, false)
+  }
+  const advanceCustomPlanProgress = (planId, completedDayIdx) => {
+    setCustomPlans(prev => {
+      const idx = prev.findIndex(p => p.id === planId)
+      if (idx === -1) return prev
+      const days = prev[idx].days || []
+      const nextIdx = nextDayIndexWithExercises(days, completedDayIdx)
+      const updated = [...prev]
+      updated[idx] = { ...updated[idx], progressIndex: nextIdx }
+      saveCustomPlansList(updated)
+      return updated
+    })
+  }
+  // Сбросить привязку конструктора к любому плану — используется, когда
+  // пользователь начинает совершенно новую тренировку с нуля, чтобы старая
+  // метка плана не продвинула чужой план по завершению.
+  const clearPlanContext = () => { setPlanDayIdx(null); setCustomPlanCtx(null) }
+
   const buildExercisesFromTemplate = (tpl, transferWeights) => (tpl.exercises || []).map(ex => {
     const saved = suggestWeightFor(ex.name)
     return { uid: uid(), exerciseId: ex.exerciseId || Date.now() + Math.random(), name: ex.name, muscle: ex.muscle || 'Кор', type: ex.type || 'compound', targetReps: ex.targetReps || ex.sets?.[0]?.reps || '8-12', restSec: ex.restSec || getDefaultRestSec(ex.muscle || 'Кор'), suggestedWeight: saved?.suggestedWeight || null, sets: (ex.sets || [{ reps: '8-12', weight: '0' }]).map(s => ({ id: uid(), reps: s.reps, weight: transferWeights ? s.weight : '0', done: false })) }
   })
   const applyTemplateLoad = (tpl, mode, transferWeights, sourceKind = 'template', sourceId = tpl.id) => {
     setWk({ name: tpl.name, exercises: buildExercisesFromTemplate(tpl, transferWeights) })
-    setPlanDayIdx(null); resetTimer()
+    setPlanDayIdx(null); setCustomPlanCtx(null); resetTimer()
     if (mode === 'builder') { setRunning(false); setView('builder') } else { setRunning(true); setView('active') }
     // Только реальный старт тренировки (не открытие в конструкторе для правки
     // и не разовый запуск программы из библиотеки) обновляет метку последнего
@@ -401,7 +555,13 @@ export default function useWorkout({ state, dispatch }) {
     wk.exercises.forEach(ex => saveExerciseResult({ name: ex.name, sets: ex.sets, targetReps: ex.targetReps || ex.sets?.[0]?.reps }, today2))
     syncProgressInBackground()
     dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, workouts: [...(entry.workouts || []), { id: Date.now(), name: wk.name || 'Тренировка', exercises: wk.exercises.map(e => e.name), exercisesDetail: wk.exercises.map(e => ({ name: e.name, muscle: e.muscle, comment: e.comment || '', sets: e.sets.map(s => ({ reps: s.reps, weight: s.weight, done: s.done })) })), duration: finalMin, caloriesBurned: calBurned, ...restFeedback }] } })
+    // Продвигаем указатель «на каком дне остановились» у плана, из которого
+    // реально была запущена и завершена эта тренировка — по порядку дней, а
+    // не по дню недели, чтобы пропущенный день не сбивал план.
+    if (planDayIdx !== null && planDayIdx !== undefined) advanceAiPlanProgress(planDayIdx)
+    if (customPlanCtx) advanceCustomPlanProgress(customPlanCtx.planId, customPlanCtx.dayIdx)
     clearDraft(); setWk({ name: '', exercises: [] }); resetTimer(); setShowComplete(false); setView('list')
+    setPlanDayIdx(null); setCustomPlanCtx(null)
   }
   const removeWorkout = (wId, entryDate) => {
     const targetEntry = state.entries.find(e => e.date === (entryDate || today))
@@ -436,6 +596,7 @@ export default function useWorkout({ state, dispatch }) {
     clearDraft()
     setWk({ name: workout.name || 'Тренировка', exercises })
     setPlanDayIdx(null)
+    setCustomPlanCtx(null)
     setEditingWorkout({ entryDate: workout.entryDate, original: workout })
     setRunning(false)
     setView('builder')
@@ -479,7 +640,7 @@ export default function useWorkout({ state, dispatch }) {
   })
   const applyPlanLoad = (day, dayIdx, mode, transferWeights) => {
     setWk({ name: day.name + ' (AI)', exercises: buildExercisesFromPlanDay(day, transferWeights) })
-    setPlanDayIdx(dayIdx); resetTimer()
+    setPlanDayIdx(dayIdx); setCustomPlanCtx(null); resetTimer()
     if (mode === 'builder') { setRunning(false); setView('builder') } else { setRunning(true); setView('active') }
     if (mode !== 'builder') markLastUsedSource('plan', null)
   }
@@ -490,6 +651,7 @@ export default function useWorkout({ state, dispatch }) {
   const resolveWeightTransfer = (transfer) => {
     if (!pendingLoad) return
     if (pendingLoad.type === 'template') applyTemplateLoad(pendingLoad.tpl, pendingLoad.mode, transfer, pendingLoad.sourceKind, pendingLoad.sourceId)
+    else if (pendingLoad.type === 'customPlanDay') applyCustomPlanDayLoad(pendingLoad.plan, pendingLoad.dayIdx, pendingLoad.mode, transfer)
     else applyPlanLoad(pendingLoad.day, pendingLoad.dayIdx, pendingLoad.mode, transfer)
     setPendingLoad(null)
   }
@@ -506,5 +668,6 @@ export default function useWorkout({ state, dispatch }) {
     removeWorkout, saveWorkoutAnalysis, startFromPlan, resolveWeightTransfer,
     editingWorkout, startEditWorkout, cancelEditWorkout, saveEditedWorkout,
     editingTemplateId, startEditTemplate, cancelEditTemplate, saveEditedTemplate,
+    customPlans, saveCustomPlan, deleteCustomPlan, startFromCustomPlanDay, clearPlanContext,
   }
 }
