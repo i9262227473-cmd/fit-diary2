@@ -13,6 +13,23 @@ const QUICK_QUESTIONS = [
 const MAX_QUESTION_LENGTH = 500
 const MAX_HISTORY_MESSAGES = 6
 const MAX_RESPONSE_TOKENS = 180
+const CHAT_HISTORY_KEY = 'ai-assistant-history-v1'
+const MAX_STORED_MESSAGES = 30
+
+function loadStoredMessages() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || 'null')
+    return Array.isArray(saved) ? saved : []
+  } catch {
+    return []
+  }
+}
+
+function saveStoredMessages(messages) {
+  try {
+    localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(messages.slice(-MAX_STORED_MESSAGES)))
+  } catch {}
+}
 
 function buildContext({ state, entry, totals, goals, water }) {
   const profile = state.profile || {}
@@ -57,7 +74,7 @@ export default function HomeAssistantSheet({
   onClose,
   onContextAction,
 }) {
-  const [messages, setMessages] = useState([])
+  const [messages, setMessages] = useState(loadStoredMessages)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -68,6 +85,10 @@ export default function HomeAssistantSheet({
     if (!conversation) return
     conversation.scrollTo({ top: conversation.scrollHeight, behavior: 'smooth' })
   }, [messages, loading, error])
+
+  useEffect(() => {
+    saveStoredMessages(messages)
+  }, [messages])
 
   const ask = async (question, showQuestion = true) => {
     const text = (question || input).trim()

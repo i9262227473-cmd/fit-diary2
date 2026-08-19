@@ -1,4 +1,4 @@
-.screen { --food-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', sans-serif; --food-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', sans-serif; display: flex; flex-direction: column; gap: 11px; padding-bottom: 4px; font-family: var(--food-font); animation: viewFloatIn .24s ease both; }
+.screen { --food-font: var(--font); --food-display: var(--font); display: flex; flex-direction: column; gap: 11px; padding-bottom: 4px; font-family: var(--food-font); animation: viewFloatIn .24s ease both; }
 .screen button, .screen input, .screen select, .screen textarea { font-family: var(--food-font); }
 .header { display: grid; grid-template-columns: 48px 1fr 48px; align-items: center; gap: 12px; padding: 0 0 4px; }
 .eyebrow { color: var(--text-muted); font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }

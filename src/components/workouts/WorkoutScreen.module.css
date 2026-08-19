@@ -1,4 +1,4 @@
-.historyScreen { --workout-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', sans-serif; --workout-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', sans-serif; display: flex; flex-direction: column; gap: 14px; padding-bottom: 4px; font-family: var(--workout-font); animation: viewFloatIn .24s ease both; }
+.historyScreen { --workout-font: var(--font); --workout-display: var(--font); display: flex; flex-direction: column; gap: 14px; padding-bottom: 4px; font-family: var(--workout-font); animation: viewFloatIn .24s ease both; }
 .historyScreen button { font-family: var(--workout-font); }
 .historyHeading { padding: 2px 2px 0; }
 .historyHeading h1 { color: var(--text); font-family: var(--workout-display); font-size: 32px; font-weight: 750; letter-spacing: -.045em; }
