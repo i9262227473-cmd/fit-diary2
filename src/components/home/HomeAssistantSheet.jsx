@@ -12,7 +12,7 @@ const QUICK_QUESTIONS = [
 
 const MAX_QUESTION_LENGTH = 500
 const MAX_HISTORY_MESSAGES = 6
-const MAX_RESPONSE_TOKENS = 180
+const MAX_RESPONSE_TOKENS = 350
 const CHAT_HISTORY_KEY = 'ai-assistant-history-v1'
 const MAX_STORED_MESSAGES = 30
 
@@ -60,7 +60,7 @@ function buildContext({ state, entry, totals, goals, water }) {
 Вода: ${water.consumed} из ${water.goal} стаканов по 250 мл.
 Тренировки: ${workouts}.
 
-Ответ — не более 70 слов: сразу главный вывод, затем максимум 3 коротких действия. Без вступления, повторения вопроса и markdown-заголовков.`
+Ответ — не более 150 слов: сразу главный вывод, затем конкретные действия (если это тренировка — можно перечислить все упражнения с подходами/повторами). Без вступления, повторения вопроса и markdown-заголовков.`
 }
 
 export default function HomeAssistantSheet({

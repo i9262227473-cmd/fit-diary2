@@ -63,18 +63,11 @@ export function NavFood({ active = false, size = 24 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <IconDefs id="nav-food" active={active} />
-      {!active && <defs>
-        <linearGradient id="nav-food-orange" x1="5" y1="3" x2="19" y2="22" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#ffc261" />
-          <stop offset=".48" stopColor="#ff9500" />
-          <stop offset="1" stopColor="#d86400" />
-        </linearGradient>
-      </defs>}
       <g filter="url(#nav-food-shadow)">
-        <path d="M3 11.3h18c-.3 5.5-3.6 8.7-9 8.7s-8.7-3.2-9-8.7Z" fill={active ? 'url(#nav-food-body)' : 'url(#nav-food-orange)'} />
-        <path d="M4.5 10.5C5.1 6.7 8 4.3 12 4.3s6.9 2.4 7.5 6.2h-15Z" fill={active ? 'url(#nav-food-body)' : 'url(#nav-food-orange)'} />
+        <path d="M3 11.3h18c-.3 5.5-3.6 8.7-9 8.7s-8.7-3.2-9-8.7Z" fill="url(#nav-food-body)" />
+        <path d="M4.5 10.5C5.1 6.7 8 4.3 12 4.3s6.9 2.4 7.5 6.2h-15Z" fill="url(#nav-food-body)" />
         <path d="M6.2 10.1c.7-2.8 3-4.3 5.8-4.3" stroke="url(#nav-food-shine)" strokeWidth="1.25" strokeLinecap="round" />
-        <path d="M12 2.5v2M7.7 4.1l1.1 1.7M16.3 4.1l-1.1 1.7" stroke={active ? 'var(--accent-bright)' : '#ff9f0a'} strokeWidth="1.35" strokeLinecap="round" />
+        <path d="M12 2.5v2M7.7 4.1l1.1 1.7M16.3 4.1l-1.1 1.7" stroke={active ? 'var(--accent-bright)' : 'var(--text-secondary)'} strokeWidth="1.35" strokeLinecap="round" />
       </g>
     </svg>
   )

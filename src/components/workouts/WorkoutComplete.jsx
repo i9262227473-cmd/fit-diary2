@@ -40,7 +40,7 @@ ${exLines}
   }
 
   return createPortal(
-    <div style={{ position: 'fixed', inset: 0, background: 'var(--bg)', color: 'var(--text)', zIndex: 500, overflow: 'auto', padding: '24px 20px 40px' }}>
+    <div style={{ position: 'fixed', inset: 0, maxWidth: 480, margin: '0 auto', background: 'var(--bg)', color: 'var(--text)', zIndex: 500, overflow: 'auto', padding: '24px 20px 40px' }}>
       <div style={{ textAlign: 'center', padding: '30px 0 20px' }}>
         <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
           <Check size={32} color="var(--accent-contrast)" />
