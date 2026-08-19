@@ -18,6 +18,16 @@ const syncProgressInBackground = () => {
 const WK_DRAFT_KEY = 'workout-draft-v1'
 const PLAN_KEY = 'workout-plan-v4-pro'
 const TEMPLATES_KEY = 'workout-templates-v1'
+const LAST_USED_SOURCE_KEY = 'workout-last-used-source-v1'
+
+// Метка «откуда реально запустили последнюю тренировку» — читается на
+// главном экране «Тренировки» для карточки «Следующая тренировка», чтобы
+// она предлагала последний использованный источник (свой шаблон/AI-план/
+// повтор из истории), а не всегда AI-план, даже если у пользователя есть
+// собственные шаблоны.
+function markLastUsedSource(kind, id) {
+  try { localStorage.setItem(LAST_USED_SOURCE_KEY, JSON.stringify({ kind, id: id ?? null, ts: Date.now() })) } catch {}
+}
 
 function getTemplates() {
   try {
@@ -156,13 +166,16 @@ export default function useWorkout({ state, dispatch }) {
   // выхода без сохранения баннер «незавершённая тренировка» предложил бы
   // продолжить чужую отредактированную копию как новую тренировку.
   const [editingWorkout, setEditingWorkout] = useState(null)
+  // id шаблона, который сейчас редактируется через «Изменить» в «Мои
+  // тренировки» — null, если конструктор открыт не для редактирования шаблона.
+  const [editingTemplateId, setEditingTemplateId] = useState(null)
 
   useEffect(() => {
-    if (editingWorkout) return
+    if (editingWorkout || editingTemplateId) return
     if (view !== 'builder' && view !== 'active') return
     if (!wk.exercises.length) { clearDraft(); return }
     try { localStorage.setItem(WK_DRAFT_KEY, JSON.stringify({ wk, view, elapsedSec: timer, savedAt: Date.now() })) } catch {}
-  }, [wk, view, timer, editingWorkout])
+  }, [wk, view, timer, editingWorkout, editingTemplateId])
 
   const [showRestTimer, setShowRestTimer] = useState(false)
   const [restInfo, setRestInfo] = useState({ exercise: '', setInfo: '', duration: 90 })
@@ -192,6 +205,15 @@ export default function useWorkout({ state, dispatch }) {
     })
 
   const addEx = ex => setWk(w => {
+    const saved = suggestWeightFor(ex.name)
+    const startWeight = saved?.weight ? String(saved.weight) : '0'
+    return { ...w, exercises: [...w.exercises, { uid: uid(), exerciseId: ex.id, name: ex.name, muscle: ex.muscle, type: ex.type, targetReps: '8-12', restSec: getDefaultRestSec(ex.muscle), suggestedWeight: saved?.suggestedWeight || null, sets: [{ id: uid(), reps: '8-12', weight: startWeight, done: false }] }] }
+  })
+  // Переключатель для библиотеки упражнений в конструкторе: если упражнение
+  // уже добавлено — убрать его (первое вхождение по exerciseId), иначе — добавить.
+  const toggleEx = ex => setWk(w => {
+    const idx = w.exercises.findIndex(e => e.exerciseId === ex.id)
+    if (idx >= 0) return { ...w, exercises: w.exercises.filter((_, i) => i !== idx) }
     const saved = suggestWeightFor(ex.name)
     const startWeight = saved?.weight ? String(saved.weight) : '0'
     return { ...w, exercises: [...w.exercises, { uid: uid(), exerciseId: ex.id, name: ex.name, muscle: ex.muscle, type: ex.type, targetReps: '8-12', restSec: getDefaultRestSec(ex.muscle), suggestedWeight: saved?.suggestedWeight || null, sets: [{ id: uid(), reps: '8-12', weight: startWeight, done: false }] }] }
@@ -280,6 +302,39 @@ export default function useWorkout({ state, dispatch }) {
     setTimeout(() => setTplSaved(false), 2000)
     syncPlanInBackground()
   }
+  // Редактирование существующего шаблона — привязка к его id, а не к имени
+  // (раньше «Изменить» полагался на совпадение названия при сохранении, и
+  // если имя менялось при редактировании, вместо обновления создавался
+  // дубликат шаблона).
+  const startEditTemplate = (tpl) => {
+    if (!tpl) return
+    startFromTemplate(tpl, 'builder')
+    setEditingTemplateId(tpl.id)
+  }
+  const cancelEditTemplate = () => {
+    setEditingTemplateId(null)
+    setWk({ name: '', exercises: [] })
+    setView('templates')
+  }
+  const saveEditedTemplate = () => {
+    if (!editingTemplateId || !wk.exercises.length) return
+    const list = getTemplates()
+    const idx = list.findIndex(t => t.id === editingTemplateId)
+    if (idx === -1) { setEditingTemplateId(null); return }
+    const name = (wk.name || '').trim() || 'Моя тренировка'
+    const next = [...list]
+    next[idx] = {
+      ...list[idx],
+      name,
+      exercises: wk.exercises.map(e => ({ exerciseId: e.exerciseId, name: e.name, muscle: e.muscle, type: e.type, targetReps: e.targetReps || e.sets?.[0]?.reps || '8-12', restSec: e.restSec || getDefaultRestSec(e.muscle), sets: e.sets.map(s => ({ reps: s.reps, weight: s.weight })) })),
+    }
+    saveTemplatesList(next)
+    setTemplates(next)
+    setEditingTemplateId(null)
+    setWk({ name: '', exercises: [] })
+    setView('templates')
+    syncPlanInBackground()
+  }
   const deleteTemplate = (id) => {
     const next = getTemplates().filter(t => t.id !== id)
     saveTemplatesList(next)
@@ -291,14 +346,18 @@ export default function useWorkout({ state, dispatch }) {
     const saved = suggestWeightFor(ex.name)
     return { uid: uid(), exerciseId: ex.exerciseId || Date.now() + Math.random(), name: ex.name, muscle: ex.muscle || 'Кор', type: ex.type || 'compound', targetReps: ex.targetReps || ex.sets?.[0]?.reps || '8-12', restSec: ex.restSec || getDefaultRestSec(ex.muscle || 'Кор'), suggestedWeight: saved?.suggestedWeight || null, sets: (ex.sets || [{ reps: '8-12', weight: '0' }]).map(s => ({ id: uid(), reps: s.reps, weight: transferWeights ? s.weight : '0', done: false })) }
   })
-  const applyTemplateLoad = (tpl, mode, transferWeights) => {
+  const applyTemplateLoad = (tpl, mode, transferWeights, sourceKind = 'template', sourceId = tpl.id) => {
     setWk({ name: tpl.name, exercises: buildExercisesFromTemplate(tpl, transferWeights) })
     setPlanDayIdx(null); resetTimer()
     if (mode === 'builder') { setRunning(false); setView('builder') } else { setRunning(true); setView('active') }
+    // Только реальный старт тренировки (не открытие в конструкторе для правки
+    // и не разовый запуск программы из библиотеки) обновляет метку последнего
+    // источника для карточки «Следующая тренировка».
+    if (mode !== 'builder' && sourceKind !== 'library') markLastUsedSource(sourceKind, sourceId)
   }
-  const startFromTemplate = (tpl, mode = 'active') => {
-    if ((tpl.exercises || []).some(ex => suggestWeightFor(ex.name)?.weight)) { setPendingLoad({ type: 'template', tpl, mode }); return }
-    applyTemplateLoad(tpl, mode, false)
+  const startFromTemplate = (tpl, mode = 'active', sourceKind = 'template', sourceId = tpl.id) => {
+    if ((tpl.exercises || []).some(ex => suggestWeightFor(ex.name)?.weight)) { setPendingLoad({ type: 'template', tpl, mode, sourceKind, sourceId }); return }
+    applyTemplateLoad(tpl, mode, false, sourceKind, sourceId)
   }
   const repeatWorkout = (workout, mode = 'active') => {
     if (!workout) return
@@ -325,7 +384,7 @@ export default function useWorkout({ state, dispatch }) {
       }).filter(ex => ex.name),
     }
     if (!tpl.exercises.length) return
-    startFromTemplate(tpl, mode)
+    startFromTemplate(tpl, mode, 'history', workout.id)
   }
   const toggleSet = (eI, sI) => {
     const ex = wk.exercises[eI]
@@ -422,6 +481,7 @@ export default function useWorkout({ state, dispatch }) {
     setWk({ name: day.name + ' (AI)', exercises: buildExercisesFromPlanDay(day, transferWeights) })
     setPlanDayIdx(dayIdx); resetTimer()
     if (mode === 'builder') { setRunning(false); setView('builder') } else { setRunning(true); setView('active') }
+    if (mode !== 'builder') markLastUsedSource('plan', null)
   }
   const startFromPlan = (day, dayIdx = null, mode = 'active') => {
     if ((day.exercises || []).some(ex => suggestWeightFor(ex.name)?.weight)) { setPendingLoad({ type: 'plan', day, dayIdx, mode }); return }
@@ -429,7 +489,7 @@ export default function useWorkout({ state, dispatch }) {
   }
   const resolveWeightTransfer = (transfer) => {
     if (!pendingLoad) return
-    if (pendingLoad.type === 'template') applyTemplateLoad(pendingLoad.tpl, pendingLoad.mode, transfer)
+    if (pendingLoad.type === 'template') applyTemplateLoad(pendingLoad.tpl, pendingLoad.mode, transfer, pendingLoad.sourceKind, pendingLoad.sourceId)
     else applyPlanLoad(pendingLoad.day, pendingLoad.dayIdx, pendingLoad.mode, transfer)
     setPendingLoad(null)
   }
@@ -440,10 +500,11 @@ export default function useWorkout({ state, dispatch }) {
     showRestTimer, setShowRestTimer, restInfo, showComplete, swapFor, setSwapFor,
     planDayIdx, setPlanDayIdx, planSaved, viewWorkout, setViewWorkout, techFor, setTechFor,
     histMode, setHistMode, templates, tplSaved, pickerFor, setPickerFor, pendingLoad, setPendingLoad,
-    allWorkouts, workoutsByDate, workoutPlace, filteredEx, addEx, updateRest, updateSet, removeSet,
+    allWorkouts, workoutsByDate, workoutPlace, filteredEx, addEx, toggleEx, updateRest, updateSet, removeSet,
     moveExercise, reorderExercises, updateComment, addSet, removeEx, replaceEx, applyProgression, saveToPlan,
     saveAsTemplate, deleteTemplate, startFromTemplate, repeatWorkout, toggleSet, completeWorkout, saveWorkout,
     removeWorkout, saveWorkoutAnalysis, startFromPlan, resolveWeightTransfer,
     editingWorkout, startEditWorkout, cancelEditWorkout, saveEditedWorkout,
+    editingTemplateId, startEditTemplate, cancelEditTemplate, saveEditedTemplate,
   }
 }

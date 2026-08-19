@@ -46,12 +46,13 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
     showRestTimer, setShowRestTimer, restInfo, showComplete, swapFor, setSwapFor,
     planDayIdx, setPlanDayIdx, planSaved, viewWorkout, setViewWorkout, techFor, setTechFor,
     histMode, setHistMode, templates, tplSaved, pickerFor, setPickerFor, pendingLoad, setPendingLoad,
-    allWorkouts, workoutsByDate, workoutPlace, filteredEx, addEx, updateRest, updateSet, removeSet,
+    allWorkouts, workoutsByDate, workoutPlace, filteredEx, addEx, toggleEx, updateRest, updateSet, removeSet,
     updateComment, addSet, removeEx, replaceEx, applyProgression, saveToPlan,
     saveAsTemplate, deleteTemplate, startFromTemplate, repeatWorkout, toggleSet, completeWorkout, saveWorkout,
     removeWorkout, saveWorkoutAnalysis, startFromPlan, resolveWeightTransfer,
     pendingDraft, resumeDraft, discardDraft,
     reorderExercises, editingWorkout, startEditWorkout, cancelEditWorkout, saveEditedWorkout,
+    editingTemplateId, startEditTemplate, cancelEditTemplate, saveEditedTemplate,
   } = useWorkout({ state, dispatch })
 
   const M_COLORS = { Грудь:'var(--accent)', Спина:'#3b82f6', Ноги:'#f59e0b', Плечи:'#8b5cf6', Трицепс:'#ec4899', Бицепс:'#f97316', Кор:'#06b6d4', Кардио:'#ef4444' }
@@ -62,20 +63,40 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
   const dragReorder = useDragReorder({ items: wk.exercises, getId: ex => ex.uid, onReorder: reorderExercises })
 
   const featured = (() => {
-    try {
-      const savedPlan = JSON.parse(localStorage.getItem('workout-plan-v4-pro') || 'null')
-      const days = savedPlan?.plan?.days
-      if (Array.isArray(days) && days.length) {
-        const todayIndex = (new Date().getDay() + 6) % 7
-        for (let offset = 0; offset < days.length; offset += 1) {
-          const index = (todayIndex + offset) % days.length
-          if (days[index]?.exercises?.length) return { kind: 'plan', source: days[index], index, offset }
+    const planCandidate = (() => {
+      try {
+        const savedPlan = JSON.parse(localStorage.getItem('workout-plan-v4-pro') || 'null')
+        const days = savedPlan?.plan?.days
+        if (Array.isArray(days) && days.length) {
+          const todayIndex = (new Date().getDay() + 6) % 7
+          for (let offset = 0; offset < days.length; offset += 1) {
+            const index = (todayIndex + offset) % days.length
+            if (days[index]?.exercises?.length) return { kind: 'plan', source: days[index], index, offset }
+          }
         }
-      }
-    } catch {}
-    if (templates[0]) return { kind: 'template', source: templates[0] }
-    if (allWorkouts[0]) return { kind: 'history', source: allWorkouts[0] }
-    return null
+      } catch {}
+      return null
+    })()
+    const templateCandidate = templates[0] ? { kind: 'template', source: templates[0] } : null
+    const historyCandidate = allWorkouts[0] ? { kind: 'history', source: allWorkouts[0] } : null
+
+    // Предпочитаем источник, который пользователь реально запускал последним
+    // (метка пишется в useWorkout при старте тренировки), а не жёсткий
+    // приоритет план → шаблон → история — иначе «Следующая тренировка»
+    // игнорирует собственные шаблоны пользователя, пока жив AI-план.
+    let lastUsed = null
+    try { lastUsed = JSON.parse(localStorage.getItem('workout-last-used-source-v1') || 'null') } catch {}
+    if (lastUsed?.kind === 'template' && lastUsed.id) {
+      const match = templates.find(t => t.id === lastUsed.id)
+      if (match) return { kind: 'template', source: match }
+    }
+    if (lastUsed?.kind === 'history' && lastUsed.id) {
+      const match = allWorkouts.find(w => w.id === lastUsed.id)
+      if (match) return { kind: 'history', source: match }
+    }
+    if (lastUsed?.kind === 'plan' && planCandidate) return planCandidate
+
+    return planCandidate || templateCandidate || historyCandidate
   })()
   const featuredExercises = featured?.source?.exercisesDetail?.length
     ? featured.source.exercisesDetail
@@ -229,10 +250,10 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
           />
         )}
         <div className={styles.builderHeading}>
-          <button onClick={() => editingWorkout ? cancelEditWorkout() : setView('list')} className={styles.backButton}>
+          <button onClick={() => editingWorkout ? cancelEditWorkout() : editingTemplateId ? cancelEditTemplate() : setView('list')} className={styles.backButton}>
             <ChevronLeft size={18} />
           </button>
-          <span style={{ fontSize: 18, fontWeight: 700 }}>{editingWorkout ? 'Изменение тренировки' : 'Конструктор'}</span>
+          <span style={{ fontSize: 18, fontWeight: 700 }}>{editingWorkout ? 'Изменение тренировки' : editingTemplateId ? 'Изменение шаблона' : 'Конструктор'}</span>
         </div>
         <input className={styles.builderName}
           placeholder="Название тренировки" value={wk.name} onChange={e => setWk(w => ({...w, name: e.target.value}))} />
@@ -246,7 +267,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
             {filteredEx.map(ex => {
               const alreadyAdded = wk.exercises.some(e => e.exerciseId === ex.id)
               return (
-              <button key={ex.id} onClick={() => addEx(ex)} className={`${styles.libraryItem} ${alreadyAdded ? styles.libraryItemAdded : ''}`}>
+              <button key={ex.id} onClick={() => toggleEx(ex)} className={`${styles.libraryItem} ${alreadyAdded ? styles.libraryItemAdded : ''}`}>
                 <span style={{ padding: '2px 8px', borderRadius: 50, fontSize: 11, color: '#000', background: M_COLORS[ex.muscle] || 'var(--accent)', flexShrink: 0, fontWeight: 600 }}>{ex.muscle}</span>
                 <span className={styles.libraryItemName}>{ex.name}</span>
                 <span className={styles.efficiency}>{EFF_LABEL[ex.eff]}</span>
@@ -342,9 +363,15 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
               </button>
             )}
             {wk.exercises.length > 0 && (
-              <button onClick={saveAsTemplate} style={{ background: tplSaved ? 'var(--accent)' : 'transparent', color: tplSaved ? '#000' : 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 14, padding: '13px', fontSize: 13, fontWeight: 700, width: '100%', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                {tplSaved ? '✓ Сохранено в мои тренировки' : 'Сохранить как шаблон'}
-              </button>
+              editingTemplateId ? (
+                <button onClick={saveEditedTemplate} style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 14, padding: '13px', fontSize: 13, fontWeight: 700, width: '100%', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Сохранить изменения
+                </button>
+              ) : (
+                <button onClick={saveAsTemplate} style={{ background: tplSaved ? 'var(--accent)' : 'transparent', color: tplSaved ? '#000' : 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 14, padding: '13px', fontSize: 13, fontWeight: 700, width: '100%', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  {tplSaved ? '✓ Сохранено в мои тренировки' : 'Сохранить как шаблон'}
+                </button>
+              )
             )}
             {wk.exercises.length > 0 && planDayIdx !== null && (
               <button onClick={saveToPlan} style={{ background: planSaved ? 'var(--accent)' : 'transparent', color: planSaved ? '#000' : 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 14, padding: '13px', fontSize: 13, fontWeight: 700, width: '100%', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5 }}>
@@ -487,7 +514,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
                 </div>
               </SwipeToDelete>
               <div style={{ padding: '12px 16px', borderTop: '1px solid #2a2a2a', background: '#161616', display: 'flex', gap: 8 }}>
-                <button onClick={() => startFromTemplate(tpl, 'builder')} style={{ flex: 1, background: 'transparent', color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 12, padding: '12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <button onClick={() => startEditTemplate(tpl)} style={{ flex: 1, background: 'transparent', color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 12, padding: '12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   <Edit2 size={14} /> Изменить
                 </button>
                 <button onClick={() => startFromTemplate(tpl, 'active')} style={{ flex: 1.4, background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 12, padding: '12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
@@ -514,7 +541,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
     return (
       <>
         {pendingLoad && <WeightTransferModal onConfirm={() => resolveWeightTransfer(true)} onDecline={() => resolveWeightTransfer(false)} onClose={() => setPendingLoad(null)} />}
-        <WorkoutLibrary onBack={() => setView('list')} onStart={(program) => startFromTemplate(program, 'active')} />
+        <WorkoutLibrary onBack={() => setView('list')} onStart={(program) => startFromTemplate(program, 'active', 'library')} />
       </>
     )
   }
