@@ -225,6 +225,26 @@ export const EXERCISE_DB = [
   { id:272,name:'Спринт на беговой дорожке',        muscle:'Кардио',place:'gym',  equipment:'Беговая дорожка', eff:'best', swap:'sprint', type:'compound' },
   { id:273,name:'Челночный бег',                    muscle:'Кардио',place:'home', equipment:'Своё тело',   eff:'good', swap:'sprint',     type:'compound' },
   { id:274,name:'Бег по лестнице/в гору',           muscle:'Кардио',place:'home', equipment:'Своё тело',   eff:'good', swap:'sprint',     type:'compound' },
+
+  // ═══════════ КАРДИО-ТРЕНАЖЁРЫ И ХОДЬБА (доп.) ═══════════
+  { id:275,name:'Гребной тренажёр (гребля)',        muscle:'Кардио',place:'gym',  equipment:'Гребной тренажёр', eff:'best', swap:'cardio', type:'compound' },
+  { id:276,name:'Велотренажёр',                     muscle:'Кардио',place:'gym',  equipment:'Велотренажёр',    eff:'good', swap:'cardio', type:'compound' },
+  { id:277,name:'Эллиптический тренажёр',           muscle:'Кардио',place:'gym',  equipment:'Эллиптический тренажёр', eff:'good', swap:'cardio', type:'compound' },
+  { id:278,name:'Скакалка',                         muscle:'Кардио',place:'both', equipment:'Скакалка',        eff:'best', swap:'cardio', type:'compound' },
+  { id:279,name:'Скандинавская ходьба',             muscle:'Кардио',place:'home', equipment:'Палки для ходьбы', eff:'good', swap:'cardio', type:'compound' },
+  { id:280,name:'Быстрая ходьба',                   muscle:'Кардио',place:'home', equipment:'Своё тело',       eff:'base', swap:'cardio', type:'compound' },
+
+  // ═══════════ РАСТЯЖКА И МОБИЛЬНОСТЬ (доп.) ═══════════
+  { id:281,name:'Растяжка плечевого сустава (за спиной)', muscle:'Плечи', place:'both', equipment:'Своё тело', eff:'base', swap:'shoulder_mobility', type:'isolation' },
+  { id:282,name:'Круговые движения руками (разминка плеч)', muscle:'Плечи', place:'both', equipment:'Своё тело', eff:'base', swap:'shoulder_mobility', type:'isolation' },
+  { id:283,name:'Растяжка грудных мышц в дверном проёме', muscle:'Грудь', place:'home', equipment:'Своё тело', eff:'base', swap:'chest_stretch', type:'isolation' },
+  { id:284,name:'Растяжка сгибателей бедра (выпад-растяжка)', muscle:'Ноги', place:'both', equipment:'Своё тело', eff:'base', swap:'hip_mobility', type:'isolation' },
+  { id:285,name:'Растяжка ягодиц (поза голубя)', muscle:'Ноги', place:'both', equipment:'Своё тело', eff:'base', swap:'hip_mobility', type:'isolation' },
+  { id:286,name:'Растяжка задней поверхности бедра сидя', muscle:'Ноги', place:'both', equipment:'Своё тело', eff:'base', swap:'hamstring_stretch', type:'isolation' },
+  { id:287,name:'Растяжка икроножной мышцы у стены', muscle:'Ноги', place:'both', equipment:'Своё тело', eff:'base', swap:'calf_stretch', type:'isolation' },
+  { id:288,name:'Кошка-корова (растяжка позвоночника)', muscle:'Спина', place:'home', equipment:'Своё тело', eff:'base', swap:'spine_mobility', type:'isolation' },
+  { id:289,name:'Растяжка широчайших (детская поза)', muscle:'Спина', place:'home', equipment:'Своё тело', eff:'base', swap:'lat_stretch', type:'isolation' },
+  { id:290,name:'Вращение тазобедренных суставов (90/90)', muscle:'Ноги', place:'home', equipment:'Своё тело', eff:'base', swap:'hip_mobility', type:'isolation' },
 ]
 
 // Уникальные мышечные группы (для фильтра в UI)
