@@ -461,11 +461,13 @@ export default function useWorkout({ state, dispatch, aiCall }) {
       : list.map((p, i) => i === idx ? { ...p, name: withDefaults.name, days: withDefaults.days, progressIndex: 0 } : p)
     saveCustomPlansList(next)
     setCustomPlans(next)
+    syncPlanInBackground()
   }
   const deleteCustomPlan = (id) => {
     const next = getCustomPlans().filter(p => p.id !== id)
     saveCustomPlansList(next)
     setCustomPlans(next)
+    syncPlanInBackground()
   }
   const applyCustomPlanDayLoad = (plan, dayIdx, mode, transferWeights) => {
     const day = plan?.days?.[dayIdx]

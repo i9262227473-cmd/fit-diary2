@@ -2,7 +2,7 @@
 import { persist } from 'zustand/middleware'
 import { API_URL } from '../data/apiConfig'
 import { syncWithRetry, flushSyncQueue } from '../data/cloudSync'
-import { restoreWorkoutDataIfEmpty, restoreExerciseProgressIfEmpty } from '../data/workoutSync'
+import { reconcileWorkoutData, reconcileExerciseProgress } from '../data/workoutSync'
 
 const jsonHeaders = (token) => {
   const h = { 'Content-Type': 'application/json' }
@@ -134,17 +134,18 @@ export const useStore = create(
             })
           }
 
-          // Загружаем дневник с сервера
+          // Загружаем дневник с сервера и объединяем с локальным (не
+          // затираем ещё не отправленные локальные записи).
           const remoteEntries = await loadEntries(data.access_token)
-          if (remoteEntries && remoteEntries.length > 0) {
-            set({ entries: remoteEntries })
+          if (remoteEntries) {
+            get().mergeRemoteEntries(remoteEntries)
           }
 
-          // Восстанавливаем план тренировок/шаблоны/прогрессию, если локально
-          // их ещё нет (новое устройство или очищенный браузер) — раньше это
-          // хранилось только в localStorage и терялось при смене устройства.
-          restoreWorkoutDataIfEmpty(profileRaw?.saved_workouts)
-          restoreExerciseProgressIfEmpty(data.access_token)
+          // Синхронизируем план тренировок/шаблоны/прогрессию с сервером —
+          // сама функция решает, обычная это подтяжка свежего или бережное
+          // объединение без потери локальных данных (см. data/workoutSync.js).
+          await reconcileWorkoutData(data.access_token)
+          await reconcileExerciseProgress(data.access_token)
 
           // Догоняем всё, что не успело синкнуться в прошлый раз (офлайн и т.п.)
           flushSyncQueue(() => get().getValidToken())
@@ -203,6 +204,22 @@ export const useStore = create(
       getEntry: (date) => {
         const { entries } = get()
         return entries.find(e => e.date === date) || { date, foods: [], workouts: [] }
+      },
+
+      // Объединить записи с сервера с тем, что уже есть локально, по датам.
+      // Раньше при логине локальный дневник просто ЗАМЕНЯЛСЯ серверным
+      // (set({ entries: remoteEntries })) — если на устройстве были ещё не
+      // отправленные записи (офлайн), они терялись. Теперь — мерж: при
+      // совпадении даты побеждает сервер (там уже самое свежее с любого
+      // устройства), а дни, которых на сервере ещё нет, не пропадают.
+      mergeRemoteEntries: (remoteEntries) => {
+        if (!Array.isArray(remoteEntries)) return
+        set(state => {
+          const byDate = new Map()
+          state.entries.forEach(e => byDate.set(e.date, e))
+          remoteEntries.forEach(e => byDate.set(e.date, e))
+          return { entries: Array.from(byDate.values()).sort((a, b) => b.date.localeCompare(a.date)) }
+        })
       },
 
       saveEntry: async (entry) => {

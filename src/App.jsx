@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { Dumbbell } from 'lucide-react'
 import { useStore, API_URL } from './store'
 import { fetchJSON } from './data/cloudSync'
-import { syncWorkoutData, syncExerciseProgress, restoreWorkoutDataIfEmpty, restoreExerciseProgressIfEmpty } from './data/workoutSync'
+import { reconcileWorkoutData, reconcileExerciseProgress } from './data/workoutSync'
 
 import AuthPage from './pages/AuthPage'
 import OnboardingPage from './pages/OnboardingPage'
@@ -13,21 +13,30 @@ export default function App() {
   const { user, profile, session, isLoggingIn } = useStore()
   const [loading, setLoading] = useState(true)
 
-  // Разовая подстраховка для уже залогиненных пользователей: план
-  // тренировок/шаблоны/прогрессия могли годами жить только в localStorage.
-  // При первом запуске после обновления — подтягиваем с сервера то, чего
-  // нет локально, и выгружаем на сервер то, что есть только локально.
-  // Дальше синк идёт уже по месту изменения (см. data/workoutSync.js).
+  // Синхронизация плана тренировок/шаблонов/прогрессии при каждом запуске
+  // приложения у уже залогиненного пользователя (не только при входе).
+  // reconcileWorkoutData/reconcileExerciseProgress сами решают: обычная
+  // подтяжка свежего с сервера или бережное объединение (без потери
+  // локальных данных) при самой первой сверке на этом устройстве — см.
+  // подробные комментарии в data/workoutSync.js.
   useEffect(() => {
     if (!user || !session) return
     const run = async () => {
       const token = await useStore.getState().getValidToken()
       if (!token) return
-      const rawProfile = await fetchJSON(token, '/profile')
-      restoreWorkoutDataIfEmpty(rawProfile?.saved_workouts)
-      await restoreExerciseProgressIfEmpty(token)
-      await syncWorkoutData(token)
-      await syncExerciseProgress(token)
+      await reconcileWorkoutData(token)
+      await reconcileExerciseProgress(token)
+      // Дневник питания/тренировок по дням раньше подтягивался с сервера
+      // только при логине — уже залогиненный пользователь (сессия просто
+      // восстановилась из localStorage при запуске) не получал записи,
+      // сделанные на других устройствах, пока не перелогинится. Подтягиваем
+      // и объединяем по датам при каждом запуске (см. mergeRemoteEntries).
+      const remoteEntries = await fetchJSON(token, '/entries')
+      if (Array.isArray(remoteEntries)) {
+        useStore.getState().mergeRemoteEntries(
+          remoteEntries.map(row => ({ date: row.date, foods: row.foods || [], workouts: row.workouts || [] }))
+        )
+      }
     }
     run().catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
