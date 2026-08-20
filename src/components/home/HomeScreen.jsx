@@ -277,25 +277,46 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
         </button>
       </div>
 
-      <section className={styles.waterCard}>
+      {/* Раньше добавить воду можно было только точным тапом по маленькой
+          кнопке «250 мл» — теперь тап по всей карточке тоже добавляет
+          стакан, кнопка осталась просто как визуальная подсказка (клик по
+          ней всплывает и срабатывает тот же обработчик на карточке). */}
+      <section
+        className={styles.waterCard}
+        role="button"
+        tabIndex={0}
+        onClick={() => dispatch({ type: 'SET_WATER', val: Math.min(water.consumed + 1, water.goal) })}
+        onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); dispatch({ type: 'SET_WATER', val: Math.min(water.consumed + 1, water.goal) }) } }}
+        aria-label="Добавить 250 миллилитров воды"
+      >
         <span className={styles.waterGlass} aria-hidden="true"><i style={{ height: `${waterPercent}%` }} /><b /></span>
         <span className={styles.waterCopy}>
           <small>Вода</small>
           <strong>{water.consumed} / {water.goal} стаканов</strong>
           <em>{Math.max(water.goal - water.consumed, 0) > 0 ? `Осталось ${Math.max(water.goal - water.consumed, 0) * 250} мл` : 'Цель выполнена'}</em>
         </span>
-        <button className={styles.waterDose} onClick={() => dispatch({ type: 'SET_WATER', val: Math.min(water.consumed + 1, water.goal) })} aria-label="Добавить 250 миллилитров воды">
+        <span className={styles.waterDose} aria-hidden="true">
           <Droplets size={16} />
           <span>250 мл</span>
-        </button>
+        </span>
       </section>
 
-      <section className={styles.assistantCard}>
+      {/* Аналогично — раньше помощник открывался только по нажатию на
+          кнопку «Открыть помощника», теперь тап по всей карточке тоже
+          открывает его. */}
+      <section
+        className={styles.assistantCard}
+        role="button"
+        tabIndex={0}
+        onClick={() => setShowAssistant(true)}
+        onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setShowAssistant(true) } }}
+        aria-label="Открыть AI-помощника"
+      >
         <div className={styles.assistantContent}>
           <div className={styles.assistantEyebrow}><Sparkles size={14} />AI-ПОМОЩНИК</div>
           <h2>{insight.title}</h2>
           <p>{insight.body}</p>
-          <button onClick={() => setShowAssistant(true)}>Открыть помощника</button>
+          <span className={styles.assistantOpenHint}>Открыть помощника</span>
         </div>
         <div className={styles.assistantOrb} aria-hidden="true"><i /><b /></div>
       </section>

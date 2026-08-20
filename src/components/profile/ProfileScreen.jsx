@@ -4,6 +4,7 @@ import { clearCachedFoods, getCachedFoods } from '../../data/userFoodCache'
 import { getReminderSettings, saveReminderSettings } from '../../hooks/useReminders'
 import { THEMES } from '../../theme'
 import { APP_BUILD, APP_VERSION } from '../../appVersion'
+import { calculateNutritionGoals } from '../../utils/nutritionGoals'
 
 const LEVEL_LABELS = { beginner:'Новичок', amateur:'Любитель', advanced:'Продвинутый', professional:'Профессионал' }
 const GOAL_LABELS  = { weight_loss:'Похудение', muscle_gain:'Набор массы', maintenance:'Поддержание', endurance:'Выносливость', strength:'Сила', health:'Здоровье' }
@@ -52,7 +53,26 @@ export default function ProfileScreen({ profile, saveProfile, signOut, aiCall, t
     updateReminders({ enabled: true })
   }
 
-  const toggleGoal = g => setForm(f => ({ ...f, goals: f.goals.includes(g) ? f.goals.filter(x => x!==g) : [...f.goals, g] }))
+  // Раньше смена цели (похудение/набор массы) никак не влияла на
+  // рекомендуемую калорийность — формула считала только поддерживающую
+  // норму (TDEE), без дефицита/профицита под цель, и пересчитывалась только
+  // при сохранении, да и то лишь если поле калорий было пустым. Теперь при
+  // переключении цели калории/БЖУ пересчитываются сразу же.
+  const toggleGoal = g => setForm(f => {
+    const goals = f.goals.includes(g) ? f.goals.filter(x => x!==g) : [...f.goals, g]
+    const computed = calculateNutritionGoals({
+      weight: f.weight, height: f.height, age: f.age, gender: f.gender,
+      activity: f.activity, level: f.level, goals,
+    })
+    if (!computed) return { ...f, goals }
+    return {
+      ...f, goals,
+      calorieGoal: computed.calorieGoal,
+      proteinGoal: computed.proteinGoal,
+      fatGoal: computed.fatGoal,
+      carbGoal: computed.carbGoal,
+    }
+  })
 
   const handleClearCache = () => {
     if (confirm('Удалить все сохранённые AI-продукты? Это нельзя отменить.')) {
@@ -100,14 +120,25 @@ export default function ProfileScreen({ profile, saveProfile, signOut, aiCall, t
   const handleSave = async () => {
     const w = +form.weight, h = +form.height, a = +form.age
     let calorieGoal = +form.calorieGoal
-    if (!calorieGoal && w && h && a) {
-      const bmr = form.gender==='male' ? 10*w+6.25*h-5*a+5 : 10*w+6.25*h-5*a-161
-      const factors = { sedentary:1.2, light:1.375, moderate:1.55, active:1.725, very_active:1.9 }
-      calorieGoal = Math.round(bmr * (factors[form.activity]||1.55))
+    let proteinGoal = +form.proteinGoal
+    let fatGoal = +form.fatGoal
+    let carbGoal = +form.carbGoal
+    // Если какое-то из полей КБЖУ не задано (пустое) — досчитываем его по
+    // формуле с учётом цели. Обычно на этот момент toggleGoal уже всё
+    // пересчитал живьём, это просто подстраховка (например, для полей,
+    // очищенных пользователем вручную).
+    if ((!calorieGoal || !proteinGoal || !fatGoal || !carbGoal) && w && h && a) {
+      const computed = calculateNutritionGoals({
+        weight: w, height: h, age: a, gender: form.gender,
+        activity: form.activity, level: form.level, goals: form.goals,
+      })
+      if (computed) {
+        calorieGoal = calorieGoal || computed.calorieGoal
+        proteinGoal = proteinGoal || computed.proteinGoal
+        fatGoal = fatGoal || computed.fatGoal
+        carbGoal = carbGoal || computed.carbGoal
+      }
     }
-    const proteinGoal = +form.proteinGoal || Math.round(w*1.8)
-    const fatGoal = +form.fatGoal || Math.round(calorieGoal*0.25/9)
-    const carbGoal = +form.carbGoal || Math.round((calorieGoal-proteinGoal*4-fatGoal*9)/4)
     const bmi = w&&h ? (w/((h/100)**2)).toFixed(1) : profile?.bmi
     await saveProfile({ ...profile, ...form, calorieGoal, proteinGoal, fatGoal, carbGoal, bmi })
     setSaved(true); setTimeout(() => setSaved(false), 2000)

@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store'
+import { calculateNutritionGoals } from '../utils/nutritionGoals'
 import styles from './OnboardingPage.module.css'
 
 const STEPS = [
@@ -168,25 +169,21 @@ export default function OnboardingPage() {
     setLoading(true)
     try {
       const w = +answers.weight, h = +answers.height, a = +answers.age
-      const bmr = answers.gender === 'male'
-        ? 10 * w + 6.25 * h - 5 * a + 5
-        : 10 * w + 6.25 * h - 5 * a - 161
-      const activityFactors = {
-        sedentary: 1.2, light: 1.375, moderate: 1.55,
-        active: 1.725, very_active: 1.9
-      }
-      const tdee = Math.round(bmr * (activityFactors[answers.activity] || 1.55))
-      const proteinGoal = Math.round(w * (answers.level === 'professional' ? 2.2 : 1.8))
-      const fatGoal = Math.round(tdee * 0.25 / 9)
-      const carbGoal = Math.round((tdee - proteinGoal * 4 - fatGoal * 9) / 4)
+      // Раньше калорийность считалась без учёта выбранной цели (goals) —
+      // «похудение» и «набор массы» давали одну и ту же цифру. Теперь
+      // формула (см. utils/nutritionGoals.js) учитывает цель.
+      const computed = calculateNutritionGoals({
+        weight: w, height: h, age: a, gender: answers.gender,
+        activity: answers.activity, level: answers.level, goals: answers.goals,
+      })
       const bmi = calcBMI(w, h)
 
       await saveProfile({
         ...answers,
-        calorieGoal: tdee,
-        proteinGoal,
-        fatGoal,
-        carbGoal,
+        calorieGoal: computed?.calorieGoal,
+        proteinGoal: computed?.proteinGoal,
+        fatGoal: computed?.fatGoal,
+        carbGoal: computed?.carbGoal,
         bmi,
         completedAt: new Date().toISOString(),
       })

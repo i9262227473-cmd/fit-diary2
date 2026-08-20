@@ -1,5 +1,5 @@
 import React from 'react'
-import { Check, ChevronLeft, ClipboardList, Dumbbell, Edit2, Library, Play, Plus } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, ClipboardList, Dumbbell, Edit2, Library, Play, Plus } from 'lucide-react'
 import { EFF_LABEL, EXERCISE_DB as FULL_EXERCISE_DB, findAlternatives, findExerciseByName } from '../../data/exerciseDatabase'
 import { getExerciseMedia } from '../../data/exerciseMedia'
 import useWorkout, { getAiPlanProgress, nextDayIndexWithExercises } from '../../hooks/useWorkout'
@@ -27,6 +27,18 @@ import {
   WorkoutRepeatIcon,
 } from './WorkoutUiIcons'
 import styles from './WorkoutScreen.module.css'
+
+// Предыдущий день с упражнениями перед fromIndex (по кругу, зеркало
+// nextDayIndexWithExercises из useWorkout.js) — нужен для свайпа «назад»
+// по карточке «Следующая тренировка».
+function prevDayIndexWithExercises(days, fromIndex) {
+  if (!Array.isArray(days) || !days.length) return 0
+  for (let step = 1; step <= days.length; step += 1) {
+    const idx = ((fromIndex - step) % days.length + days.length) % days.length
+    if (days[idx]?.exercises?.length) return idx
+  }
+  return fromIndex
+}
 
 function formatWorkoutDate(value) {
   const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/)
@@ -75,7 +87,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
         let idx = getAiPlanProgress()
         if (!days[idx]?.exercises?.length) idx = nextDayIndexWithExercises(days, idx - 1)
         if (!days[idx]?.exercises?.length) return null
-        return { kind: 'plan', source: days[idx], index: idx }
+        return { kind: 'plan', source: days[idx], index: idx, days }
       } catch { return null }
     })()
     const templateCandidate = templates[0] ? { kind: 'template', source: templates[0] } : null
@@ -85,7 +97,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
       let idx = plan.progressIndex || 0
       if (!plan.days[idx]?.exercises?.length) idx = nextDayIndexWithExercises(plan.days, idx - 1)
       if (!plan.days[idx]?.exercises?.length) return null
-      return { kind: 'customPlan', source: plan.days[idx], planId: plan.id, planName: plan.name, index: idx }
+      return { kind: 'customPlan', source: plan.days[idx], planId: plan.id, planName: plan.name, index: idx, days: plan.days }
     }
 
     // Предпочитаем источник, который пользователь реально запускал последним
@@ -111,15 +123,119 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
 
     return aiPlanCandidate || templateCandidate || historyCandidate
   })()
-  const featuredExercises = featured?.source?.exercisesDetail?.length
-    ? featured.source.exercisesDetail
-    : (featured?.source?.exercises || [])
+
+  // Свайп по карточке «Следующая тренировка»: доступен только для источников
+  // с несколькими днями (AI-план / свой план) — превью-индекс живёт локально
+  // и не трогает реальный прогресс плана, пока пользователь не нажмёт «Начать».
+  const planDays = (featured?.kind === 'plan' || featured?.kind === 'customPlan') ? featured.days : null
+  const canSwipePlan = Array.isArray(planDays) && planDays.filter(d => d?.exercises?.length).length > 1
+
+  const [previewIndex, setPreviewIndex] = React.useState(featured?.index ?? null)
+  React.useEffect(() => {
+    setPreviewIndex(featured?.index ?? null)
+  }, [featured?.kind, featured?.index, featured?.planId])
+
+  const activeIndex = canSwipePlan && previewIndex != null ? previewIndex : featured?.index
+  const displayedDaySource = canSwipePlan && planDays[activeIndex]?.exercises?.length
+    ? planDays[activeIndex]
+    : featured?.source
+
+  const swipeToDay = (direction) => {
+    if (!canSwipePlan) return
+    const from = activeIndex ?? featured.index
+    const nextIdx = direction === 'next'
+      ? nextDayIndexWithExercises(planDays, from)
+      : prevDayIndexWithExercises(planDays, from)
+    setPreviewIndex(nextIdx)
+  }
+
+  // Визуальный свайп карточки «Следующая тренировка»: во время касания контент
+  // едет пальцем один в один (dragX без transition), а по отпусканию либо
+  // доезжает и уступает место следующему дню (уезжает целиком за край карточки,
+  // новый контент подставляется с обратной стороны и въезжает — «карусель»),
+  // либо пружинит обратно, если свайп был недостаточным.
+  const cardRef = React.useRef(null)
+  const touchStartRef = React.useRef(null)
+  const cardWidthRef = React.useRef(320)
+  const swipeLockRef = React.useRef(false)
+  const [dragX, setDragX] = React.useState(0)
+  const [dragTransition, setDragTransition] = React.useState(false)
+
+  const slideStyle = canSwipePlan
+    ? { transform: `translateX(${dragX}px)`, transition: dragTransition ? 'transform .26s cubic-bezier(.22,.8,.24,1)' : 'none' }
+    : undefined
+
+  const performSwipeAnimation = (direction) => {
+    if (!canSwipePlan || swipeLockRef.current) return
+    const width = cardRef.current?.offsetWidth || cardWidthRef.current
+    swipeLockRef.current = true
+    setDragTransition(true)
+    setDragX(direction === 'next' ? -width : width)
+    window.setTimeout(() => {
+      swipeToDay(direction)
+      setDragTransition(false)
+      setDragX(direction === 'next' ? width : -width)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setDragTransition(true)
+          setDragX(0)
+          window.setTimeout(() => { swipeLockRef.current = false }, 280)
+        })
+      })
+    }, 220)
+  }
+
+  const onFeaturedTouchStart = (event) => {
+    if (!canSwipePlan || swipeLockRef.current) return
+    const t = event.touches?.[0]
+    if (!t) return
+    touchStartRef.current = { x: t.clientX, y: t.clientY }
+    cardWidthRef.current = cardRef.current?.offsetWidth || cardWidthRef.current
+    setDragTransition(false)
+  }
+  const onFeaturedTouchMove = (event) => {
+    if (!canSwipePlan || !touchStartRef.current || swipeLockRef.current) return
+    const t = event.touches?.[0]
+    if (!t) return
+    const dx = t.clientX - touchStartRef.current.x
+    const width = cardWidthRef.current || 320
+    setDragX(Math.max(-width, Math.min(width, dx)))
+  }
+  const onFeaturedTouchEnd = (event) => {
+    if (!canSwipePlan || !touchStartRef.current || swipeLockRef.current) {
+      touchStartRef.current = null
+      return
+    }
+    const t = event.changedTouches?.[0]
+    const startX = touchStartRef.current.x
+    const startY = touchStartRef.current.y
+    touchStartRef.current = null
+    if (!t) { setDragTransition(true); setDragX(0); return }
+    const dx = t.clientX - startX
+    const dy = t.clientY - startY
+    const width = cardWidthRef.current || 320
+    const shouldSwitch = Math.abs(dx) > Math.max(56, width * 0.22) && Math.abs(dx) > Math.abs(dy) * 1.3
+    if (!shouldSwitch) {
+      setDragTransition(true)
+      setDragX(0)
+      return
+    }
+    performSwipeAnimation(dx < 0 ? 'next' : 'prev')
+  }
+  const onFeaturedTouchCancel = () => {
+    touchStartRef.current = null
+    if (!swipeLockRef.current) { setDragTransition(true); setDragX(0) }
+  }
+
+  const featuredExercises = displayedDaySource?.exercisesDetail?.length
+    ? displayedDaySource.exercisesDetail
+    : (displayedDaySource?.exercises || [])
   const featuredFirstExercise = typeof featuredExercises[0] === 'string' ? featuredExercises[0] : featuredExercises[0]?.name
   const featuredMedia = getExerciseMedia(featuredFirstExercise)
-  const featuredName = featured?.kind === 'plan' && featured.source.muscles?.length
-    ? featured.source.muscles.join(' + ')
-    : featured?.source?.name || featured?.source?.type || 'Тренировка'
-  const featuredMeta = `${featuredExercises.length} упражнений${featured?.source?.duration ? ` · ${featured.source.duration} мин` : ' · ~60 мин'}`
+  const featuredName = (featured?.kind === 'plan' || featured?.kind === 'customPlan') && displayedDaySource?.muscles?.length
+    ? displayedDaySource.muscles.join(' + ')
+    : displayedDaySource?.name || displayedDaySource?.type || 'Тренировка'
+  const featuredMeta = `${featuredExercises.length} упражнений${displayedDaySource?.duration ? ` · ${displayedDaySource.duration} мин` : ' · ~60 мин'}`
   const featuredDay = featured?.kind === 'plan' ? 'AI-план'
     : featured?.kind === 'customPlan' ? (featured.planName || 'Свой план')
     : featured?.kind === 'template' ? 'Ваш шаблон'
@@ -131,10 +247,10 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
       clearPlanContext()
       setWk({ name: '', exercises: [] })
       setView('builder')
-    } else if (featured.kind === 'plan') startFromPlan(featured.source, featured.index, 'active')
+    } else if (featured.kind === 'plan') startFromPlan(displayedDaySource, activeIndex ?? featured.index, 'active')
     else if (featured.kind === 'customPlan') {
       const plan = customPlans.find(p => p.id === featured.planId)
-      if (plan) startFromCustomPlanDay(plan, featured.index, 'active')
+      if (plan) startFromCustomPlanDay(plan, activeIndex ?? featured.index, 'active')
     }
     else if (featured.kind === 'template') startFromTemplate(featured.source, 'active')
     else repeatWorkout(featured.source, 'active')
@@ -188,9 +304,24 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
             <small>Свои программы</small>
           </button>
         </div>
-        <section className={`${styles.featuredWorkout} ${!featured ? styles.featuredEmpty : ''}`}>
-          <div className={styles.featuredCopy}>
-            <span>{featured ? 'Следующая тренировка' : 'Начните с программы'}</span>
+        <section
+          ref={cardRef}
+          className={`${styles.featuredWorkout} ${!featured ? styles.featuredEmpty : ''}`}
+          onTouchStart={onFeaturedTouchStart}
+          onTouchMove={onFeaturedTouchMove}
+          onTouchEnd={onFeaturedTouchEnd}
+          onTouchCancel={onFeaturedTouchCancel}
+        >
+          <div className={styles.featuredCopy} style={slideStyle}>
+            <span>
+              {featured ? 'Следующая тренировка' : 'Начните с программы'}
+              {canSwipePlan && (
+                <span className={styles.featuredNavHint}>
+                  <button type="button" onClick={() => performSwipeAnimation('prev')} aria-label="Предыдущий день плана"><ChevronLeft size={15} /></button>
+                  <button type="button" onClick={() => performSwipeAnimation('next')} aria-label="Следующий день плана"><ChevronRight size={15} /></button>
+                </span>
+              )}
+            </span>
             <h2>{featured ? featuredName : 'Создайте тренировку'}</h2>
             <div className={styles.featuredFacts}>
               <small><WorkoutCalendarIcon size={19} active />{featured ? featuredDay : 'Когда удобно'}</small>
@@ -201,7 +332,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
               {featured ? 'Начать' : 'Создать'}
             </button>
           </div>
-          <div className={styles.featuredVisual} aria-hidden="true">
+          <div className={styles.featuredVisual} aria-hidden="true" style={slideStyle}>
             {featuredMedia
               ? <img src={featuredMedia.start} alt="" />
               : <WorkoutDumbbellIcon size={72} />}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Camera, Check, LoaderCircle, ScanLine, X } from 'lucide-react'
 import { recognizeBarcodeProduct, saveVerifiedBarcodeFood } from '../../data/sharedFoodApi'
 import { compressImage } from '../../utils/image'
+import useOnlineStatus from '../../hooks/useOnlineStatus'
 import styles from './MissingBarcodeProduct.module.css'
 
 const EMPTY_FORM = { name: '', cal100: '', prot100: '', fat100: '', carbs100: '' }
@@ -34,6 +35,7 @@ export default function MissingBarcodeProduct({ product, onComplete, onClose }) 
   const [stage, setStage] = useState('photos')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const online = useOnlineStatus()
 
   useEffect(() => {
     const previous = document.body.style.overflow
@@ -44,6 +46,10 @@ export default function MissingBarcodeProduct({ product, onComplete, onClose }) 
   const recognize = async () => {
     if (!frontFile || !nutritionFile) {
       setError('Добавьте обе фотографии')
+      return
+    }
+    if (!online) {
+      setError('Нет соединения с интернетом — распознавание фото недоступно офлайн. Можно заполнить данные вручную.')
       return
     }
 
@@ -93,6 +99,10 @@ export default function MissingBarcodeProduct({ product, onComplete, onClose }) 
       setError('Все значения равны нулю. Проверьте фотографию таблицы КБЖУ')
       return
     }
+    if (!online) {
+      setError('Нет соединения с интернетом — сохранение в общую базу недоступно офлайн. Попробуйте ещё раз, когда появится связь.')
+      return
+    }
 
     setLoading(true)
     setError('')
@@ -129,7 +139,8 @@ export default function MissingBarcodeProduct({ product, onComplete, onClose }) 
             </div>
 
             {error && <p className={styles.error}>{error}</p>}
-            <button className={styles.primary} type="button" onClick={recognize} disabled={loading || !frontFile || !nutritionFile}>
+            {!online && <p className={styles.error}>Нет соединения с интернетом — распознавание фото недоступно, но можно заполнить данные вручную.</p>}
+            <button className={styles.primary} type="button" onClick={recognize} disabled={loading || !frontFile || !nutritionFile || !online}>
               {loading ? <LoaderCircle className={styles.spin} size={18} /> : <ScanLine size={18} />}
               {loading ? 'Распознаём фотографии' : 'Распознать продукт'}
             </button>
@@ -151,7 +162,8 @@ export default function MissingBarcodeProduct({ product, onComplete, onClose }) 
             </div>
 
             {error && <p className={styles.error}>{error}</p>}
-            <button className={styles.primary} type="submit" disabled={loading}>
+            {!online && <p className={styles.error}>Нет соединения с интернетом — сохранить в общую базу можно будет, когда появится связь.</p>}
+            <button className={styles.primary} type="submit" disabled={loading || !online}>
               {loading ? <LoaderCircle className={styles.spin} size={18} /> : <Check size={18} />}
               {loading ? 'Сохраняем' : 'Подтвердить и сохранить'}
             </button>

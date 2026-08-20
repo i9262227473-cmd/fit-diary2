@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronRight, Send, Sparkles, X } from 'lucide-react'
+import useOnlineStatus from '../../hooks/useOnlineStatus'
 import styles from './HomeAssistantSheet.module.css'
 
 const QUICK_QUESTIONS = [
@@ -79,6 +80,7 @@ export default function HomeAssistantSheet({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const conversationRef = useRef(null)
+  const online = useOnlineStatus()
 
   useEffect(() => {
     const conversation = conversationRef.current
@@ -93,6 +95,10 @@ export default function HomeAssistantSheet({
   const ask = async (question, showQuestion = true) => {
     const text = (question || input).trim()
     if (!text || loading) return
+    if (!online) {
+      setError('Нет соединения с интернетом — ИИ-помощник будет доступен, когда появится связь.')
+      return
+    }
 
     const userMessage = { role: 'user', content: text }
     const visibleHistory = showQuestion ? [...messages, userMessage] : messages
@@ -148,7 +154,8 @@ export default function HomeAssistantSheet({
             <div className={styles.welcome}>
               <strong>Получить персональную рекомендацию</strong>
               <p>Короткие ответы о питании, тренировках и восстановлении с учётом ваших ограничений.</p>
-              <button onClick={getDailyRecommendation}><Sparkles size={16} />Проанализировать день</button>
+              <button onClick={getDailyRecommendation} disabled={!online}><Sparkles size={16} />Проанализировать день</button>
+              {!online && <small style={{ display: 'block', marginTop: 8, color: 'var(--text-muted)', fontSize: 12 }}>Нет соединения с интернетом</small>}
             </div>
           )}
 
@@ -163,7 +170,7 @@ export default function HomeAssistantSheet({
         </div>
 
         <div className={styles.quickQuestions}>
-          {QUICK_QUESTIONS.map(question => <button key={question} onClick={() => ask(question)} disabled={loading}>{question}</button>)}
+          {QUICK_QUESTIONS.map(question => <button key={question} onClick={() => ask(question)} disabled={loading || !online}>{question}</button>)}
         </div>
 
         <div className={styles.inputRow}>
@@ -176,11 +183,12 @@ export default function HomeAssistantSheet({
                 ask()
               }
             }}
-            placeholder="Задайте вопрос..."
+            placeholder={online ? 'Задайте вопрос...' : 'Нет соединения с интернетом'}
             maxLength={MAX_QUESTION_LENGTH}
             rows={1}
+            disabled={!online}
           />
-          <button onClick={() => ask()} disabled={!input.trim() || loading} aria-label="Отправить"><Send size={18} /></button>
+          <button onClick={() => ask()} disabled={!input.trim() || loading || !online} aria-label="Отправить"><Send size={18} /></button>
         </div>
       </section>
     </div>,

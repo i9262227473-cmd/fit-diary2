@@ -4,6 +4,7 @@ import { Dumbbell } from 'lucide-react'
 import { useStore, API_URL } from './store'
 import { fetchJSON } from './data/cloudSync'
 import { reconcileWorkoutData, reconcileExerciseProgress } from './data/workoutSync'
+import useOnlineStatus from './hooks/useOnlineStatus'
 
 import AuthPage from './pages/AuthPage'
 import OnboardingPage from './pages/OnboardingPage'
@@ -12,6 +13,7 @@ import DashboardPage from './pages/DashboardPage'
 export default function App() {
   const { user, profile, session, isLoggingIn } = useStore()
   const [loading, setLoading] = useState(true)
+  const online = useOnlineStatus()
 
   // Синхронизация плана тренировок/шаблонов/прогрессии при каждом запуске
   // приложения у уже залогиненного пользователя (не только при входе).
@@ -108,21 +110,34 @@ export default function App() {
   }
 
   return (
-    <Routes>
-      <Route path="/auth" element={
-        user ? <Navigate to={getRedirect()} /> : <AuthPage />
-      } />
-      <Route path="/onboarding" element={
-        !user ? <Navigate to="/auth" /> :
-        profile ? <Navigate to="/dashboard" /> :
-        <OnboardingPage />
-      } />
-      <Route path="/dashboard/*" element={
-        !user ? <Navigate to="/auth" /> :
-        !profile ? <Navigate to="/onboarding" /> :
-        <DashboardPage />
-      } />
-      <Route path="*" element={<Navigate to={getRedirect()} />} />
-    </Routes>
+    <>
+      {!online && (
+        <div style={{
+          position: 'fixed', zIndex: 2000, top: 0, left: 0, right: 0,
+          padding: '8px 14px', paddingTop: 'calc(8px + env(safe-area-inset-top, 0px))',
+          textAlign: 'center', fontSize: 12.5, fontWeight: 650,
+          color: 'var(--text)', background: 'var(--surface3)',
+          borderBottom: '1px solid var(--border)',
+        }}>
+          Нет соединения с интернетом — данные сохраняются локально, ИИ-функции временно недоступны
+        </div>
+      )}
+      <Routes>
+        <Route path="/auth" element={
+          user ? <Navigate to={getRedirect()} /> : <AuthPage />
+        } />
+        <Route path="/onboarding" element={
+          !user ? <Navigate to="/auth" /> :
+          profile ? <Navigate to="/dashboard" /> :
+          <OnboardingPage />
+        } />
+        <Route path="/dashboard/*" element={
+          !user ? <Navigate to="/auth" /> :
+          !profile ? <Navigate to="/onboarding" /> :
+          <DashboardPage />
+        } />
+        <Route path="*" element={<Navigate to={getRedirect()} />} />
+      </Routes>
+    </>
   )
 }

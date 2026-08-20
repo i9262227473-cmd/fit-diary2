@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Check, X } from 'lucide-react'
+import WheelPicker from '../common/WheelPicker'
 import styles from './NutritionGoalsModal.module.css'
 
+// wheelMax/step — отдельно от min/max: min/max используются для валидации
+// при сохранении (оставлены с запасом на редкие случаи), а wheelMax/step —
+// только для того, чтобы крутилка не рендерила тысячи пунктов (это било бы
+// по производительности на телефоне).
 const FIELDS = [
-  { key: 'calorieGoal', label: 'Калории', unit: 'ккал', min: 800, max: 10000 },
-  { key: 'proteinGoal', label: 'Белки', unit: 'г', min: 0, max: 1000 },
-  { key: 'fatGoal', label: 'Жиры', unit: 'г', min: 0, max: 1000 },
-  { key: 'carbGoal', label: 'Углеводы', unit: 'г', min: 0, max: 2000 },
+  { key: 'calorieGoal', label: 'Калории', unit: 'ккал', min: 800, max: 10000, wheelMax: 6000, step: 10 },
+  { key: 'proteinGoal', label: 'Белки', unit: 'г', min: 0, max: 1000, wheelMax: 400, step: 1 },
+  { key: 'fatGoal', label: 'Жиры', unit: 'г', min: 0, max: 1000, wheelMax: 300, step: 1 },
+  { key: 'carbGoal', label: 'Углеводы', unit: 'г', min: 0, max: 2000, wheelMax: 800, step: 5 },
 ]
 
 export default function NutritionGoalsModal({ goals, onSave, onClose }) {
@@ -55,10 +60,22 @@ export default function NutritionGoalsModal({ goals, onSave, onClose }) {
 
         <div className={styles.fields}>
           {FIELDS.map(field => (
-            <label className={styles.field} key={field.key}>
+            <div className={styles.field} key={field.key}>
               <span>{field.label}</span>
-              <div><input type="number" inputMode="numeric" min={field.min} max={field.max} value={form[field.key]} onChange={event => { setForm(current => ({ ...current, [field.key]: event.target.value })); setError('') }} /><small>{field.unit}</small></div>
-            </label>
+              <div className={styles.wheelRow}>
+                <WheelPicker
+                  value={form[field.key]}
+                  onChange={val => { setForm(current => ({ ...current, [field.key]: val })); setError('') }}
+                  min={field.min}
+                  max={field.wheelMax}
+                  step={field.step}
+                  width="100%"
+                  itemHeight={34}
+                  visibleCount={3}
+                />
+                <small>{field.unit}</small>
+              </div>
+            </div>
           ))}
         </div>
 
