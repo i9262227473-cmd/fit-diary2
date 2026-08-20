@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import styles from './HomeScreen.module.css'
 import HomeAssistantSheet from './HomeAssistantSheet'
-import { getWorkoutCalories } from '../../utils/workoutCalories'
+import { getActiveWorkoutCalories } from '../../utils/workoutCalories'
 
 const FOOD_ACTIONS = [
   { label: 'Описать или сказать', caption: 'AI распознает блюдо по тексту или голосу', asset: 'ai', action: 'ai' },
@@ -110,7 +110,7 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
     carbs: sum.carbs + (food.carbs || 0),
   }), { calories: 0, protein: 0, fat: 0, carbs: 0 })
   const eaten = Math.round(totals.calories)
-  const workoutCalories = Math.round((entry.workouts || []).reduce((sum, workout) => sum + getWorkoutCalories(workout), 0))
+  const workoutCalories = Math.round((entry.workouts || []).reduce((sum, workout) => sum + getActiveWorkoutCalories(workout), 0))
   const netCalories = eaten - workoutCalories
   const macroData = [
     { label: 'Белки', value: totals.protein, max: goals.protein, color: 'var(--protein)' },
