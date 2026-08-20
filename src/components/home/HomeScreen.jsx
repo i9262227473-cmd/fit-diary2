@@ -18,6 +18,13 @@ const FOOD_ACTIONS = [
   { label: 'Найти продукт', caption: 'Обычный поиск по базе продуктов', asset: 'search', action: 'add' },
 ]
 
+function localDateKey(date = new Date()) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function arcPoint(angle, radius = 72) {
   const radians = angle * Math.PI / 180
   return { x: 80 + radius * Math.sin(radians), y: 80 - radius * Math.cos(radians) }
@@ -95,7 +102,7 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
   const [showCalendar, setShowCalendar] = useState(false)
   const [showFoodActions, setShowFoodActions] = useState(false)
   const [showAssistant, setShowAssistant] = useState(false)
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateKey()
   const entry = state.entries.find(item => item.date === today) || { date: today, foods: [], workouts: [] }
   const goals = {
     calories: state.profile?.calorieGoal || 2200,
@@ -195,26 +202,9 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
                 <React.Fragment key={macro.label}>
                   <path className={styles.macroTrackShadow} d={describeArc(MACRO_ARCS[index].start, MACRO_ARCS[index].end)} />
                   <path className={styles.macroTrack} d={describeArc(MACRO_ARCS[index].start, MACRO_ARCS[index].end)} pathLength="100" style={{ '--macro-color': macro.color }} />
-                  <path
-                    className={styles.macroProgressShadow}
-                    d={describeArc(MACRO_ARCS[index].start, MACRO_ARCS[index].end)}
-                    pathLength="100"
-                    strokeDasharray={`${macro.percent} 100`}
-                    style={{ '--macro-color': macro.color }}
-                  />
-                  <path
-                    className={styles.macroProgress}
-                    d={describeArc(MACRO_ARCS[index].start, MACRO_ARCS[index].end)}
-                    pathLength="100"
-                    strokeDasharray={`${macro.percent} 100`}
-                    style={{ '--macro-color': macro.color, '--macro-intensity': .48 + macro.percent / 190 }}
-                  />
-                  <path
-                    className={styles.macroShine}
-                    d={describeArc(MACRO_ARCS[index].start, MACRO_ARCS[index].end)}
-                    pathLength="100"
-                    strokeDasharray={`${macro.percent} 100`}
-                  />
+                  <path className={styles.macroProgressShadow} d={describeArc(MACRO_ARCS[index].start, MACRO_ARCS[index].end)} pathLength="100" strokeDasharray={`${macro.percent} 100`} style={{ '--macro-color': macro.color }} />
+                  <path className={styles.macroProgress} d={describeArc(MACRO_ARCS[index].start, MACRO_ARCS[index].end)} pathLength="100" strokeDasharray={`${macro.percent} 100`} style={{ '--macro-color': macro.color, '--macro-intensity': .48 + macro.percent / 190 }} />
+                  <path className={styles.macroShine} d={describeArc(MACRO_ARCS[index].start, MACRO_ARCS[index].end)} pathLength="100" strokeDasharray={`${macro.percent} 100`} />
                 </React.Fragment>
               ))}
             </svg>
@@ -242,86 +232,28 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
 
       <div className={styles.featuredGrid}>
         <button className={`${styles.featureCard} ${styles.foodFeature}`} onClick={() => setShowFoodActions(true)}>
-          <span className={styles.featureHeader}>
-            <small>Питание</small>
-            <ChevronRight size={18} />
-          </span>
-          <span className={styles.foodIllustration} aria-hidden="true">
-            <span className={styles.foodBowl}>
-              <i className={styles.foodLeaf} />
-              <i className={styles.foodGrain} />
-              <i className={styles.foodBerry} />
-              <b />
-            </span>
-          </span>
-          <span className={styles.featureCopy}>
-            <strong>Добавить еду</strong>
-            <em>Выбрать способ</em>
-          </span>
+          <span className={styles.featureHeader}><small>Питание</small><ChevronRight size={18} /></span>
+          <span className={styles.foodIllustration} aria-hidden="true"><span className={styles.foodBowl}><i className={styles.foodLeaf} /><i className={styles.foodGrain} /><i className={styles.foodBerry} /><b /></span></span>
+          <span className={styles.featureCopy}><strong>Добавить еду</strong><em>Выбрать способ</em></span>
         </button>
 
         <button className={`${styles.featureCard} ${styles.workoutFeature}`} onClick={() => goTo('workout')}>
-          <span className={styles.featureHeader}>
-            <small>Тренировка</small>
-            <ChevronRight size={18} />
-          </span>
+          <span className={styles.featureHeader}><small>Тренировка</small><ChevronRight size={18} /></span>
           <span className={styles.workoutIllustration} aria-hidden="true">
-            <span className={styles.dumbbell3d}>
-              <span className={styles.dumbbellBar} />
-              <span className={`${styles.dumbbellPlate} ${styles.plateOuterLeft}`} />
-              <span className={`${styles.dumbbellPlate} ${styles.plateInnerLeft}`} />
-              <span className={`${styles.dumbbellPlate} ${styles.plateInnerRight}`} />
-              <span className={`${styles.dumbbellPlate} ${styles.plateOuterRight}`} />
-            </span>
+            <span className={styles.dumbbell3d}><span className={styles.dumbbellBar} /><span className={`${styles.dumbbellPlate} ${styles.plateOuterLeft}`} /><span className={`${styles.dumbbellPlate} ${styles.plateInnerLeft}`} /><span className={`${styles.dumbbellPlate} ${styles.plateInnerRight}`} /><span className={`${styles.dumbbellPlate} ${styles.plateOuterRight}`} /></span>
           </span>
-          <span className={styles.featureCopy}>
-            <strong>{currentWorkout?.name || 'Открыть план'}</strong>
-            <em>{workoutExerciseCount > 0 ? `${workoutExerciseCount} упражнений${currentWorkout?.duration ? ` · ${currentWorkout.duration} мин` : ''}` : 'План на сегодня'}</em>
-          </span>
+          <span className={styles.featureCopy}><strong>{currentWorkout?.name || 'Открыть план'}</strong><em>{workoutExerciseCount > 0 ? `${workoutExerciseCount} упражнений${currentWorkout?.duration ? ` · ${currentWorkout.duration} мин` : ''}` : 'План на сегодня'}</em></span>
         </button>
       </div>
 
-      {/* Раньше добавить воду можно было только точным тапом по маленькой
-          кнопке «250 мл» — теперь тап по всей карточке тоже добавляет
-          стакан, кнопка осталась просто как визуальная подсказка (клик по
-          ней всплывает и срабатывает тот же обработчик на карточке). */}
-      <section
-        className={styles.waterCard}
-        role="button"
-        tabIndex={0}
-        onClick={() => dispatch({ type: 'SET_WATER', val: Math.min(water.consumed + 1, water.goal) })}
-        onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); dispatch({ type: 'SET_WATER', val: Math.min(water.consumed + 1, water.goal) }) } }}
-        aria-label="Добавить 250 миллилитров воды"
-      >
+      <section className={styles.waterCard} role="button" tabIndex={0} onClick={() => dispatch({ type: 'SET_WATER', val: Math.min(water.consumed + 1, water.goal) })} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); dispatch({ type: 'SET_WATER', val: Math.min(water.consumed + 1, water.goal) }) } }} aria-label="Добавить 250 миллилитров воды">
         <span className={styles.waterGlass} aria-hidden="true"><i style={{ height: `${waterPercent}%` }} /><b /></span>
-        <span className={styles.waterCopy}>
-          <small>Вода</small>
-          <strong>{water.consumed} / {water.goal} стаканов</strong>
-          <em>{Math.max(water.goal - water.consumed, 0) > 0 ? `Осталось ${Math.max(water.goal - water.consumed, 0) * 250} мл` : 'Цель выполнена'}</em>
-        </span>
-        <span className={styles.waterDose} aria-hidden="true">
-          <Droplets size={16} />
-          <span>250 мл</span>
-        </span>
+        <span className={styles.waterCopy}><small>Вода</small><strong>{water.consumed} / {water.goal} стаканов</strong><em>{Math.max(water.goal - water.consumed, 0) > 0 ? `Осталось ${Math.max(water.goal - water.consumed, 0) * 250} мл` : 'Цель выполнена'}</em></span>
+        <span className={styles.waterDose} aria-hidden="true"><Droplets size={16} /><span>250 мл</span></span>
       </section>
 
-      {/* Аналогично — раньше помощник открывался только по нажатию на
-          кнопку «Открыть помощника», теперь тап по всей карточке тоже
-          открывает его. */}
-      <section
-        className={styles.assistantCard}
-        role="button"
-        tabIndex={0}
-        onClick={() => setShowAssistant(true)}
-        onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setShowAssistant(true) } }}
-        aria-label="Открыть AI-помощника"
-      >
-        <div className={styles.assistantContent}>
-          <div className={styles.assistantEyebrow}><Sparkles size={14} />AI-ПОМОЩНИК</div>
-          <h2>{insight.title}</h2>
-          <p>{insight.body}</p>
-          <span className={styles.assistantOpenHint}>Открыть помощника</span>
-        </div>
+      <section className={styles.assistantCard} role="button" tabIndex={0} onClick={() => setShowAssistant(true)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setShowAssistant(true) } }} aria-label="Открыть AI-помощника">
+        <div className={styles.assistantContent}><div className={styles.assistantEyebrow}><Sparkles size={14} />AI-ПОМОЩНИК</div><h2>{insight.title}</h2><p>{insight.body}</p><span className={styles.assistantOpenHint}>Открыть помощника</span></div>
         <div className={styles.assistantOrb} aria-hidden="true"><i /><b /></div>
       </section>
     </div>
