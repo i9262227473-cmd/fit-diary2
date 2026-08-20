@@ -12,6 +12,13 @@ import {
 } from '../data/sharedFoodApi'
 import { compressImage } from '../utils/image'
 
+function localDateKey(date = new Date()) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function mergeFoodResults(primary, secondary, limit = 8) {
   const merged = []
 
@@ -52,7 +59,7 @@ function getMealByTime() {
 
 export default function useFood({ state, dispatch, aiCall }) {
   const [tab, setTab] = useState('log')
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [selectedDate, setSelectedDate] = useState(localDateKey)
   const [logMode, setLogMode] = useState('list')
   const [meal, setMeal] = useState(getMealByTime)
   const [query, setQuery] = useState('')
@@ -71,7 +78,7 @@ export default function useFood({ state, dispatch, aiCall }) {
   const [editingFood, setEditingFood] = useState(null)
   const searchRequestRef = useRef(0)
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateKey()
   const entry = state.entries.find(item => item.date === selectedDate) || { date: selectedDate, foods: [], workouts: [] }
   const totals = entry.foods.reduce(
     (total, food) => ({
