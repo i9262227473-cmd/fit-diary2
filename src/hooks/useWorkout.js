@@ -5,6 +5,7 @@ import { EXERCISE_DB, MUSCLE_GROUPS, EFF_ORDER, findExerciseByName } from '../da
 import { createStableId as uid, getDefaultRestSeconds as getDefaultRestSec } from '../utils/workoutUi'
 import { useStore } from '../store'
 import { syncWorkoutData, syncExerciseProgress } from '../data/workoutSync'
+import { estimateWorkoutCalories } from '../utils/workoutCalories'
 
 // Отправить план/шаблоны или прогрессию на сервер в фоне (не блокируя UI).
 // Раньше это жило только в localStorage и терялось при смене устройства.
@@ -555,11 +556,17 @@ export default function useWorkout({ state, dispatch, aiCall }) {
   const saveWorkout = (feedback) => {
     const { durationOverrideMin, ...restFeedback } = feedback || {}
     const finalMin = durationOverrideMin || Math.round(timer / 60)
-    const calBurned = Math.round(finalMin * 7.5)
+    const userWeight = state.profile?.weight || 80
+    const calBurned = estimateWorkoutCalories({
+      weightKg: userWeight,
+      durationMin: finalMin,
+      feeling: restFeedback.feeling,
+      type: 'strength',
+    })
     const today2 = new Date().toISOString().split('T')[0]
     wk.exercises.forEach(ex => saveExerciseResult({ name: ex.name, sets: ex.sets, targetReps: ex.targetReps || ex.sets?.[0]?.reps }, today2))
     syncProgressInBackground()
-    dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, workouts: [...(entry.workouts || []), { id: Date.now(), name: wk.name || 'Тренировка', exercises: wk.exercises.map(e => e.name), exercisesDetail: wk.exercises.map(e => ({ name: e.name, muscle: e.muscle, comment: e.comment || '', sets: e.sets.map(s => ({ reps: s.reps, weight: s.weight, done: s.done })) })), duration: finalMin, caloriesBurned: calBurned, ...restFeedback }] } })
+    dispatch({ type: 'SAVE_ENTRY', entry: { ...entry, workouts: [...(entry.workouts || []), { id: Date.now(), name: wk.name || 'Тренировка', type: 'strength', exercises: wk.exercises.map(e => e.name), exercisesDetail: wk.exercises.map(e => ({ name: e.name, muscle: e.muscle, comment: e.comment || '', sets: e.sets.map(s => ({ reps: s.reps, weight: s.weight, done: s.done })) })), duration: finalMin, caloriesBurned: calBurned, calorieCalculation: { method: 'met', met: restFeedback.feeling === 'Легко' ? 3 : restFeedback.feeling === 'Тяжело' ? 4 : restFeedback.feeling === 'Очень' ? 4.5 : 3.5, weightKg: Number(userWeight), calculatedAt: new Date().toISOString() }, ...restFeedback }] } })
     // Продвигаем указатель «на каком дне остановились» у плана, из которого
     // реально была запущена и завершена эта тренировка — по порядку дней, а
     // не по дню недели, чтобы пропущенный день не сбивал план.
