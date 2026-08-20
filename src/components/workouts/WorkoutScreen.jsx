@@ -284,22 +284,22 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
         )}
         <div className={styles.historyActions}>
           <button className={styles.primaryAction} onClick={() => setView('templates')}>
-            <span><WorkoutDumbbellIcon size={27} /></span>
+            <span><img src="/assets/workout-actions/my-workouts.png" alt="" /></span>
             <strong>Мои тренировки</strong>
             <small>Шаблоны и программы</small>
           </button>
           <button onClick={() => setView('plan')}>
-            <span><WorkoutBrainIcon size={28} /></span>
+            <span><img src="/assets/workout-actions/ai-plan.png" alt="" /></span>
             <strong>AI-план</strong>
             <small>Персональная программа</small>
           </button>
           <button onClick={() => setView('library')}>
-            <span><Library size={26} /></span>
+            <span><img src="/assets/workout-actions/programs.png" alt="" /></span>
             <strong>Программы</strong>
             <small>Готовые программы</small>
           </button>
           <button className={styles.newWorkout} onClick={() => setView('plans')}>
-            <span><ClipboardList size={26} /></span>
+            <span><img src="/assets/workout-actions/my-plans.png" alt="" /></span>
             <strong>Мои планы</strong>
             <small>Свои программы</small>
           </button>
