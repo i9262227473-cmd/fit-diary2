@@ -22,7 +22,7 @@ export default function BottomNavigation({ activeTab, onTabChange }) {
             className={`${styles.item} ${isActive ? styles.active : ''}`}
             aria-current={isActive ? 'page' : undefined}>
             <span className={styles.iconWrap}>
-              <Icon active={isActive} size={24} />
+              <Icon size={34} />
             </span>
             <span className={styles.label}>{label}</span>
           </button>

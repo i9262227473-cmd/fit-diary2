@@ -3,9 +3,7 @@ import React, { useId } from 'react'
 function IconDefs({ id, tone = 'accent', contrast = false }) {
   const colors = contrast
     ? ['#ffffff', '#fff3e9', '#e9c9b4']
-    : tone === 'purple'
-      ? ['color-mix(in srgb, var(--purple) 62%, white)', 'var(--purple)', 'color-mix(in srgb, var(--purple) 72%, #3a1f4b)']
-      : tone === 'neutral'
+    : tone === 'neutral'
         ? ['color-mix(in srgb, var(--text-muted) 55%, white)', 'var(--text-muted)', 'color-mix(in srgb, var(--text-muted) 70%, #433a34)']
         : ['var(--accent-bright)', 'var(--accent)', 'var(--accent-strong)']
 
@@ -48,12 +46,12 @@ export function FoodPencilIcon({ size = 22 }) {
   const id = useIconId('food-pencil')
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <IconDefs id={id} tone="purple" />
+      <IconDefs id={id} />
       <g filter={`url(#${id}-shadow)`} transform="rotate(-42 12 12)">
         <rect x="9" y="3.2" width="6" height="15.8" rx="2.6" fill={`url(#${id}-body)`} />
-        <path d="m9.2 18.1 2.8 3 2.8-3H9.2Z" fill="color-mix(in srgb, var(--purple) 32%, #f3d8c2)" />
+        <path d="m9.2 18.1 2.8 3 2.8-3H9.2Z" fill="color-mix(in srgb, var(--accent) 32%, #f3d8c2)" />
         <path d="M10.5 5.2v9.5" stroke={`url(#${id}-shine)`} strokeWidth="1.15" strokeLinecap="round" />
-        <rect x="9" y="3.1" width="6" height="3.2" rx="1.6" fill="color-mix(in srgb, var(--purple) 44%, white)" />
+        <rect x="9" y="3.1" width="6" height="3.2" rx="1.6" fill="color-mix(in srgb, var(--accent) 44%, white)" />
       </g>
     </svg>
   )
@@ -63,7 +61,7 @@ export function FoodPlusIcon({ size = 22 }) {
   const id = useIconId('food-plus')
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <IconDefs id={id} tone="purple" />
+      <IconDefs id={id} />
       <g filter={`url(#${id}-shadow)`}>
         <rect x="9.5" y="3.3" width="5" height="17.4" rx="2.5" fill={`url(#${id}-body)`} />
         <rect x="3.3" y="9.5" width="17.4" height="5" rx="2.5" fill={`url(#${id}-body)`} />

@@ -2,12 +2,8 @@ import React, { useState } from 'react'
 import {
   Bell,
   CalendarDays,
-  Camera,
   ChevronRight,
   Droplets,
-  Mic,
-  ScanLine,
-  Search,
   Sparkles,
   X,
 } from 'lucide-react'
@@ -15,10 +11,10 @@ import styles from './HomeScreen.module.css'
 import HomeAssistantSheet from './HomeAssistantSheet'
 
 const FOOD_ACTIONS = [
-  { label: 'Описать или сказать', caption: 'AI распознает блюдо по тексту или голосу', Icon: Mic, action: 'ai' },
-  { label: 'Сфотографировать еду', caption: 'Распознать продукты на тарелке', Icon: Camera, action: 'photo' },
-  { label: 'Сканировать код', caption: 'QR- или штрихкод на упаковке', Icon: ScanLine, action: 'code' },
-  { label: 'Найти продукт', caption: 'Обычный поиск по базе продуктов', Icon: Search, action: 'add' },
+  { label: 'Описать или сказать', caption: 'AI распознает блюдо по тексту или голосу', asset: 'ai', action: 'ai' },
+  { label: 'Сфотографировать еду', caption: 'Распознать продукты на тарелке', asset: 'camera-food', action: 'photo' },
+  { label: 'Сканировать код', caption: 'QR- или штрихкод на упаковке', asset: 'barcode', action: 'code' },
+  { label: 'Найти продукт', caption: 'Обычный поиск по базе продуктов', asset: 'search', action: 'add' },
 ]
 
 function arcPoint(angle, radius = 72) {
@@ -176,9 +172,9 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
               <button onClick={() => setShowFoodActions(false)} aria-label="Закрыть"><X size={18} /></button>
             </div>
             <div className={styles.foodActionList}>
-              {FOOD_ACTIONS.map(({ label, caption, Icon, action }) => (
+              {FOOD_ACTIONS.map(({ label, caption, asset, action }) => (
                 <button key={action} onClick={() => chooseFoodAction(action)}>
-                  <span><Icon size={20} /></span>
+                  <span className={styles.foodActionIcon}><img src={`/assets/ui-icons-v3/${asset}.png`} alt="" /></span>
                   <div><strong>{label}</strong><small>{caption}</small></div>
                   <ChevronRight size={17} />
                 </button>

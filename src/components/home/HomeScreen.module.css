@@ -59,7 +59,8 @@
 .foodActionsHeading > button { display: grid; place-items: center; flex: 0 0 auto; width: 36px; height: 36px; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 12px; background: var(--surface2); }
 .foodActionList { display: flex; flex-direction: column; gap: 7px; }
 .foodActionList > button { display: flex; align-items: center; gap: 11px; width: 100%; padding: 10px; text-align: left; border: 1px solid var(--border); border-radius: 16px; background: var(--card-solid); }
-.foodActionList > button > span { display: grid; place-items: center; flex: 0 0 auto; width: 44px; height: 44px; color: var(--accent); border-radius: 13px; background: var(--accent-dim); }
+.foodActionIcon { display: grid; place-items: center; flex: 0 0 auto; width: 48px; height: 48px; overflow: hidden; border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border)); border-radius: 14px; background: radial-gradient(circle at 35% 26%, color-mix(in srgb, var(--accent-bright) 15%, transparent), transparent 48%), var(--surface2); box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 4px 10px rgba(0,0,0,.08); }
+.foodActionIcon img { display: block; width: 46px; height: 46px; object-fit: contain; }
 .foodActionList > button > div { min-width: 0; flex: 1; }
 .foodActionList strong, .foodActionList small { display: block; }
 .foodActionList strong { color: var(--text); font-size: 14px; font-weight: 750; }
