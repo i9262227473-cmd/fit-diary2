@@ -1,38 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Camera, Flashlight, Focus, Keyboard, X, ZoomIn } from 'lucide-react'
 import styles from './BarcodeScanner.module.css'
 
 const BARCODE_FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code', 'data_matrix']
-
-function choosePreferredCamera(devices, currentId) {
-  const videoDevices = devices.filter(device => device.kind === 'videoinput')
-  const rear = videoDevices.filter(device => /back|rear|environment|зад|camera2/i.test(device.label))
-  const cleanRear = rear.filter(device => !/ultra|wide|0[.,]5|macro|tele/i.test(device.label))
-  return cleanRear[0]?.deviceId || rear[0]?.deviceId || currentId || videoDevices[0]?.deviceId || ''
-}
-
-// На Android у одного телефона обычно несколько физических «задних» камер
-// (основная, ультраширик, телефото) — Chrome отдаёт их все через
-// enumerateDevices с почти одинаковыми лейблами вида «camera2 0, facing
-// back» / «camera2 1, facing back», без пометок «ultra»/«wide»/«tele», так
-// что отличить их по названию нельзя. На деле для сканирования штрихкода
-// нормально фокусируется и распознаёт только первая (main-камера, обычно
-// индекс 0) — остальные слишком широкоугольные или без нужного диапазона
-// фокуса. Поэтому в выбор камеры отдаём только её плюс фронтальную (на
-// случай редких сценариев), а не все физические линзы подряд — иначе
-// пользователь может выбрать «камеру», которая физически не распознаёт код.
-function getSelectableCameras(devices) {
-  const videoDevices = devices.filter(device => device.kind === 'videoinput')
-  const rear = videoDevices.filter(device => /back|rear|environment|зад|camera2/i.test(device.label))
-  const front = videoDevices.filter(device => /front|user|перед|selfie/i.test(device.label))
-  const mainRear = rear[0] ? [rear[0]] : []
-  // Если по лейблам вообще не удалось разметить камеры (например, веб-камера
-  // на компьютере без «back/front» в названии) — отдаём список как есть,
-  // чтобы не потерять единственную доступную камеру.
-  if (!mainRear.length && !front.length) return videoDevices
-  return [...mainRear, ...front.filter(device => device.deviceId !== mainRear[0]?.deviceId)]
-}
 
 function stopStream(stream) {
   stream?.getTracks().forEach(track => track.stop())
@@ -49,23 +20,18 @@ export default function BarcodeScanner({ onDetect, onClose }) {
   const stableCodeRef = useRef({ code: '', count: 0, at: 0 })
   const lastScanRef = useRef(0)
   const scanNumberRef = useRef(0)
-  const preferredCameraChosenRef = useRef(false)
   const onDetectRef = useRef(onDetect)
   onDetectRef.current = onDetect
 
   const [error, setError] = useState(null)
   const [manualCode, setManualCode] = useState('')
   const [manualMode, setManualMode] = useState(false)
-  const [devices, setDevices] = useState([])
-  const [selectedDeviceId, setSelectedDeviceId] = useState('')
   const [torchSupported, setTorchSupported] = useState(false)
   const [torchOn, setTorchOn] = useState(false)
   const [zoom, setZoom] = useState(null)
   const [focusPulse, setFocusPulse] = useState(false)
   const [status, setStatus] = useState('Открываем камеру')
   const [cameraAttempt, setCameraAttempt] = useState(0)
-
-  const selectableCameras = useMemo(() => getSelectableCameras(devices), [devices])
 
   useEffect(() => {
     let cancelled = false
@@ -96,13 +62,14 @@ export default function BarcodeScanner({ onDetect, onClose }) {
           detectorRef.current = formats.length ? new window.BarcodeDetector({ formats }) : null
         }
 
+        // Важно: не выбираем физическую camera2 по индексу.
+        // На Android это часто открывало ультраширокую/нефокусирующуюся линзу.
+        // Просим браузер открыть именно системную основную заднюю камеру.
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            ...(selectedDeviceId
-              ? { deviceId: { exact: selectedDeviceId } }
-              : { facingMode: { ideal: 'environment' } }),
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
           },
           audio: false,
         })
@@ -117,6 +84,7 @@ export default function BarcodeScanner({ onDetect, onClose }) {
         const [track] = stream.getVideoTracks()
         const capabilities = track?.getCapabilities?.() || {}
 
+        // Автофокус включаем сразу после открытия камеры.
         if (capabilities.focusMode?.includes('continuous')) {
           await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {})
         }
@@ -127,12 +95,7 @@ export default function BarcodeScanner({ onDetect, onClose }) {
         if (capabilities.zoom) {
           const settings = track.getSettings?.() || {}
           const value = Math.min(capabilities.zoom.max, Math.max(capabilities.zoom.min, settings.zoom || capabilities.zoom.min))
-          setZoom({
-            min: capabilities.zoom.min,
-            max: capabilities.zoom.max,
-            step: capabilities.zoom.step || 0.1,
-            value,
-          })
+          setZoom({ min: capabilities.zoom.min, max: capabilities.zoom.max, step: capabilities.zoom.step || 0.1, value })
         } else {
           setZoom(null)
         }
@@ -142,21 +105,6 @@ export default function BarcodeScanner({ onDetect, onClose }) {
           await videoRef.current.play()
         }
 
-        const availableDevices = await navigator.mediaDevices.enumerateDevices()
-        const videoDevices = availableDevices.filter(device => device.kind === 'videoinput')
-        setDevices(videoDevices)
-        const currentId = track.getSettings?.().deviceId || ''
-
-        if (!preferredCameraChosenRef.current && !selectedDeviceId && videoDevices.length > 1) {
-          preferredCameraChosenRef.current = true
-          const preferred = choosePreferredCamera(videoDevices, currentId)
-          if (preferred && preferred !== currentId) {
-            setSelectedDeviceId(preferred)
-            return
-          }
-        }
-
-        if (!selectedDeviceId && currentId) setSelectedDeviceId(currentId)
         setStatus('Наведите код на рамку')
 
         const confirmCode = code => {
@@ -184,11 +132,13 @@ export default function BarcodeScanner({ onDetect, onClose }) {
             const canvas = canvasRef.current
             const sourceWidth = video.videoWidth
             const sourceHeight = video.videoHeight
-            const cropWidth = Math.round(sourceWidth * 0.88)
-            const cropHeight = Math.round(Math.min(sourceHeight * 0.52, cropWidth * 0.5))
+
+            // Более узкая центральная область даёт больше реальных пикселей штрихкоду.
+            const cropWidth = Math.round(sourceWidth * 0.78)
+            const cropHeight = Math.round(Math.min(sourceHeight * 0.44, cropWidth * 0.48))
             const sourceX = Math.round((sourceWidth - cropWidth) / 2)
             const sourceY = Math.round((sourceHeight - cropHeight) / 2)
-            canvas.width = Math.min(cropWidth, 1100)
+            canvas.width = Math.min(cropWidth, 1400)
             canvas.height = Math.round(canvas.width * cropHeight / cropWidth)
             const context = canvas.getContext('2d', { willReadFrequently: true })
             context.drawImage(video, sourceX, sourceY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height)
@@ -214,7 +164,7 @@ export default function BarcodeScanner({ onDetect, onClose }) {
         animationFrameRef.current = requestAnimationFrame(tick)
       } catch (cameraError) {
         console.error('camera start error:', cameraError)
-        setError('Не удалось настроить камеру. Выберите другую камеру или введите код вручную.')
+        setError('Не удалось настроить камеру. Введите код вручную или попробуйте ещё раз.')
         setStatus('Камера недоступна')
       }
     }
@@ -227,7 +177,7 @@ export default function BarcodeScanner({ onDetect, onClose }) {
       stopStream(streamRef.current)
       streamRef.current = null
     }
-  }, [selectedDeviceId, manualMode, cameraAttempt])
+  }, [manualMode, cameraAttempt])
 
   const handleTapFocus = async () => {
     const [track] = streamRef.current?.getVideoTracks() || []
@@ -298,19 +248,6 @@ export default function BarcodeScanner({ onDetect, onClose }) {
           </div>
 
           <div className={styles.cameraControls} onClick={event => event.stopPropagation()}>
-            {selectableCameras.length > 1 && (
-              <label className={styles.cameraSelect}>
-                <Camera size={15} />
-                <select value={selectedDeviceId} onChange={event => setSelectedDeviceId(event.target.value)}>
-                  {selectableCameras.map(device => (
-                    <option key={device.deviceId} value={device.deviceId}>
-                      {/front|user|перед|selfie/i.test(device.label) ? 'Фронтальная' : 'Основная (задняя)'}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-
             <div className={styles.controlRow}>
               {torchSupported && (
                 <button type="button" className={torchOn ? styles.activeControl : ''} onClick={toggleTorch}>
@@ -344,7 +281,7 @@ export default function BarcodeScanner({ onDetect, onClose }) {
             autoFocus
           />
           <button type="button" onClick={submitManualCode} disabled={!/^\d{8,14}$/.test(manualCode)}>Найти продукт</button>
-          {error && <button type="button" className={styles.secondary} onClick={() => { setError(null); setManualMode(false); setSelectedDeviceId(''); setCameraAttempt(current => current + 1) }}>Попробовать камеру снова</button>}
+          {error && <button type="button" className={styles.secondary} onClick={() => { setError(null); setManualMode(false); setCameraAttempt(current => current + 1) }}>Попробовать камеру снова</button>}
         </main>
       )}
     </div>,
