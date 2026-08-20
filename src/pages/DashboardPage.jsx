@@ -35,6 +35,14 @@ export default function DashboardPage() {
     setTab('food')
   }
 
+  const changeMainTab = nextTab => {
+    // Переход по нижнему меню в «Питание» — это обычное открытие дневника.
+    // Не повторяем старое действие (например, сканирование штрихкода),
+    // которое могло остаться после предыдущего открытия экрана с Главной.
+    if (nextTab === 'food') setFoodIntent(null)
+    setTab(nextTab)
+  }
+
   const [water, setWater] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('water-state-v2') || '{}')
@@ -65,7 +73,7 @@ export default function DashboardPage() {
         {tab === 'workout'  && <WorkoutScreen  state={state} dispatch={dispatch} aiCall={aiCall} PlanScreen={PlanScreen} onActiveChange={setWorkoutActive} />}
         {tab === 'profile'  && <ProfileScreen  profile={profile} saveProfile={saveProfile} signOut={signOut} aiCall={aiCall} theme={theme} onThemeChange={setTheme} />}
       </div>
-      {!(tab === 'workout' && workoutActive) && <BottomNavigation activeTab={tab} onTabChange={setTab} />}
+      {!(tab === 'workout' && workoutActive) && <BottomNavigation activeTab={tab} onTabChange={changeMainTab} />}
     </div>
   )
 }
