@@ -83,6 +83,13 @@
 .activeTime { color: var(--accent); font-family: var(--mono); font-size: 36px; font-weight: 800; letter-spacing: -.04em; }
 .activeTimeLabel { margin-top: 2px; color: var(--text-muted); font-size: 11px; font-weight: 650; }
 .activeWorkoutName { max-width: 45%; color: var(--text); font-size: 13px; font-weight: 750; text-align: right; }
+.activeExerciseNav { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
+.activeExerciseProgress { color: var(--text-muted); font-family: var(--mono); font-size: 12px; font-weight: 700; }
+.activeExerciseNavButtons { display: flex; align-items: center; gap: 6px; }
+.activeExerciseNavButtons > button:not(.activeModeToggle) { display: grid; place-items: center; width: 34px; height: 34px; color: var(--text); border: 1px solid var(--border); border-radius: 11px; background: var(--surface2); }
+.activeExerciseNavButtons > button:not(.activeModeToggle):disabled { opacity: .35; }
+.activeModeToggle { display: flex; align-items: center; gap: 5px; height: 34px; padding: 0 11px; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 11px; background: var(--surface2); font-size: 11px; font-weight: 750; }
+.activeExerciseSwipeArea { overflow: hidden; touch-action: pan-y; }
 .activeExerciseCard { overflow: hidden; border: 1px solid var(--border); border-radius: 22px; background: var(--card-solid); box-shadow: var(--shadow-soft); }
 .activeExerciseHeader { display: flex; align-items: center; gap: 9px; padding: 12px; }
 .activeDragHandle { width: 30px; height: 48px; }

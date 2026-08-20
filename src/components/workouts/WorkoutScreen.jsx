@@ -227,6 +227,161 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
     if (!swipeLockRef.current) { setDragTransition(true); setDragX(0) }
   }
 
+  // Свайп-карусель активной тренировки: экран открывается на первом
+  // упражнении, свайп переключает на соседнее — тот же приём, что и выше
+  // для карточки «Следующая тренировка» (контент уезжает целиком, данные
+  // меняются, новая карточка въезжает с обратной стороны). Свайп «дальше»
+  // с последнего упражнения завершает тренировку (сводка как по кнопке
+  // «Завершить»). Полный список с перетаскиванием остаётся доступен через
+  // переключатель — там же, где раньше жил единственный вид.
+  const [activeExIndex, setActiveExIndex] = React.useState(0)
+  const [activeViewMode, setActiveViewMode] = React.useState('swipe')
+  const prevViewRef = React.useRef(view)
+  React.useEffect(() => {
+    if (view === 'active' && prevViewRef.current !== 'active') {
+      setActiveExIndex(0)
+      setActiveViewMode('swipe')
+    }
+    prevViewRef.current = view
+  }, [view])
+  React.useEffect(() => {
+    setActiveExIndex(i => Math.min(i, Math.max(wk.exercises.length - 1, 0)))
+  }, [wk.exercises.length])
+
+  const exCardRef = React.useRef(null)
+  const exTouchStartRef = React.useRef(null)
+  const exCardWidthRef = React.useRef(320)
+  const exSwipeLockRef = React.useRef(false)
+  const [exDragX, setExDragX] = React.useState(0)
+  const [exDragTransition, setExDragTransition] = React.useState(false)
+  const exSlideStyle = { transform: `translateX(${exDragX}px)`, transition: exDragTransition ? 'transform .26s cubic-bezier(.22,.8,.24,1)' : 'none' }
+
+  const goToExercise = (direction) => {
+    if (exSwipeLockRef.current) return
+    const total = wk.exercises.length
+    if (direction === 'next' && activeExIndex >= total - 1) { completeWorkout(); return }
+    if (direction === 'prev' && activeExIndex <= 0) { setExDragTransition(true); setExDragX(0); return }
+    const width = exCardRef.current?.offsetWidth || exCardWidthRef.current
+    exSwipeLockRef.current = true
+    setExDragTransition(true)
+    setExDragX(direction === 'next' ? -width : width)
+    window.setTimeout(() => {
+      setActiveExIndex(i => direction === 'next' ? Math.min(i + 1, total - 1) : Math.max(i - 1, 0))
+      setExDragTransition(false)
+      setExDragX(direction === 'next' ? width : -width)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setExDragTransition(true)
+          setExDragX(0)
+          window.setTimeout(() => { exSwipeLockRef.current = false }, 280)
+        })
+      })
+    }, 220)
+  }
+
+  const onExTouchStart = (event) => {
+    if (exSwipeLockRef.current) return
+    const t = event.touches?.[0]
+    if (!t) return
+    exTouchStartRef.current = { x: t.clientX, y: t.clientY }
+    exCardWidthRef.current = exCardRef.current?.offsetWidth || exCardWidthRef.current
+    setExDragTransition(false)
+  }
+  const onExTouchMove = (event) => {
+    if (!exTouchStartRef.current || exSwipeLockRef.current) return
+    const t = event.touches?.[0]
+    if (!t) return
+    const dx = t.clientX - exTouchStartRef.current.x
+    const width = exCardWidthRef.current || 320
+    setExDragX(Math.max(-width, Math.min(width, dx)))
+  }
+  const onExTouchEnd = (event) => {
+    if (!exTouchStartRef.current || exSwipeLockRef.current) { exTouchStartRef.current = null; return }
+    const t = event.changedTouches?.[0]
+    const startX = exTouchStartRef.current.x
+    const startY = exTouchStartRef.current.y
+    exTouchStartRef.current = null
+    if (!t) { setExDragTransition(true); setExDragX(0); return }
+    const dx = t.clientX - startX
+    const dy = t.clientY - startY
+    const width = exCardWidthRef.current || 320
+    const shouldSwitch = Math.abs(dx) > Math.max(56, width * 0.22) && Math.abs(dx) > Math.abs(dy) * 1.3
+    if (!shouldSwitch) { setExDragTransition(true); setExDragX(0); return }
+    goToExercise(dx < 0 ? 'next' : 'prev')
+  }
+  const onExTouchCancel = () => {
+    exTouchStartRef.current = null
+    if (!exSwipeLockRef.current) { setExDragTransition(true); setExDragX(0) }
+  }
+
+  const renderActiveExerciseCard = (ex, eI, { draggable = false } = {}) => {
+    const media = getExerciseMedia(ex.name)
+    return (
+      <div key={ex.uid || eI} ref={draggable ? dragReorder.setItemRef(ex.uid) : undefined} style={draggable ? dragReorder.getItemStyle(ex.uid) : undefined} className={styles.activeExerciseCard}>
+        <div className={styles.activeExerciseHeader}>
+          {draggable && <ExerciseDragHandle dragHandleProps={dragReorder.getHandleProps(ex.uid)} className={styles.activeDragHandle} />}
+          <span className={styles.activeExerciseNumber}>{eI+1}</span>
+          {media && <button className={styles.activeExerciseImage} onClick={() => setTechFor({ name: ex.name, muscle: ex.muscle })}><img src={media.start} alt="" /></button>}
+          <div className={styles.activeExerciseTitle}>
+            <button onClick={() => setTechFor({ name: ex.name, muscle: ex.muscle })}>{ex.name}</button>
+            <span style={{ background: M_COLORS[ex.muscle] || 'var(--accent)' }}>{ex.muscle}</span>
+          </div>
+          <button className={styles.activeSwapButton} onClick={() => setSwapFor(swapFor === eI ? null : eI)}>Заменить</button>
+        </div>
+        {swapFor === eI && (
+          <div className={styles.activeSwapPanel}>
+            <div className={styles.activeSwapHeading}>
+              <span>Заменить на:</span>
+              <button onClick={() => setSwapFor(null)}>×</button>
+            </div>
+            {(() => {
+              const dbEx = FULL_EXERCISE_DB.find(e => e.id === ex.exerciseId) || findExerciseByName(ex.name)
+              const alts = dbEx ? findAlternatives(dbEx, workoutPlace) : []
+              if (alts.length === 0) return <div className={styles.activeNoAlternatives}>Нет подходящих альтернатив для вашего места тренировок</div>
+              return <div className={styles.activeAlternatives}>
+                {alts.map(alt => (
+                  <button key={alt.id} onClick={() => { replaceEx(eI, alt); setSwapFor(null) }}>
+                    <span>{alt.name}</span>
+                    <small>{alt.equipment}</small>
+                    <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 6, fontWeight: 600, ...(alt.eff==='best' ? {background:'var(--accent-dim)', color:'#6fcaa0'} : alt.eff==='good' ? {background:'#2a2a2a', color:'#d1d5db'} : {background:'#262626', color:'#6b7280'}) }}>{EFF_LABEL[alt.eff]}</span>
+                  </button>
+                ))}
+              </div>
+            })()}
+          </div>
+        )}
+        <div className={styles.activeSets}>
+          <div className={styles.activeSetLabels}>
+            <span>Подход</span><span>Повторы</span><span>Вес, кг</span><i />
+          </div>
+          <div className={styles.activeSetList}>
+            {ex.sets.map((set, sI) => (
+              <SwipeToDelete key={set.id || sI} onDelete={() => removeSet(eI, sI)} disabled={ex.sets.length <= 1} radius={8}>
+                <div className={`${styles.activeSetRow} ${set.done ? styles.activeSetDone : ''}`}>
+                  <span>№{sI+1}</span>
+                  <button onClick={() => setPickerFor({ eI, sI })}>{set.reps || ex.targetReps || '—'}</button>
+                  <button onClick={() => setPickerFor({ eI, sI })}>{set.weight || '0'}</button>
+                  <button className={styles.activeSetCheck} onClick={() => toggleSet(eI, sI)} aria-label="Отметить подход выполненным">
+                    {set.done && <Check size={16} />}
+                  </button>
+                </div>
+              </SwipeToDelete>
+            ))}
+          </div>
+          <button className={styles.activeAddSet} onClick={() => addSet(eI)}>+ Добавить подход</button>
+          <div className={styles.activeComment}>
+            <input
+              type="text"
+              value={ex.comment || ''}
+              onChange={e => updateComment(eI, e.target.value)}
+              placeholder="Комментарий к упражнению (необязательно)"
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const featuredExercises = displayedDaySource?.exercisesDetail?.length
     ? displayedDaySource.exercisesDetail
     : (displayedDaySource?.exercises || [])
@@ -556,72 +711,46 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
           </div>
           <div className={styles.activeWorkoutName}>{wk.name || 'Тренировка'}</div>
         </div>
-        {wk.exercises.map((ex, eI) => {
-          const media = getExerciseMedia(ex.name)
-          return (
-          <div key={ex.uid || eI} ref={dragReorder.setItemRef(ex.uid)} style={dragReorder.getItemStyle(ex.uid)} className={styles.activeExerciseCard}>
-            <div className={styles.activeExerciseHeader}>
-              <ExerciseDragHandle dragHandleProps={dragReorder.getHandleProps(ex.uid)} className={styles.activeDragHandle} />
-              <span className={styles.activeExerciseNumber}>{eI+1}</span>
-              {media && <button className={styles.activeExerciseImage} onClick={() => setTechFor({ name: ex.name, muscle: ex.muscle })}><img src={media.start} alt="" /></button>}
-              <div className={styles.activeExerciseTitle}>
-                <button onClick={() => setTechFor({ name: ex.name, muscle: ex.muscle })}>{ex.name}</button>
-                <span style={{ background: M_COLORS[ex.muscle] || 'var(--accent)' }}>{ex.muscle}</span>
-              </div>
-              <button className={styles.activeSwapButton} onClick={() => setSwapFor(swapFor === eI ? null : eI)}>Заменить</button>
-            </div>
-            {swapFor === eI && (
-              <div className={styles.activeSwapPanel}>
-                <div className={styles.activeSwapHeading}>
-                  <span>Заменить на:</span>
-                  <button onClick={() => setSwapFor(null)}>×</button>
-                </div>
-                {(() => {
-                  const dbEx = FULL_EXERCISE_DB.find(e => e.id === ex.exerciseId) || findExerciseByName(ex.name)
-                  const alts = dbEx ? findAlternatives(dbEx, workoutPlace) : []
-                  if (alts.length === 0) return <div className={styles.activeNoAlternatives}>Нет подходящих альтернатив для вашего места тренировок</div>
-                  return <div className={styles.activeAlternatives}>
-                    {alts.map(alt => (
-                      <button key={alt.id} onClick={() => { replaceEx(eI, alt); setSwapFor(null) }}>
-                        <span>{alt.name}</span>
-                        <small>{alt.equipment}</small>
-                        <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 6, fontWeight: 600, ...(alt.eff==='best' ? {background:'var(--accent-dim)', color:'#6fcaa0'} : alt.eff==='good' ? {background:'#2a2a2a', color:'#d1d5db'} : {background:'#262626', color:'#6b7280'}) }}>{EFF_LABEL[alt.eff]}</span>
-                      </button>
-                    ))}
-                  </div>
-                })()}
-              </div>
-            )}
-            <div className={styles.activeSets}>
-              <div className={styles.activeSetLabels}>
-                <span>Подход</span><span>Повторы</span><span>Вес, кг</span><i />
-              </div>
-              <div className={styles.activeSetList}>
-                {ex.sets.map((set, sI) => (
-                  <SwipeToDelete key={set.id || sI} onDelete={() => removeSet(eI, sI)} disabled={ex.sets.length <= 1} radius={8}>
-                    <div className={`${styles.activeSetRow} ${set.done ? styles.activeSetDone : ''}`}>
-                      <span>№{sI+1}</span>
-                      <button onClick={() => setPickerFor({ eI, sI })}>{set.reps || ex.targetReps || '—'}</button>
-                      <button onClick={() => setPickerFor({ eI, sI })}>{set.weight || '0'}</button>
-                      <button className={styles.activeSetCheck} onClick={() => toggleSet(eI, sI)} aria-label="Отметить подход выполненным">
-                        {set.done && <Check size={16} />}
-                      </button>
-                    </div>
-                  </SwipeToDelete>
-                ))}
-              </div>
-              <button className={styles.activeAddSet} onClick={() => addSet(eI)}>+ Добавить подход</button>
-              <div className={styles.activeComment}>
-                <input
-                  type="text"
-                  value={ex.comment || ''}
-                  onChange={e => updateComment(eI, e.target.value)}
-                  placeholder="Комментарий к упражнению (необязательно)"
-                />
+        {activeViewMode === 'list' ? (
+          <>
+            <div className={styles.activeExerciseNav}>
+              <span className={styles.activeExerciseProgress}>Список упражнений</span>
+              <div className={styles.activeExerciseNavButtons}>
+                <button className={styles.activeModeToggle} onClick={() => setActiveViewMode('swipe')}>
+                  <WorkoutListIcon size={16} active />
+                  <span>Карточки</span>
+                </button>
               </div>
             </div>
-          </div>
-        )})}
+            {wk.exercises.map((ex, eI) => renderActiveExerciseCard(ex, eI, { draggable: true }))}
+          </>
+        ) : (
+          <>
+            <div className={styles.activeExerciseNav}>
+              <span className={styles.activeExerciseProgress}>{wk.exercises.length ? Math.min(activeExIndex + 1, wk.exercises.length) : 0} / {wk.exercises.length}</span>
+              <div className={styles.activeExerciseNavButtons}>
+                <button onClick={() => goToExercise('prev')} disabled={activeExIndex === 0} aria-label="Предыдущее упражнение"><ChevronLeft size={18} /></button>
+                <button className={styles.activeModeToggle} onClick={() => setActiveViewMode('list')}>
+                  <WorkoutListIcon size={16} />
+                  <span>Список</span>
+                </button>
+                <button onClick={() => goToExercise('next')} aria-label={activeExIndex === wk.exercises.length - 1 ? 'Завершить тренировку' : 'Следующее упражнение'}><ChevronRight size={18} /></button>
+              </div>
+            </div>
+            <div
+              ref={exCardRef}
+              className={styles.activeExerciseSwipeArea}
+              onTouchStart={onExTouchStart}
+              onTouchMove={onExTouchMove}
+              onTouchEnd={onExTouchEnd}
+              onTouchCancel={onExTouchCancel}
+            >
+              <div style={exSlideStyle}>
+                {wk.exercises[activeExIndex] && renderActiveExerciseCard(wk.exercises[activeExIndex], activeExIndex)}
+              </div>
+            </div>
+          </>
+        )}
         <div className={styles.activeActions}>
           <button className={styles.activePause} onClick={() => setRunning(r => !r)}>
             {running ? 'Пауза' : 'Старт'}
