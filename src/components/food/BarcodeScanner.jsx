@@ -5,6 +5,7 @@ import styles from './BarcodeScanner.module.css'
 
 const BARCODE_FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code', 'data_matrix']
 const CAMERA_STORAGE_KEY = 'fitdiary-barcode-camera-id'
+const PREFERRED_BARCODE_CAMERA = /camera2\s*0.*(?:facing\s*back|back)|(?:facing\s*back|back).*camera2\s*0/i
 
 function stopStream(stream) {
   stream?.getTracks().forEach(track => track.stop())
@@ -27,6 +28,7 @@ export default function BarcodeScanner({ onDetect, onClose }) {
   const stableCodeRef = useRef({ code: '', count: 0, at: 0 })
   const lastScanRef = useRef(0)
   const scanNumberRef = useRef(0)
+  const preferredCameraResolvedRef = useRef(false)
   const onDetectRef = useRef(onDetect)
   onDetectRef.current = onDetect
 
@@ -88,9 +90,9 @@ export default function BarcodeScanner({ onDetect, onClose }) {
             audio: false,
           })
         } catch (openError) {
-          // Сохранённый deviceId может измениться после обновления браузера/разрешений.
           if (!selectedDeviceId) throw openError
           try { localStorage.removeItem(CAMERA_STORAGE_KEY) } catch {}
+          preferredCameraResolvedRef.current = false
           setSelectedDeviceId('')
           return
         }
@@ -125,15 +127,30 @@ export default function BarcodeScanner({ onDetect, onClose }) {
           await videoRef.current.play()
         }
 
-        // После выдачи разрешения Chrome показывает все физические камеры.
-        // Ничего не фильтруем: пользователь снова может выбрать именно ту линзу,
-        // которая на его телефоне лучше всего фокусируется на штрихкоде.
         const availableDevices = await navigator.mediaDevices.enumerateDevices()
         const cameras = availableDevices.filter(device => device.kind === 'videoinput')
         setDevices(cameras)
         const currentId = track.getSettings?.().deviceId || ''
-        if (!selectedDeviceId && currentId) setSelectedDeviceId(currentId)
 
+        // На проверенном Android-телефоне именно "camera2 0, facing back"
+        // даёт резкую картинку штрихкода. Если пользователь ещё не выбирал
+        // камеру вручную, автоматически предпочитаем устройство с этим label.
+        // На других телефонах, где такого label нет, остаётся системная задняя
+        // камера и полный ручной список камер как fallback.
+        if (!preferredCameraResolvedRef.current && !selectedDeviceId) {
+          preferredCameraResolvedRef.current = true
+          const preferred = cameras.find(device => PREFERRED_BARCODE_CAMERA.test(String(device.label || '')))
+          if (preferred?.deviceId && preferred.deviceId !== currentId) {
+            try { localStorage.setItem(CAMERA_STORAGE_KEY, preferred.deviceId) } catch {}
+            setSelectedDeviceId(preferred.deviceId)
+            return
+          }
+          if (preferred?.deviceId) {
+            try { localStorage.setItem(CAMERA_STORAGE_KEY, preferred.deviceId) } catch {}
+          }
+        }
+
+        if (!selectedDeviceId && currentId) setSelectedDeviceId(currentId)
         setStatus('Наведите код на рамку')
 
         const confirmCode = code => {
@@ -207,6 +224,7 @@ export default function BarcodeScanner({ onDetect, onClose }) {
   }, [selectedDeviceId, manualMode, cameraAttempt])
 
   const selectCamera = deviceId => {
+    preferredCameraResolvedRef.current = true
     setSelectedDeviceId(deviceId)
     try { localStorage.setItem(CAMERA_STORAGE_KEY, deviceId) } catch {}
   }
