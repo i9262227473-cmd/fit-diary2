@@ -284,22 +284,22 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
         )}
         <div className={styles.historyActions}>
           <button className={styles.primaryAction} onClick={() => setView('templates')}>
-            <span><img src="/assets/workout-actions/my-workouts.png" alt="" /></span>
+            <span><img src="/assets/workout-actions-v2/my-workouts.png" alt="" /></span>
             <strong>Мои тренировки</strong>
             <small>Шаблоны и программы</small>
           </button>
           <button onClick={() => setView('plan')}>
-            <span><img src="/assets/workout-actions/ai-plan.png" alt="" /></span>
+            <span><img src="/assets/workout-actions-v2/ai-plan.png" alt="" /></span>
             <strong>AI-план</strong>
             <small>Персональная программа</small>
           </button>
           <button onClick={() => setView('library')}>
-            <span><img src="/assets/workout-actions/programs.png" alt="" /></span>
+            <span><img src="/assets/workout-actions-v2/programs.png" alt="" /></span>
             <strong>Программы</strong>
             <small>Готовые программы</small>
           </button>
           <button className={styles.newWorkout} onClick={() => setView('plans')}>
-            <span><img src="/assets/workout-actions/my-plans.png" alt="" /></span>
+            <span><img src="/assets/workout-actions-v2/my-plans.png" alt="" /></span>
             <strong>Мои планы</strong>
             <small>Свои программы</small>
           </button>
