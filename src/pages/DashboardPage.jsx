@@ -12,6 +12,12 @@ import BottomNavigation from '../components/layout/BottomNavigation'
 import useReminders from '../hooks/useReminders'
 import { applyTheme, getSavedTheme } from '../theme'
 
+const localDateKey = (date = new Date()) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 // ─── MAIN DASHBOARD ───────────────────────────────────────────────────────────
 export default function DashboardPage() {
@@ -32,12 +38,12 @@ export default function DashboardPage() {
   const [water, setWater] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('water-state-v2') || '{}')
-      const todayKey = new Date().toISOString().split('T')[0]
+      const todayKey = localDateKey()
       const weight = profile?.weight || 80
       const goalMl = Math.min(Math.max(Math.round(weight * 30 / 100) * 100, 1500), 4000)
       const waterGoal = Math.round(goalMl / 250)
       return { goal: saved.goal || waterGoal, consumed: saved.date === todayKey ? (saved.consumed || 0) : 0, date: todayKey }
-    } catch { return { goal: 8, consumed: 0, date: new Date().toISOString().split('T')[0] } }
+    } catch { return { goal: 8, consumed: 0, date: localDateKey() } }
   })
 
   useEffect(() => { localStorage.setItem('water-state-v2', JSON.stringify(water)) }, [water])
