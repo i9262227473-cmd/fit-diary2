@@ -90,7 +90,7 @@
 .activeExerciseNavButtons > button:not(.activeModeToggle):disabled { opacity: .35; }
 .activeModeToggle { display: flex; align-items: center; gap: 5px; height: 34px; padding: 0 11px; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 11px; background: var(--surface2); font-size: 11px; font-weight: 750; }
 .activeExerciseSwipeArea { overflow: hidden; touch-action: pan-y; }
-.activeExerciseCard { overflow: hidden; border: 1px solid var(--border); border-radius: 22px; background: var(--card-solid); box-shadow: var(--shadow-soft); }
+.activeExerciseCard { display: flex; min-height: 450px; flex-direction: column; overflow: hidden; border: 1px solid var(--border); border-radius: 22px; background: var(--card-solid); box-shadow: var(--shadow-soft); }
 .activeExerciseHeader { display: flex; align-items: center; gap: 9px; padding: 12px; }
 .activeDragHandle { width: 30px; height: 48px; }
 .activeExerciseNumber { min-width: 20px; color: var(--accent); font-family: var(--mono); font-size: 18px; font-weight: 800; text-align: center; }
@@ -107,7 +107,7 @@
 .activeAlternatives > button { display: flex; align-items: center; gap: 8px; padding: 9px 10px; text-align: left; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
 .activeAlternatives > button > span:first-child { min-width: 0; flex: 1; color: var(--text); font-size: 12px; }
 .activeAlternatives small, .activeNoAlternatives { color: var(--text-muted); font-size: 10px; }
-.activeSets { padding: 2px 12px 13px; }
+.activeSets { display: flex; flex: 1; flex-direction: column; padding: 2px 12px 15px; }
 .activeSetLabels, .activeSetRow { display: grid; grid-template-columns: 43px minmax(0, 1fr) minmax(0, 1fr) 38px; align-items: center; gap: 7px; }
 .activeSetLabels { padding: 5px 2px 7px; color: var(--text-muted); font-size: 9px; font-weight: 700; text-align: center; text-transform: uppercase; }
 .activeSetLabels span:first-child { text-align: left; }
@@ -118,9 +118,11 @@
 .activeSetDone { background: var(--accent-dim); }
 .activeSetCheck { display: grid; place-items: center; width: 34px; height: 34px; color: var(--accent-contrast); border: 2px solid var(--border-strong); border-radius: 50%; background: transparent; }
 .activeSetDone .activeSetCheck { border-color: var(--accent); background: var(--accent); }
-.activeAddSet { width: 100%; margin-top: 8px; padding: 10px; color: var(--accent); border: 1px dashed color-mix(in srgb, var(--accent) 38%, var(--border)); border-radius: 11px; background: var(--accent-dim); font-size: 11px; font-weight: 750; }
-.activeComment { margin-top: 8px; }
-.activeComment input { width: 100%; padding: 11px 12px; color: var(--text); border: 1px solid var(--border); border-radius: 11px; background: var(--surface2); font-size: 11px; }
+.activeAddSet { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 49px; margin-top: 11px; padding: 12px; color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--border)); border-radius: 14px; background: linear-gradient(145deg, color-mix(in srgb, var(--accent-dim) 72%, white), var(--accent-dim)); box-shadow: inset 0 1px 0 rgba(255,255,255,.26), 0 5px 11px color-mix(in srgb, var(--accent) 12%, transparent); font-size: 14px; font-weight: 800; }
+.activeComment { margin-top: auto; padding-top: 14px; }
+.activeComment label { display: flex; align-items: center; gap: 7px; margin: 0 1px 7px; color: var(--text-secondary); font-size: 12px; font-weight: 750; }
+.activeComment label svg { color: var(--accent); }
+.activeComment input { width: 100%; min-height: 48px; padding: 12px 13px; color: var(--text); border: 1px solid var(--border); border-radius: 13px; background: var(--surface2); font-size: 13px; font-weight: 600; }
 .activeComment input::placeholder { color: var(--text-muted); }
 .activeActions { position: fixed; z-index: 400; right: max(12px, calc((100vw - 480px) / 2 + 12px)); bottom: max(10px, env(safe-area-inset-bottom, 0px)); left: max(12px, calc((100vw - 480px) / 2 + 12px)); display: grid; grid-template-columns: .8fr 1.4fr; gap: 8px; padding: 8px; border: 1px solid var(--border-strong); border-radius: 20px; background: var(--nav-bg); box-shadow: var(--shadow); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
 .activeActions button { min-height: 52px; border-radius: 14px; font-size: 12px; font-weight: 800; }

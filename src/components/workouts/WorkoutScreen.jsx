@@ -368,13 +368,15 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
               </SwipeToDelete>
             ))}
           </div>
-          <button className={styles.activeAddSet} onClick={() => addSet(eI)}>+ Добавить подход</button>
+          <button className={styles.activeAddSet} onClick={() => addSet(eI)}><Plus size={19} /> Добавить подход</button>
           <div className={styles.activeComment}>
+            <label htmlFor={`exercise-comment-${ex.uid || eI}`}><Edit2 size={16} /> Комментарий к упражнению</label>
             <input
+              id={`exercise-comment-${ex.uid || eI}`}
               type="text"
               value={ex.comment || ''}
               onChange={e => updateComment(eI, e.target.value)}
-              placeholder="Комментарий к упражнению (необязательно)"
+              placeholder="Например: легко, боль в плече, увеличить вес"
             />
           </div>
         </div>
