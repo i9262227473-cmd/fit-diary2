@@ -213,11 +213,15 @@ export default function FoodScreen({ state, dispatch, aiCall, intent, onSaveGoal
       </section>
 
       {tab === 'log' && (
-        <section className={styles.logSection}>
+        <>
+          <button className={styles.heroAddFood} onClick={() => setShowAddMenu(true)}>
+            <img src="/assets/meals/lunch-3d.webp" alt="" />
+            <span><strong><FoodPlusIcon size={25} /> Добавить приём пищи</strong><small>Фото <i /> Штрих-код <i /> AI-поиск <i /> Вручную</small></span>
+          </button>
+          <section className={styles.logSection}>
           <div className={styles.logHeader}>
             <div><span className={styles.eyebrow}>{selectedDate === today ? 'Сегодня' : dayTitle}</span><h2>Приёмы пищи</h2></div>
             <div className={styles.logActions}>
-              <button className={styles.addFood} onClick={() => setShowAddMenu(true)}><FoodPlusIcon size={20} /><span>Добавить</span></button>
               <div className={styles.viewToggle}>
                 <button className={logMode === 'list' ? styles.viewActive : ''} onClick={() => setLogMode('list')} aria-label="Список"><FoodBowlIcon size={22} active={logMode === 'list'} /></button>
                 <button className={logMode === 'calendar' ? styles.viewActive : ''} onClick={() => setLogMode('calendar')} aria-label="Календарь"><FoodCalendarIcon size={21} active={logMode === 'calendar'} /></button>
@@ -261,7 +265,8 @@ export default function FoodScreen({ state, dispatch, aiCall, intent, onSaveGoal
               {entry.foods.length > 0 && <button className={styles.addMeal} onClick={() => setShowAddMenu(true)}><FoodPlusIcon size={20} /> Добавить еду</button>}
             </div>
           )}
-        </section>
+          </section>
+        </>
       )}
       </div>
 
