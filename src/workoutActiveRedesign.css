@@ -12,20 +12,19 @@
 [class*="activeWorkout"] { --aw-line: color-mix(in srgb,var(--border) 72%,transparent); }
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) {
   position:relative;
-  left:50%;
-  width:min(680px,100vw);
+  width:calc(100% + 36px);
   max-width:none!important;
   min-height:100dvh;
+  margin-left:-18px;
   gap:5px!important;
   padding:0 0 104px!important;
   overflow-x:hidden;
-  transform:translateX(-50%);
 }
 
 /* Compact header — more room for the exercise itself. */
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeSummary"] {
   position:sticky; top:0; z-index:25;
-  min-height:50px!important; padding:7px clamp(14px,3vw,22px)!important;
+  min-height:50px!important; padding:7px 18px!important;
   border:0!important; border-bottom:1px solid var(--aw-line)!important; border-radius:0!important;
   box-shadow:none!important; background:color-mix(in srgb,var(--bg) 92%,transparent)!important;
   backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px);
@@ -35,9 +34,9 @@
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeWorkoutName"] { max-width:62%!important; color:var(--text)!important; font-size:14px!important; line-height:1.1!important; }
 
 /* Navigation: one row + quiet progress line. */
-[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseNav"] { position:relative; z-index:10; padding:9px clamp(14px,3vw,22px) 14px!important; }
+[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseNav"] { position:relative; z-index:10; padding:9px 18px 14px!important; }
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseNav"]::after {
-  content:''; position:absolute; left:clamp(14px,3vw,22px); right:clamp(14px,3vw,22px); bottom:3px; height:4px; border-radius:999px;
+  content:''; position:absolute; left:18px; right:18px; bottom:3px; height:4px; border-radius:999px;
   background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 68%,var(--surface3)) 48%,var(--surface3) 48%);
   opacity:.82;
 }
@@ -45,39 +44,43 @@
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseNavButtons"]>button:not([class*="activeModeToggle"]) { width:34px!important; height:34px!important; color:var(--text-secondary)!important; border:1px solid var(--aw-line)!important; border-radius:999px!important; background:color-mix(in srgb,var(--surface2) 90%,transparent)!important; }
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeModeToggle"] { height:34px!important; padding:0 13px!important; color:var(--text)!important; border:1px solid var(--aw-line)!important; border-radius:999px!important; background:color-mix(in srgb,var(--surface2) 90%,transparent)!important; font-size:11px!important; }
 
-/* Swipe zone deliberately extends into the side gutters and below the card. */
+/* Swipe zone fills almost the whole active screen, without widening the page itself. */
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseSwipeArea"] {
   position:relative;
+  width:100%;
   min-height:calc(100dvh - 150px);
-  margin:0 -28px!important;
-  padding:0 28px 70px!important;
+  margin:0!important;
+  padding:0 10px 78px!important;
   touch-action:pan-y;
   user-select:none;
   -webkit-user-select:none;
 }
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseSwipeArea"]::before,
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseSwipeArea"]::after {
-  position:absolute; top:33%; z-index:0; color:color-mix(in srgb,var(--text-muted) 70%,transparent); font-size:28px; font-weight:300; pointer-events:none;
+  position:absolute; top:31%; z-index:3; display:grid; place-items:center; width:34px; height:76px;
+  color:color-mix(in srgb,var(--text-secondary) 78%,transparent); border:1px solid var(--aw-line); border-radius:17px;
+  background:color-mix(in srgb,var(--surface2) 82%,transparent); backdrop-filter:blur(10px);
+  font-size:29px; font-weight:300; pointer-events:none;
 }
-[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseSwipeArea"]::before { content:'‹'; left:8px; }
-[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseSwipeArea"]::after { content:'›'; right:8px; }
-[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseSwipeArea"]>div { position:relative; z-index:1; }
+[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseSwipeArea"]::before { content:'‹'; left:4px; }
+[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseSwipeArea"]::after { content:'›'; right:4px; }
+[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseSwipeArea"]>div { position:relative; z-index:1; width:100%; }
 
-[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseCard"] { overflow:visible!important; min-height:0!important; border:0!important; border-radius:0!important; background:transparent!important; box-shadow:none!important; }
-[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseHeader"] { display:grid!important; grid-template-columns:1fr auto; grid-template-areas:'title swap' 'image image'; gap:8px 12px!important; padding:8px clamp(14px,3vw,22px) 8px!important; }
+[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseCard"] { overflow:visible!important; width:100%!important; min-height:0!important; border:0!important; border-radius:0!important; background:transparent!important; box-shadow:none!important; }
+[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseHeader"] { display:grid!important; grid-template-columns:1fr auto; grid-template-areas:'title swap' 'image image'; gap:8px 12px!important; width:100%!important; padding:8px 18px 8px!important; }
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseNumber"] { display:none!important; }
-[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseTitle"] { grid-area:title; align-self:center; }
-[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseTitle"]>button { overflow:visible!important; white-space:normal!important; color:var(--text)!important; font-size:clamp(24px,5vw,32px)!important; line-height:1!important; letter-spacing:-.04em!important; }
+[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseTitle"] { grid-area:title; min-width:0; align-self:center; }
+[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseTitle"]>button { overflow:visible!important; max-width:100%; white-space:normal!important; color:var(--text)!important; font-size:clamp(24px,7vw,32px)!important; line-height:1!important; letter-spacing:-.04em!important; text-align:left; }
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseTitle"]>span { margin-top:6px!important; padding:5px 10px!important; color:#fff!important; font-size:10px!important; }
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeSwapButton"] { grid-area:swap; align-self:start; padding:8px 11px!important; color:var(--text-secondary)!important; border:1px solid var(--aw-line)!important; border-radius:999px!important; background:var(--surface2)!important; font-size:10px!important; }
 
-/* Larger exercise image, closer to the approved mockup. */
-[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseImage"] { grid-area:image; position:relative; width:100%!important; height:clamp(210px,34vh,330px)!important; overflow:hidden!important; border:1px solid var(--aw-line)!important; border-radius:22px!important; background:#090b0e!important; box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 12px 28px rgba(0,0,0,.18); }
+/* Larger exercise image, but always contained inside the app viewport. */
+[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseImage"] { grid-area:image; position:relative; width:100%!important; height:clamp(210px,34vh,300px)!important; overflow:hidden!important; border:1px solid var(--aw-line)!important; border-radius:22px!important; background:#090b0e!important; box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 12px 28px rgba(0,0,0,.18); }
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseImage"] img { width:100%!important; height:100%!important; object-fit:contain!important; padding:3px; }
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseImage"]::after { content:'Техника'; position:absolute; right:10px; bottom:10px; padding:6px 10px; color:#fff; border:1px solid rgba(255,255,255,.15); border-radius:999px; background:rgba(8,10,14,.72); font-size:10px; font-weight:800; backdrop-filter:blur(10px); }
 
-/* Sets: remove the old red swipe/delete traces completely. */
-[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeSets"] { margin:2px clamp(14px,3vw,22px) 0; padding:10px!important; border:1px solid var(--aw-line)!important; border-radius:19px!important; background:color-mix(in srgb,var(--card-solid) 96%,transparent)!important; box-shadow:0 10px 25px rgba(0,0,0,.10); }
+/* Sets: neutral rows, no permanent red delete background/borders. */
+[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeSets"] { margin:2px 18px 0; padding:10px!important; border:1px solid var(--aw-line)!important; border-radius:19px!important; background:color-mix(in srgb,var(--card-solid) 96%,transparent)!important; box-shadow:0 10px 25px rgba(0,0,0,.10); }
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeSetLabels"] { padding:0 4px 7px!important; color:var(--text-muted)!important; font-size:9px!important; }
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeSetList"] { gap:6px!important; }
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeSetList"] > div { background:transparent!important; }
@@ -90,10 +93,10 @@
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeSetDone"] [class*="activeSetCheck"] { color:#fff!important; background:var(--accent)!important; border-color:var(--accent)!important; }
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeAddSet"] { min-height:42px!important; margin-top:8px!important; color:var(--accent)!important; border:1px dashed color-mix(in srgb,var(--accent) 45%,var(--border))!important; border-radius:12px!important; background:var(--accent-dim)!important; }
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeComment"] input { min-height:42px!important; color:var(--text)!important; border-color:var(--aw-line)!important; border-radius:12px!important; background:var(--surface2)!important; font-size:12px!important; }
-[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeSwapPanel"] { margin:0 clamp(14px,3vw,22px) 10px!important; border-radius:18px!important; }
+[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeSwapPanel"] { margin:0 18px 10px!important; border-radius:18px!important; }
 
-/* Bottom actions */
-[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeActions"] { right:max(12px,calc((100vw - 650px)/2 + 12px))!important; left:max(12px,calc((100vw - 650px)/2 + 12px))!important; bottom:max(9px,env(safe-area-inset-bottom,0px))!important; padding:7px!important; border:1px solid var(--aw-line)!important; border-radius:21px!important; background:color-mix(in srgb,var(--nav-bg) 94%,transparent)!important; box-shadow:0 18px 45px rgba(0,0,0,.28)!important; }
+/* Bottom actions stay inside the phone frame. */
+[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeActions"] { right:12px!important; left:12px!important; bottom:max(9px,env(safe-area-inset-bottom,0px))!important; padding:7px!important; border:1px solid var(--aw-line)!important; border-radius:21px!important; background:color-mix(in srgb,var(--nav-bg) 94%,transparent)!important; box-shadow:0 18px 45px rgba(0,0,0,.28)!important; }
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeActions"] button { min-height:53px!important; border-radius:15px!important; font-size:13px!important; }
 
 /* List mode remains dense/reorder-friendly. */
@@ -102,6 +105,6 @@
 @media (max-width:390px) {
  [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseImage"] { display:block!important; height:190px!important; }
  [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseTitle"]>button { font-size:23px!important; }
- [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeSets"] { margin-inline:10px; }
- [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseSwipeArea"] { margin-inline:-18px!important; padding-inline:18px!important; }
+ [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeSets"] { margin-inline:12px; }
+ [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseHeader"] { padding-inline:12px!important; }
 }
