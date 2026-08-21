@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { ChefHat, Coffee, Cookie, Moon, Search, Sparkles, Sun } from 'lucide-react'
+import { Camera, ChefHat, Coffee, Cookie, Moon, ScanLine, Search, Sparkles, Sun, X } from 'lucide-react'
 import SwipeActions from '../common/SwipeActions'
 import useFood from '../../hooks/useFood'
 import BarcodeScanner from './BarcodeScanner'
@@ -37,8 +37,16 @@ const shiftIsoDate = (iso, days) => {
   return date.toISOString().split('T')[0]
 }
 
+const localDateKey = (date = new Date()) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export default function FoodScreen({ state, dispatch, aiCall, intent, onSaveGoals }) {
   const [showGoals, setShowGoals] = useState(false)
+  const [showAddMenu, setShowAddMenu] = useState(false)
   const food = useFood({ state, dispatch, aiCall })
   const {
     tab, setTab, logMode, setLogMode, meal, setMeal, query, setQuery, results, setResults,
@@ -64,7 +72,7 @@ export default function FoodScreen({ state, dispatch, aiCall, intent, onSaveGoal
   const remaining = Math.max(0, goals.calories - Math.round(totals.cal))
   const percentage = goals.calories > 0 ? Math.min(Math.round(totals.cal / goals.calories * 100), 100) : 0
   const dayTitle = new Date(`${selectedDate}T12:00:00`).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateKey()
   const swipeStartX = React.useRef(null)
   const changeDay = delta => setSelectedDate(current => shiftIsoDate(current, delta))
   const handleDaySwipeStart = event => {
@@ -90,6 +98,24 @@ export default function FoodScreen({ state, dispatch, aiCall, intent, onSaveGoal
     setShowGoals(false)
   }
 
+  const chooseAddAction = action => {
+    setShowAddMenu(false)
+    if (action === 'ai') {
+      setTab('ai')
+      return
+    }
+    if (action === 'barcode') {
+      setManualMode(false)
+      setTab('add')
+      setShowBarcodeScanner(true)
+      return
+    }
+    if (action === 'manual') {
+      setTab('add')
+      setManualMode(true)
+    }
+  }
+
   useEffect(() => {
     if (!intent) return
     if (intent.type === 'barcode' || intent.type === 'qr' || intent.type === 'code') {
@@ -109,6 +135,45 @@ export default function FoodScreen({ state, dispatch, aiCall, intent, onSaveGoal
       {showGoals && <NutritionGoalsModal goals={goals} onSave={saveGoals} onClose={() => setShowGoals(false)} />}
       {showBarcodeScanner && <BarcodeScanner onDetect={handleBarcodeDetect} onClose={() => setShowBarcodeScanner(false)} />}
       {missingBarcode && <MissingBarcodeProduct product={missingBarcode} onComplete={completeMissingBarcode} onClose={() => setMissingBarcode(null)} />}
+      {showAddMenu && (
+        <div className={styles.addMenuBackdrop} onClick={() => setShowAddMenu(false)}>
+          <section className={styles.addMenuSheet} onClick={event => event.stopPropagation()} aria-modal="true" role="dialog" aria-label="Добавить еду">
+            <div className={styles.addMenuHead}>
+              <div><span>Питание</span><h2>Добавить еду</h2></div>
+              <button onClick={() => setShowAddMenu(false)} aria-label="Закрыть"><X size={19} /></button>
+            </div>
+            <div className={styles.addMenuList}>
+              <button onClick={() => chooseAddAction('ai')}>
+                <span className={styles.addMenuIcon}><img src="/assets/ui-icons-v3/ai.png" alt="" /></span>
+                <span><strong>AI-поиск еды</strong><small>Опишите блюдо текстом или голосом — мы рассчитаем КБЖУ.</small></span>
+              </button>
+              <button onClick={() => chooseAddAction('barcode')}>
+                <span className={styles.addMenuIcon}><img src="/assets/ui-icons-v3/barcode.png" alt="" /></span>
+                <span><strong>Сканировать штрих-код</strong><small>Найдите продукт по коду на упаковке.</small></span>
+                <ScanLine size={18} />
+              </button>
+              <label className={styles.addMenuPhoto}>
+                <span className={styles.addMenuIcon}><img src="/assets/ui-icons-v3/camera-food.png" alt="" /></span>
+                <span><strong>Фото еды</strong><small>Сфотографируйте блюдо для распознавания.</small></span>
+                <Camera size={18} />
+                <input type="file" accept="image/*" capture="environment" onChange={event => {
+                  const file = event.target.files?.[0]
+                  if (!file) return
+                  setShowAddMenu(false)
+                  setManualMode(false)
+                  setTab('add')
+                  handleScan(file)
+                  event.target.value = ''
+                }} />
+              </label>
+              <button onClick={() => chooseAddAction('manual')}>
+                <span className={`${styles.addMenuIcon} ${styles.addMenuPencil}`}><FoodPencilIcon size={28} /></span>
+                <span><strong>Ввести вручную</strong><small>Добавьте продукт и укажите калории и БЖУ вручную.</small></span>
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
       <header className={styles.header}>
         <button className={styles.headerButton} onClick={() => changeDay(-1)} aria-label="Предыдущий день"><FoodChevronIcon direction="left" size={22} /></button>
@@ -152,7 +217,7 @@ export default function FoodScreen({ state, dispatch, aiCall, intent, onSaveGoal
           <div className={styles.logHeader}>
             <div><span className={styles.eyebrow}>{selectedDate === today ? 'Сегодня' : dayTitle}</span><h2>Приёмы пищи</h2></div>
             <div className={styles.logActions}>
-              <button className={styles.addFood} onClick={() => setTab('ai')}><FoodPlusIcon size={20} /><span>Добавить</span></button>
+              <button className={styles.addFood} onClick={() => setShowAddMenu(true)}><FoodPlusIcon size={20} /><span>Добавить</span></button>
               <div className={styles.viewToggle}>
                 <button className={logMode === 'list' ? styles.viewActive : ''} onClick={() => setLogMode('list')} aria-label="Список"><FoodBowlIcon size={22} active={logMode === 'list'} /></button>
                 <button className={logMode === 'calendar' ? styles.viewActive : ''} onClick={() => setLogMode('calendar')} aria-label="Календарь"><FoodCalendarIcon size={21} active={logMode === 'calendar'} /></button>
@@ -193,7 +258,7 @@ export default function FoodScreen({ state, dispatch, aiCall, intent, onSaveGoal
                   </article>
                 )
               })}
-              {entry.foods.length > 0 && <button className={styles.addMeal} onClick={() => setTab('ai')}><FoodAiIcon size={20} /> Добавить через AI</button>}
+              {entry.foods.length > 0 && <button className={styles.addMeal} onClick={() => setShowAddMenu(true)}><FoodPlusIcon size={20} /> Добавить еду</button>}
             </div>
           )}
         </section>
