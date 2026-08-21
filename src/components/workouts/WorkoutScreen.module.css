@@ -78,27 +78,28 @@
 .builderSetValue { flex: 1; padding: 10px 4px; color: var(--text); border: 1px solid var(--border); border-radius: 9px; background: var(--surface2); font-family: var(--mono); font-size: 14px; font-weight: 800; text-align: center; }
 .builderComment { padding: 11px 12px; border-radius: 11px; font-size: 12px; }
 
-.activeWorkout { display: flex; flex-direction: column; gap: 12px; padding-bottom: 88px; }
-.activeSummary { display: flex; align-items: center; justify-content: space-between; padding: 19px 20px; border: 1px solid var(--border); border-radius: 24px; background: var(--card-solid); box-shadow: var(--shadow-soft); }
-.activeTime { color: var(--accent); font-family: var(--mono); font-size: 36px; font-weight: 800; letter-spacing: -.04em; }
-.activeTimeLabel { margin-top: 2px; color: var(--text-muted); font-size: 11px; font-weight: 650; }
-.activeWorkoutName { max-width: 45%; color: var(--text); font-size: 13px; font-weight: 750; text-align: right; }
-.activeExerciseNav { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
+.activeWorkout { display: flex; flex-direction: column; gap: 9px; padding-bottom: 88px; }
+.activeSummary { position: sticky; z-index: 30; top: 0; display: flex; min-height: 62px; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 15px; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--bg) 93%, transparent); box-shadow: 0 8px 16px color-mix(in srgb, var(--bg) 68%, transparent); backdrop-filter: blur(12px); }
+.activeTime { color: var(--accent); font-family: var(--mono); font-size: 23px; font-weight: 800; letter-spacing: -.04em; }
+.activeTimeLabel { margin-top: 0; color: var(--text-muted); font-size: 9px; font-weight: 700; }
+.activeWorkoutName { overflow: hidden; max-width: 68%; color: var(--text); font-family: var(--workout-display); font-size: 18px; font-weight: 820; letter-spacing: -.025em; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.activeExerciseNav { display: flex; align-items: center; justify-content: space-between; min-height: 38px; padding: 0 5px; }
 .activeExerciseProgress { color: var(--text-muted); font-family: var(--mono); font-size: 12px; font-weight: 700; }
 .activeExerciseNavButtons { display: flex; align-items: center; gap: 6px; }
 .activeExerciseNavButtons > button:not(.activeModeToggle) { display: grid; place-items: center; width: 34px; height: 34px; color: var(--text); border: 1px solid var(--border); border-radius: 11px; background: var(--surface2); }
 .activeExerciseNavButtons > button:not(.activeModeToggle):disabled { opacity: .35; }
 .activeModeToggle { display: flex; align-items: center; gap: 5px; height: 34px; padding: 0 11px; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 11px; background: var(--surface2); font-size: 11px; font-weight: 750; }
 .activeExerciseSwipeArea { overflow: hidden; touch-action: pan-y; }
-.activeExerciseCard { display: flex; min-height: 450px; flex-direction: column; overflow: hidden; border: 1px solid var(--border); border-radius: 22px; background: var(--card-solid); box-shadow: var(--shadow-soft); }
-.activeExerciseHeader { display: flex; align-items: center; gap: 9px; padding: 12px; }
+.activeExerciseCard { display: flex; min-height: 450px; flex-direction: column; border: 1px solid var(--border); border-radius: 22px; background: var(--card-solid); box-shadow: var(--shadow-soft); }
+.activeExerciseSwipeArea .activeExerciseHeader { position: sticky; z-index: 8; top: 62px; box-shadow: 0 8px 14px color-mix(in srgb, var(--card-solid) 78%, transparent); }
+.activeExerciseHeader { display: flex; align-items: center; gap: 9px; padding: 11px 12px; border-radius: 21px 21px 0 0; background: var(--card-solid); }
 .activeDragHandle { width: 30px; height: 48px; }
 .activeExerciseNumber { min-width: 20px; color: var(--accent); font-family: var(--mono); font-size: 18px; font-weight: 800; text-align: center; }
-.activeExerciseImage { overflow: hidden; flex: 0 0 auto; width: 52px; height: 52px; padding: 0; border: 1px solid var(--border); border-radius: 14px; background: var(--surface2); }
+.activeExerciseImage { overflow: hidden; flex: 0 0 auto; width: 38px; height: 38px; padding: 0; border: 1px solid var(--border); border-radius: 11px; background: var(--surface2); }
 .activeExerciseImage img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .activeExerciseTitle { min-width: 0; flex: 1; }
-.activeExerciseTitle > button { display: block; overflow: hidden; width: 100%; padding: 0; color: var(--text); background: transparent; font-size: 14px; font-weight: 800; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
-.activeExerciseTitle > span { display: inline-block; margin-top: 5px; padding: 3px 8px; color: #fff; border-radius: 999px; font-size: 9px; font-weight: 800; }
+.activeExerciseTitle > button { display: block; overflow: hidden; width: 100%; padding: 0; color: var(--text); background: transparent; font-family: var(--workout-display); font-size: 22px; font-weight: 820; line-height: 1.04; letter-spacing: -.035em; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.activeExerciseTitle > span { display: inline-block; margin-top: 4px; padding: 3px 8px; color: #fff; border-radius: 999px; font-size: 9px; font-weight: 800; }
 .activeSwapButton { flex: 0 0 auto; padding: 7px 9px; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 10px; background: var(--surface2); font-size: 10px; font-weight: 750; }
 .activeSwapPanel { margin: 0 12px 12px; padding: 11px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface2); }
 .activeSwapHeading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; color: var(--text-secondary); font-size: 11px; font-weight: 750; }

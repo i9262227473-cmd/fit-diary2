@@ -102,7 +102,7 @@ export default function RestTimer({ duration = 90, onClose, exerciseName, setInf
           </div>
         </div>
       </div>
-      {exerciseName && <div style={{ textAlign: 'center' }}><div style={{ fontSize: 16, fontWeight: 600 }}>{exerciseName}</div>{setInfo && <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>{setInfo}</div>}</div>}
+      {exerciseName && <div style={{ textAlign: 'center' }}><div style={{ fontSize: 16, fontWeight: 700, color: '#f5f5f5' }}>{exerciseName}</div>{setInfo && <div style={{ fontSize: 13, color: '#aeb9c8', marginTop: 4 }}>{setInfo}</div>}</div>}
       <button onClick={() => { closedRef.current = true; onClose() }} style={{ background: '#222', color: '#f5f5f5', border: '1px solid #2e2e2e', borderRadius: 14, padding: '14px 28px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Пропустить</button>
     </div>, document.body
   )
