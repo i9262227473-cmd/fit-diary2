@@ -822,7 +822,15 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
     return (
       <>
         {pendingLoad && <WeightTransferModal onConfirm={() => resolveWeightTransfer(true)} onDecline={() => resolveWeightTransfer(false)} onClose={() => setPendingLoad(null)} />}
-        <WorkoutLibrary onBack={() => setView('list')} profile={state.profile} onStart={(program) => startFromTemplate(program, 'active', 'library')} />
+        <WorkoutLibrary
+          onBack={() => setView('list')}
+          profile={state.profile}
+          onStart={(program, day, dayIndex) => startFromTemplate({
+            id: `${program.id}-${dayIndex}`,
+            name: `${program.name} · ${day.name}`,
+            exercises: day.exercises,
+          }, 'active', 'library')}
+        />
       </>
     )
   }
