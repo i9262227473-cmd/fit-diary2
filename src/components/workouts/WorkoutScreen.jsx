@@ -731,12 +731,12 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
             <div className={styles.activeExerciseNav}>
               <span className={styles.activeExerciseProgress}>{wk.exercises.length ? Math.min(activeExIndex + 1, wk.exercises.length) : 0} / {wk.exercises.length}</span>
               <div className={styles.activeExerciseNavButtons}>
-                <button onClick={() => goToExercise('prev')} disabled={activeExIndex === 0} aria-label="Предыдущее упражнение"><ChevronLeft size={18} /></button>
+                {activeExIndex > 0 && <button onClick={() => goToExercise('prev')} aria-label="Предыдущее упражнение"><ChevronLeft size={18} /></button>}
                 <button className={styles.activeModeToggle} onClick={() => setActiveViewMode('list')}>
                   <WorkoutListIcon size={16} />
                   <span>Список</span>
                 </button>
-                <button onClick={() => goToExercise('next')} aria-label={activeExIndex === wk.exercises.length - 1 ? 'Завершить тренировку' : 'Следующее упражнение'}><ChevronRight size={18} /></button>
+                {activeExIndex < wk.exercises.length - 1 && <button onClick={() => goToExercise('next')} aria-label="Следующее упражнение"><ChevronRight size={18} /></button>}
               </div>
             </div>
             <div
