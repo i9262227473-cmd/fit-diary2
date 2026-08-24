@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ChevronLeft, Clock, Dumbbell, Home, Play, Repeat, ShieldAlert, Sparkles, Target } from 'lucide-react'
-import { getProgramFit, PROGRAM_CATEGORIES, WORKOUT_PROGRAMS } from '../../data/workoutPrograms'
+import { CURATED_PROGRAM_CATEGORIES, CURATED_WORKOUT_PROGRAMS, getCuratedProgramFit } from '../../data/workoutPrograms'
 
 const PLACE_LABEL = { gym: 'Зал', home: 'Дома', both: 'Зал или дома' }
 const LEVEL_COLOR = { 'Новичок': '#6fcaa0', 'Средний': '#f59e0b', 'Продвинутый': '#ef4444' }
@@ -13,14 +13,16 @@ export default function WorkoutLibrary({ onBack, onStart, profile }) {
   const [activeCategory, setActiveCategory] = useState('recommended')
   const [selectedProgram, setSelectedProgram] = useState(null)
 
-  const visiblePrograms = WORKOUT_PROGRAMS
-    .filter(p => activeCategory === 'recommended' ? getProgramFit(p, profile).recommended : activeCategory === 'all' || p.category === activeCategory)
-    .sort((a, b) => Number(getProgramFit(b, profile).recommended) - Number(getProgramFit(a, profile).recommended))
+  const visiblePrograms = CURATED_WORKOUT_PROGRAMS
+    .filter(p => activeCategory === 'recommended' ? getCuratedProgramFit(p, profile).recommended : activeCategory === 'all' || p.category === activeCategory)
+    .sort((a, b) => Number(getCuratedProgramFit(b, profile).recommended) - Number(getCuratedProgramFit(a, profile).recommended))
 
   if (selectedProgram) {
     const p = selectedProgram
-    const muscles = [...new Set(p.exercises.map(e => e.muscle).filter(Boolean))]
-    const fit = getProgramFit(p, profile)
+    const days = p.days || []
+    const allExercises = days.flatMap(d => d.exercises || [])
+    const muscles = [...new Set(allExercises.map(e => e.muscle).filter(Boolean))]
+    const fit = getCuratedProgramFit(p, profile)
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 90 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -59,21 +61,20 @@ export default function WorkoutLibrary({ onBack, onStart, profile }) {
 
         <div style={{ background: '#1a1a1a', border: '1px solid #2e2e2e', borderRadius: 16, overflow: 'hidden' }}>
           <div style={{ padding: '12px 14px', borderBottom: '1px solid #2a2a2a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 13, fontWeight: 700 }}>Упражнения</span>
-            <span style={{ fontSize: 12, color: '#6b7280', fontFamily: 'var(--mono)' }}>{p.exercises.length} шт.{muscles.length ? ' · ' + muscles.join(', ') : ''}</span>
+            <span style={{ fontSize: 13, fontWeight: 700 }}>Тренировочные дни</span>
+            <span style={{ fontSize: 12, color: '#6b7280', fontFamily: 'var(--mono)' }}>{days.length} {days.length === 1 ? 'день' : 'дня'}{muscles.length ? ' · ' + muscles.join(', ') : ''}</span>
           </div>
-          {p.exercises.map((e, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderBottom: i < p.exercises.length - 1 ? '1px solid #232323' : 'none' }}>
-              <span style={{ padding: '2px 8px', borderRadius: 50, fontSize: 10, color: '#000', background: 'var(--accent)', flexShrink: 0, fontWeight: 700 }}>{e.muscle}</span>
-              <span style={{ fontSize: 13, color: '#f5f5f5', flex: 1, minWidth: 0 }}>{e.name}</span>
-              <span style={{ fontSize: 12, color: '#6b7280', fontFamily: 'var(--mono)', flexShrink: 0 }}>{e.sets.length}×{e.targetReps}</span>
+          {days.map((d, dayIndex) => (
+            <div key={d.name} style={{ padding: '13px 14px', borderBottom: dayIndex < days.length - 1 ? '1px solid #232323' : 'none' }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 8 }}>
+                <span style={{ fontSize: 13, color: '#f5f5f5', fontWeight: 700, flex: 1 }}>{dayIndex + 1}. {d.name}</span>
+                <span style={{ fontSize: 11, color: '#6b7280', fontFamily: 'var(--mono)' }}>{d.exercises.length} упр.</span>
+              </div>
+              <div style={{ fontSize: 12, color: '#9ca3af', lineHeight: 1.45, marginBottom: 10 }}>{d.exercises.map(e => e.name).join(' · ')}</div>
+              <button onClick={() => onStart(p, d, dayIndex)} style={{ width: '100%', border: '1px solid var(--accent)', color: 'var(--accent)', background: 'transparent', borderRadius: 10, padding: '10px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Начать этот день</button>
             </div>
           ))}
         </div>
-
-        <button onClick={() => onStart(p)} style={{ position: 'sticky', bottom: 14, background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 14, padding: '15px', fontSize: 14, fontWeight: 700, width: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textTransform: 'uppercase', letterSpacing: 0.5, boxShadow: '0 8px 20px rgba(0,0,0,0.35)' }}>
-          <Play size={16} /> Начать
-        </button>
       </div>
     )
   }
@@ -94,7 +95,7 @@ export default function WorkoutLibrary({ onBack, onStart, profile }) {
         <button onClick={() => setActiveCategory('all')} style={{ flexShrink: 0, padding: '8px 14px', borderRadius: 11, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: activeCategory === 'all' ? 'var(--accent)' : '#1a1a1a', color: activeCategory === 'all' ? '#000' : '#9ca3af', border: `1px solid ${activeCategory === 'all' ? 'var(--accent)' : '#2e2e2e'}` }}>
           Все
         </button>
-        {PROGRAM_CATEGORIES.map(c => (
+        {CURATED_PROGRAM_CATEGORIES.map(c => (
           <button key={c.key} onClick={() => setActiveCategory(c.key)} style={{ flexShrink: 0, padding: '8px 14px', borderRadius: 11, fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', background: activeCategory === c.key ? 'var(--accent)' : '#1a1a1a', color: activeCategory === c.key ? '#000' : '#9ca3af', border: `1px solid ${activeCategory === c.key ? 'var(--accent)' : '#2e2e2e'}` }}>
             {c.label}
           </button>
@@ -107,14 +108,14 @@ export default function WorkoutLibrary({ onBack, onStart, profile }) {
           <div style={{ fontSize: 15, fontWeight: 600, color: '#9ca3af' }}>{activeCategory === 'recommended' ? 'Заполните уровень и цель в профиле' : 'В этой категории пока пусто'}</div>
         </div>
       ) : visiblePrograms.map(p => (
-        <button key={p.id} onClick={() => setSelectedProgram(p)} style={{ textAlign: 'left', background: '#1a1a1a', border: `1px solid ${getProgramFit(p, profile).recommended ? 'rgba(111,202,160,.45)' : '#2e2e2e'}`, borderRadius: 16, padding: '14px 16px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <button key={p.id} onClick={() => setSelectedProgram(p)} style={{ textAlign: 'left', background: '#1a1a1a', border: `1px solid ${getCuratedProgramFit(p, profile).recommended ? 'rgba(111,202,160,.45)' : '#2e2e2e'}`, borderRadius: 16, padding: '14px 16px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
             <span style={{ fontSize: 15, fontWeight: 700, color: '#f5f5f5' }}>{p.name}</span>
             <span style={{ padding: '3px 9px', borderRadius: 7, fontSize: 10, fontWeight: 700, flexShrink: 0, background: '#161616', border: `1px solid ${LEVEL_COLOR[p.level] || '#2e2e2e'}`, color: LEVEL_COLOR[p.level] || '#9ca3af' }}>{p.level}</span>
           </div>
           <span style={{ fontSize: 12, color: '#9ca3af', lineHeight: 1.4 }}>{p.description}</span>
-          <span style={{ fontSize: 11, color: '#6b7280', fontFamily: 'var(--mono)' }}>{PLACE_LABEL[p.place] || p.place} · {p.duration} · {p.exercises.length} упр.</span>
-          {getProgramFit(p, profile).recommended && <span style={{ fontSize: 11, fontWeight: 700, color: '#8ed9aa' }}>Подходит вашему профилю</span>}
+          <span style={{ fontSize: 11, color: '#6b7280', fontFamily: 'var(--mono)' }}>{PLACE_LABEL[p.place] || p.place} · {p.duration} · {p.days.length} {p.days.length === 1 ? 'день' : 'дня'}</span>
+          {getCuratedProgramFit(p, profile).recommended && <span style={{ fontSize: 11, fontWeight: 700, color: '#8ed9aa' }}>Подходит вашему профилю</span>}
         </button>
       ))}
     </div>
