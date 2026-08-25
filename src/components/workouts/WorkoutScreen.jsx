@@ -321,13 +321,13 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
         <div className={styles.activeExerciseHeader}>
           {draggable && <ExerciseDragHandle dragHandleProps={dragReorder.getHandleProps(ex.uid)} className={styles.activeDragHandle} />}
           <span className={styles.activeExerciseNumber}>{eI+1}</span>
-          {media && <button className={styles.activeExerciseImage} onClick={() => setTechFor({ name: ex.name, muscle: ex.muscle })}><img src={media.start} alt="" /></button>}
           <div className={styles.activeExerciseTitle}>
             <button onClick={() => setTechFor({ name: ex.name, muscle: ex.muscle })}>{ex.name}</button>
             <span style={{ background: M_COLORS[ex.muscle] || 'var(--accent)' }}>{ex.muscle}</span>
           </div>
           <button className={styles.activeSwapButton} onClick={() => setSwapFor(swapFor === eI ? null : eI)}>Заменить</button>
         </div>
+        {media && <button className={styles.activeExerciseImage} onClick={() => setTechFor({ name: ex.name, muscle: ex.muscle })}><img src={media.start} alt="" /></button>}
         {swapFor === eI && (
           <div className={styles.activeSwapPanel}>
             <div className={styles.activeSwapHeading}>
