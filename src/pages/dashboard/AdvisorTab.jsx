@@ -8,7 +8,7 @@ const loadHistory = () => { try { return JSON.parse(localStorage.getItem(STORAGE
 const saveHistory = (h) => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(h)) } catch {} }
 
 export default function AdvisorTab() {
-  const { profile, aiCall, entries } = useStore()
+  const { profile, aiCall, entries, askConfirm } = useStore()
   const [messages, setMessages] = useState(loadHistory)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -60,8 +60,8 @@ export default function AdvisorTab() {
     }
   }
 
-  const clearHistory = () => {
-    if (confirm('Очистить историю переписки?')) {
+  const clearHistory = async () => {
+    if (await askConfirm('Очистить историю переписки?')) {
       setMessages([])
       saveHistory([])
     }

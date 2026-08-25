@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
+import { useStore } from '../../store'
 
 /**
  * iOS-style swipe actions: swipe left to reveal Edit + Delete buttons.
@@ -16,6 +17,7 @@ export default function SwipeActions({
   editLabel = 'Изменить',
   deleteLabel = 'Удалить',
 }) {
+  const askConfirm = useStore(s => s.askConfirm)
   const EDIT_W = onEdit ? 76 : 0
   const DELETE_W = 76
   const MAX = EDIT_W + DELETE_W
@@ -78,8 +80,8 @@ export default function SwipeActions({
     }
   }
 
-  const handleDelete = () => {
-    const confirmed = !confirmText || window.confirm(confirmText)
+  const handleDelete = async () => {
+    const confirmed = !confirmText || await askConfirm(confirmText)
     if (!confirmed) return
     setDx(-500)
     window.setTimeout(onDelete, 180)

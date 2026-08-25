@@ -5,6 +5,7 @@ import { useStore, API_URL } from './store'
 import { fetchJSON } from './data/cloudSync'
 import { reconcileWorkoutData, reconcileExerciseProgress } from './data/workoutSync'
 import useOnlineStatus from './hooks/useOnlineStatus'
+import ConfirmModal from './components/common/ConfirmModal'
 
 import AuthPage from './pages/AuthPage'
 import OnboardingPage from './pages/OnboardingPage'
@@ -122,6 +123,7 @@ export default function App() {
           Нет соединения с интернетом — данные сохраняются локально, ИИ-функции временно недоступны
         </div>
       )}
+      <ConfirmModal />
       <Routes>
         <Route path="/auth" element={
           user ? <Navigate to={getRedirect()} /> : <AuthPage />

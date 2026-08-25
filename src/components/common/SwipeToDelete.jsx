@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { Trash2 } from 'lucide-react'
+import { useStore } from '../../store'
 
 /**
  * Mobile swipe-to-delete container.
@@ -12,6 +13,7 @@ export default function SwipeToDelete({
   confirmText,
   radius = 18,
 }) {
+  const askConfirm = useStore(s => s.askConfirm)
   const [dx, setDx] = useState(0)
   const [dragging, setDragging] = useState(false)
   const start = useRef({ x: 0, y: 0 })
@@ -51,7 +53,7 @@ export default function SwipeToDelete({
     axis.current = null
   }
 
-  const handleEnd = (event) => {
+  const handleEnd = async (event) => {
     if (disabled) return
     setDragging(false)
     if (axis.current === 'x') event.stopPropagation()
@@ -61,7 +63,7 @@ export default function SwipeToDelete({
       return
     }
 
-    const confirmed = !confirmText || window.confirm(confirmText)
+    const confirmed = !confirmText || await askConfirm(confirmText)
     if (!confirmed) {
       reset()
       return

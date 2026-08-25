@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { AlertTriangle, Bell, Check, Info, LogOut, Palette, Sparkles } from 'lucide-react'
+import { useStore } from '../../store'
 import { clearCachedFoods, getCachedFoods } from '../../data/userFoodCache'
 import { getReminderSettings, saveReminderSettings } from '../../hooks/useReminders'
 import { THEMES } from '../../theme'
@@ -11,6 +12,7 @@ const GOAL_LABELS  = { weight_loss:'Похудение', muscle_gain:'Набор
 const ACTIVITY_LABELS = { sedentary:'Сидячий', light:'Лёгкая', moderate:'Умеренная', active:'Высокая', very_active:'Очень высокая' }
 
 export default function ProfileScreen({ profile, saveProfile, signOut, aiCall, theme = 'apple-dark', onThemeChange }) {
+  const askConfirm = useStore(s => s.askConfirm)
   const [section, setSection] = useState('plan')
   const [form, setForm] = useState({
     age:profile?.age||'', weight:profile?.weight||'', height:profile?.height||'',
@@ -74,8 +76,8 @@ export default function ProfileScreen({ profile, saveProfile, signOut, aiCall, t
     }
   })
 
-  const handleClearCache = () => {
-    if (confirm('Удалить все сохранённые AI-продукты? Это нельзя отменить.')) {
+  const handleClearCache = async () => {
+    if (await askConfirm('Удалить все сохранённые AI-продукты? Это нельзя отменить.')) {
       clearCachedFoods()
       setCacheCount(0)
       setCacheCleared(true)

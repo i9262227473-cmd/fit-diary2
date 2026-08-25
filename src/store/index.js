@@ -66,6 +66,30 @@ export const useStore = create(
       entries: [],
       weights: [],
 
+      // ── Кастомный confirm() вместо системного window.confirm() ──
+      // window.confirm() внутри TWA рисует нативный Android-диалог с текстом
+      // "Подтвердите действие на app.sudbase.ru" — это чистый "browser tell",
+      // выдаёт, что приложение — обёртка над сайтом (та же категория риска
+      // модерации RuStore, что и диалог "Сохранить пароль?"). askConfirm()
+      // возвращает Promise<boolean>, отрисовывается через <ConfirmModal/>
+      // в своём стиле, без домена. Не персистится (не входит в partialize).
+      confirmState: null,
+      askConfirm: (message, options = {}) => new Promise((resolve) => {
+        set({
+          confirmState: {
+            message,
+            resolve,
+            confirmLabel: options.confirmLabel || 'Удалить',
+            cancelLabel: options.cancelLabel || 'Отмена',
+          }
+        })
+      }),
+      resolveConfirm: (result) => {
+        const { confirmState } = get()
+        if (confirmState) confirmState.resolve(result)
+        set({ confirmState: null })
+      },
+
       // в”Ђв”Ђ РџРѕР»СѓС‡РёС‚СЊ Р°РєС‚СѓР°Р»СЊРЅС‹Р№ С‚РѕРєРµРЅ (Р°РІС‚Рѕ-РѕР±РЅРѕРІР»РµРЅРёРµ) в”Ђв”Ђ
       getValidToken: async () => {
         const { session } = get()

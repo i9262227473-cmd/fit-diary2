@@ -7,7 +7,7 @@ const STORAGE_KEY = 'analyses-v1'
 const loadAnalyses = () => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch { return [] } }
 
 export default function AnalysesTab() {
-  const { profile, aiCall, getValidToken } = useStore()
+  const { profile, aiCall, getValidToken, askConfirm } = useStore()
   const [analyses, setAnalyses] = useState(loadAnalyses)
   const [scanning, setScanning] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
@@ -78,8 +78,8 @@ ${extractedText}
     }
   }
 
-  const deleteAnalysis = (id) => {
-    if (!confirm('Удалить этот анализ?')) return
+  const deleteAnalysis = async (id) => {
+    if (!(await askConfirm('Удалить этот анализ?'))) return
     const updated = analyses.filter(a => a.id !== id)
     setAnalyses(updated)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
