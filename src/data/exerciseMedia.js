@@ -52,6 +52,7 @@ const EXERCISE_MEDIA = {
   'Жим гантелей сидя': 'seated-dumbbell-press',
   'Жим штанги сидя': 'seated-barbell-press',
   'Жим в тренажёре на плечи': 'machine-shoulder-press',
+  'Рычажный жим на плечи': 'lever-shoulder-press',
   'Жим гантелей стоя': 'standing-dumbbell-press',
   'Махи гантелями в стороны': 'dumbbell-lateral-raise',
   'Махи в стороны в блоке': 'cable-lateral-raise',
