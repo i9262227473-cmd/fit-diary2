@@ -38,7 +38,7 @@ const EXERCISE_MEDIA = {
   'Румынская тяга': 'romanian-deadlift',
   'Становая тяга': 'deadlift',
   'Румынская тяга с гантелями': 'dumbbell-romanian-deadlift',
-  'Сгибание ног в тренажёре': 'leg-curl',
+  'Сгибание ног лёжа в тренажёре': 'leg-curl',
   'Ягодичный мост со штангой': 'barbell-hip-thrust',
   'Ягодичный мост': 'glute-bridge',
   'Отведение ноги в блоке': 'cable-leg-abduction',
