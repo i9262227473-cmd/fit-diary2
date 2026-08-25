@@ -96,6 +96,7 @@
 .activeDragHandle { width: 30px; height: 48px; }
 .activeExerciseNumber { min-width: 20px; color: var(--accent); font-family: var(--mono); font-size: 18px; font-weight: 800; text-align: center; }
 .activeExerciseImage { overflow: hidden; flex: 0 0 auto; width: 38px; height: 38px; padding: 0; border: 1px solid var(--border); border-radius: 11px; background: var(--surface2); }
+.activeExerciseMedia { flex: 0 0 auto; }
 .activeExerciseImage img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .activeExerciseTitle { min-width: 0; flex: 1; }
 .activeExerciseTitle > button { display: block; overflow: hidden; width: 100%; padding: 0; color: var(--text); background: transparent; font-family: var(--workout-display); font-size: 22px; font-weight: 820; line-height: 1.04; letter-spacing: -.035em; text-align: left; text-overflow: ellipsis; white-space: nowrap; }

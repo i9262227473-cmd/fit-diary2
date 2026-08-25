@@ -75,7 +75,8 @@
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeSwapButton"] { grid-area:swap; align-self:start; padding:8px 11px!important; color:var(--text-secondary)!important; border:1px solid var(--aw-line)!important; border-radius:999px!important; background:var(--surface2)!important; font-size:10px!important; }
 
 /* Larger exercise image, but always contained inside the app viewport. */
-[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseImage"] { position:relative; width:calc(100% - 36px)!important; height:clamp(210px,34vh,300px)!important; margin:0 18px 10px!important; overflow:hidden!important; border:1px solid var(--aw-line)!important; border-radius:22px!important; background:#090b0e!important; box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 12px 28px rgba(0,0,0,.18); }
+[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseMedia"] { width:100%; padding:0 18px 10px; }
+[class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseMedia"] [class*="activeExerciseImage"] { position:relative; display:block!important; width:100%!important; height:clamp(210px,34vh,300px)!important; margin:0!important; overflow:hidden!important; border:1px solid var(--aw-line)!important; border-radius:22px!important; background:#090b0e!important; box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 12px 28px rgba(0,0,0,.18); }
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseImage"] img { width:100%!important; height:100%!important; object-fit:contain!important; padding:3px; }
 [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseImage"]::after { content:'Техника'; position:absolute; right:10px; bottom:10px; padding:6px 10px; color:#fff; border:1px solid rgba(255,255,255,.15); border-radius:999px; background:rgba(8,10,14,.72); font-size:10px; font-weight:800; backdrop-filter:blur(10px); }
 
@@ -103,7 +104,8 @@
 [class*="activeWorkout"]:not(:has([class*="activeExerciseSwipeArea"])) [class*="activeExerciseCard"] { margin-bottom:10px; }
 
 @media (max-width:390px) {
- [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseImage"] { display:block!important; width:calc(100% - 24px)!important; height:190px!important; margin-inline:12px!important; }
+ [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseMedia"] { padding-inline:12px; }
+ [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseMedia"] [class*="activeExerciseImage"] { height:190px!important; }
  [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseTitle"]>button { font-size:23px!important; }
  [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeSets"] { margin-inline:12px; }
  [class*="activeWorkout"]:has([class*="activeExerciseSwipeArea"]) [class*="activeExerciseHeader"] { padding-inline:12px!important; }

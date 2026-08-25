@@ -327,7 +327,13 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
           </div>
           <button className={styles.activeSwapButton} onClick={() => setSwapFor(swapFor === eI ? null : eI)}>Заменить</button>
         </div>
-        {media && <button className={styles.activeExerciseImage} onClick={() => setTechFor({ name: ex.name, muscle: ex.muscle })}><img src={media.start} alt="" /></button>}
+        {media && (
+          <div className={styles.activeExerciseMedia}>
+            <button className={styles.activeExerciseImage} onClick={() => setTechFor({ name: ex.name, muscle: ex.muscle })}>
+              <img src={media.start} alt="" />
+            </button>
+          </div>
+        )}
         {swapFor === eI && (
           <div className={styles.activeSwapPanel}>
             <div className={styles.activeSwapHeading}>
