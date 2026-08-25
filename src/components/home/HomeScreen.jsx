@@ -119,6 +119,7 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
   const eaten = Math.round(totals.calories)
   const workoutCalories = Math.round((entry.workouts || []).reduce((sum, workout) => sum + getActiveWorkoutCalories(workout), 0))
   const netCalories = eaten - workoutCalories
+  const calorieBalance = Math.round(goals.calories - netCalories)
   const macroData = [
     { label: 'Белки', value: totals.protein, max: goals.protein, color: 'var(--protein)' },
     { label: 'Жиры', value: totals.fat, max: goals.fat, color: 'var(--amber)' },
@@ -228,6 +229,9 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
         <span>Съедено <strong>{eaten} ккал</strong></span>
         <span>Тренировки <strong>−{workoutCalories} ккал</strong></span>
         <span>Цель <strong>{goals.calories} ккал</strong></span>
+        {calorieBalance >= 0
+          ? <span className={styles.calorieRemain}>Осталось <strong>{calorieBalance} ккал</strong></span>
+          : <span className={styles.calorieOver}>Сверх цели <strong>−{Math.abs(calorieBalance)} ккал</strong></span>}
       </div>
 
       <div className={styles.featuredGrid}>
@@ -258,4 +262,4 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
       </section>
     </div>
   )
-}
+}
