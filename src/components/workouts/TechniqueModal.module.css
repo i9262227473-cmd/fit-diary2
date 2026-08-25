@@ -6,10 +6,7 @@
 .close { display: grid; place-items: center; flex: 0 0 auto; width: 36px; height: 36px; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
 .mediaCard { overflow: hidden; margin-bottom: 13px; padding: 5px; border: 1px solid var(--border); border-radius: 19px; background: var(--card); }
 .mediaCard img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 15px; background: #07111f; }
-.positionTabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 5px; padding: 4px; border-radius: 13px; background: var(--surface2); }
-.positionTabs button { min-height: 38px; color: var(--text-muted); border-radius: 10px; font-size: 11px; font-weight: 750; }
-.positionTabs .positionActive { color: var(--accent); border: 1px solid rgba(255, 255, 255, .08); background: linear-gradient(145deg, #243249, #111a29); }
-.mediaCard p { padding: 7px 7px 4px; color: var(--text-muted); font-size: 9px; font-weight: 600; text-align: center; }
+.mediaCard p { padding: 9px 7px 4px; color: var(--text-muted); font-size: 9px; font-weight: 600; text-align: center; }
 .techCard { margin-bottom: 12px; padding: 16px; color: var(--text); border: 1px solid var(--border); border-radius: 16px; background: var(--card-solid); }
 .sectionTitle { margin-bottom: 10px; color: var(--text-muted); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .techCard ol, .techCard ul { margin: 0; padding-left: 20px; color: var(--text-secondary); font-size: 13px; line-height: 1.7; }

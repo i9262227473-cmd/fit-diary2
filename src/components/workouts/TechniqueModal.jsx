@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AlertTriangle, X } from 'lucide-react'
 import { getTechnique } from '../../data/exerciseTechnique'
@@ -7,7 +6,6 @@ import styles from './TechniqueModal.module.css'
 
 // ─── TECHNIQUE MODAL (окно с техникой упражнения) ─────────────────────﻿
 export default function TechniqueModal({ name, muscle, onClose }) {
-  const [position, setPosition] = useState('start')
   const tech = getTechnique(name)
   const media = getExerciseMedia(name)
   const M_COLORS = { Грудь:'var(--accent)', Спина:'#3b82f6', Ноги:'#f59e0b', Плечи:'#8b5cf6', Трицепс:'#ec4899', Бицепс:'#f97316', Кор:'#06b6d4', Кардио:'#ef4444' }
@@ -24,11 +22,7 @@ export default function TechniqueModal({ name, muscle, onClose }) {
 
         {media && (
           <section className={styles.mediaCard}>
-            <img src={media[position]} alt={`${name} — ${position === 'start' ? 'начальное положение' : 'конечное положение'}`} />
-            <div className={styles.positionTabs}>
-              <button className={position === 'start' ? styles.positionActive : ''} onClick={() => setPosition('start')}>Начало</button>
-              <button className={position === 'end' ? styles.positionActive : ''} onClick={() => setPosition('end')}>Завершение</button>
-            </div>
+            <img src={media.start} alt={`${name} — техника выполнения`} />
             <p>Подсвечены мышцы, которые работают в упражнении</p>
           </section>
         )}
