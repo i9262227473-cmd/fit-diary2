@@ -25,6 +25,17 @@ const EXERCISE_MEDIA = {
   'Тяга резинки к поясу': 'resistance-band-row',
   'Гиперэкстензия': 'hyperextension',
   'Тяга гантели в планке': 'renegade-row',
+  'Тяга с опорой грудью в рычажном тренажёре': 'lever-chest-supported-row-wide',
+  'Тяга с опорой грудью нейтральным хватом': 'lever-chest-supported-row-neutral',
+  'Независимая тяга сверху обратным хватом': 'lever-vertical-pulldown-reverse',
+  'Горизонтальная рычажная тяга одной рукой': 'lever-one-arm-row',
+  'Горизонтальная рычажная тяга двумя руками': 'lever-two-arm-row',
+  'Пуловер в верхнем блоке прямыми руками': 'straight-arm-cable-pullover',
+  'Тяга верхнего блока одной рукой': 'one-arm-lat-pulldown',
+  'Тяга нижнего блока одной рукой к поясу': 'one-arm-cable-row',
+  'Тяга нижнего блока узким нейтральным хватом': 'close-neutral-cable-row',
+  'Тяга верхнего блока широким нейтральным хватом': 'wide-neutral-lat-pulldown',
+  'Тяга верхнего блока с прямой рукоятью': 'straight-bar-lat-pulldown',
 
   'Приседания со штангой': 'barbell-squat',
   'Фронтальные приседания': 'front-squat',
@@ -47,6 +58,13 @@ const EXERCISE_MEDIA = {
   'Подъём на икры сидя': 'seated-calf-raise',
   'Подъём на икры с гантелями': 'dumbbell-calf-raise',
   'Подъём на икры стоя на полу': 'bodyweight-calf-raise',
+  'Сгибание ноги стоя в тренажёре': 'standing-leg-curl',
+  'Разгибание бедра назад в тренажёре': 'machine-glute-kickback',
+  'Отведение бедра в тренажёре стоя': 'standing-hip-abduction',
+  'Болгарские выпады в Смите': 'smith-bulgarian-split-squat',
+  'Присед к скамье': 'box-squat',
+  'Степ-ап на платформу без веса': 'bodyweight-step-up',
+  'Подъём на икры в жиме ногами': 'leg-press-calf-raise',
 
   'Жим штанги стоя': 'standing-barbell-press',
   'Жим гантелей сидя': 'seated-dumbbell-press',
@@ -55,6 +73,7 @@ const EXERCISE_MEDIA = {
   'Рычажный жим на плечи': 'lever-shoulder-press',
   'Независимая тяга сверху в рычажном тренажёре': 'lever-vertical-pulldown',
   'Рычажный жим от груди': 'lever-chest-press',
+  'Рычажный жим от груди на наклонной скамье': 'lever-incline-chest-press',
   'Рычажный жим ногами': 'lever-leg-press',
   'Жим гантелей стоя': 'standing-dumbbell-press',
   'Махи гантелями в стороны': 'dumbbell-lateral-raise',
@@ -64,6 +83,8 @@ const EXERCISE_MEDIA = {
   'Махи в наклоне (задняя дельта)': 'bent-over-rear-delt-raise',
   'Обратная бабочка в тренажёре': 'reverse-pec-deck',
   'Махи в наклоне с резинкой': 'band-rear-delt-fly',
+  'Рычажная тяга на заднюю дельту': 'lever-rear-delt-row',
+  'Тяга к лицу в блоке (face pull)': 'cable-face-pull',
 
   'Жим узким хватом': 'close-grip-bench-press',
   'Брусья (акцент на трицепс)': 'triceps-dips',
@@ -91,6 +112,10 @@ const EXERCISE_MEDIA = {
   'Велосипед': 'bicycle-crunch',
   'Русские скручивания': 'russian-twist',
   'Колесо для пресса': 'ab-wheel-rollout',
+  'Pallof press в блоке': 'pallof-press',
+  'Dead bug (мёртвый жук)': 'dead-bug',
+  'Обратные скручивания': 'reverse-crunch',
+  'Планка с опорой на возвышение': 'incline-plank',
 
   'Беговая дорожка': 'treadmill-running',
   'Эллипс': 'elliptical',
@@ -100,6 +125,9 @@ const EXERCISE_MEDIA = {
   'Бёрпи': 'burpee',
   'Бег на месте / высокие колени': 'high-knees',
   'Джампинг-джек': 'jumping-jack',
+
+  'Жим в тренажёре одной рукой': 'one-arm-machine-chest-press',
+  'Тяга верхнего блока нейтральным хватом': 'neutral-grip-lat-pulldown',
 }
 
 export function getExerciseMedia(name) {
