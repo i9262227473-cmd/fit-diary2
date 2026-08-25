@@ -7,7 +7,7 @@ const STORAGE_KEY = 'analyses-v1'
 const loadAnalyses = () => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch { return [] } }
 
 export default function AnalysesTab() {
-  const { profile, aiCall } = useStore()
+  const { profile, aiCall, getValidToken } = useStore()
   const [analyses, setAnalyses] = useState(loadAnalyses)
   const [scanning, setScanning] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
@@ -25,12 +25,18 @@ export default function AnalysesTab() {
       const gender = p.gender === 'male' ? 'мужчина' : 'женщина'
       const level = { beginner: 'новичок', amateur: 'любитель', advanced: 'продвинутый', professional: 'профессиональный спортсмен' }[p.level] || 'спортсмен'
 
+      const token = await getValidToken()
       const res = await fetch(`${API_URL}/ai-vision`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ b64, type: 'document' })
       })
-      const visionData = await res.json()
+      const visionData = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(res.status === 429
+          ? 'Дневной лимит ИИ-запросов исчерпан. Попробуйте завтра.'
+          : (visionData.error || 'Не удалось распознать документ'))
+      }
       const extractedText = visionData.text || 'Не удалось извлечь текст'
 
       const analysis = await aiCall([{
@@ -65,7 +71,7 @@ ${extractedText}
       setExpandedId(newAnalysis.id)
     } catch (e) {
       console.error(e)
-      alert('Не удалось проанализировать документ. Попробуйте ещё раз.')
+      alert(e.message || 'Не удалось проанализировать документ. Попробуйте ещё раз.')
     } finally {
       setScanning(false)
       setAnalyzing(false)

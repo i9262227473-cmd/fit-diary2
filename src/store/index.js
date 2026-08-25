@@ -191,12 +191,18 @@ export const useStore = create(
 
       // в”Ђв”Ђ AI в”Ђв”Ђ
       aiCall: async (messages, maxTokens = 600) => {
+        const token = await get().getValidToken()
         const res = await fetch(`${API_URL}/ai`, {
           method: 'POST',
-          headers: jsonHeaders(),
+          headers: jsonHeaders(token),
           body: JSON.stringify({ messages, max_tokens: maxTokens })
         })
-        const data = await res.json()
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          throw new Error(data.error || (res.status === 429
+            ? 'Дневной лимит ИИ-запросов исчерпан. Попробуйте завтра.'
+            : 'Не удалось получить ответ ИИ'))
+        }
         return data.choices?.[0]?.message?.content || ''
       },
 
