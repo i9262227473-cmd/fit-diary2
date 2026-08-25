@@ -330,7 +330,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
         {media && (
           <div className={styles.activeExerciseMedia}>
             <button className={styles.activeExerciseImage} onClick={() => setTechFor({ name: ex.name, muscle: ex.muscle })}>
-              <img src={media.start} alt="" />
+              <img data-role="exercise-photo" src={media.start} alt="" />
             </button>
           </div>
         )}
