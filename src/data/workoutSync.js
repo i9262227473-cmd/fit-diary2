@@ -75,10 +75,24 @@ export async function syncWorkoutData(token) {
 
 // Отправить текущую прогрессию по упражнениям на сервер. Вызывать после
 // сохранения результата тренировки и после принятия прогрессии веса.
+//
+// 26.08.2026: раньше эта функция не трогала SYNC_META_KEY — только
+// reconcileExerciseProgress его читал/писал. Из-за этого была гонка:
+// закрыл приложение сразу после тренировки (пока PUT ещё летит в фоне,
+// т.к. вызывается без await) → при следующем открытии
+// reconcileExerciseProgress считал сервер «не свежее нас» по старой
+// отметке и подтягивал ещё не обновлённые серверные данные — свежий
+// расчёт прогрессии веса (readyToProgress/suggestedWeight), только что
+// сохранённый локально, тихо перезатирался. Теперь сразу после успешной
+// отправки помечаем локальные данные как «уже свежие», чтобы более поздняя
+// сверка их не понижала.
 export async function syncExerciseProgress(token) {
   if (!token) return
   const data = readJSON(PROGRESS_KEY, {})
   await syncWithRetry(token, 'PUT', '/progress', { data })
+  const meta = readMeta()
+  meta.progress = new Date().toISOString()
+  writeMeta(meta)
 }
 
 // Обычная подтяжка «если на сервере новее» — используется, когда с этого
