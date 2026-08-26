@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { normReps } from '../pages/planUtils'
-import { saveExerciseResult, suggestWeightFor, acceptProgression } from '../pages/progressTracking'
+import { saveExerciseResult, suggestWeightFor, acceptProgression, evaluateProgression, applyLiveWeightBump } from '../pages/progressTracking'
 import { EXERCISE_DB, MUSCLE_GROUPS, EFF_ORDER, findExerciseByName } from '../data/exerciseDatabase'
 import { createStableId as uid, getDefaultRestSeconds as getDefaultRestSec } from '../utils/workoutUi'
 import { useStore } from '../store'
@@ -294,6 +294,10 @@ export default function useWorkout({ state, dispatch, aiCall }) {
   // {planId, dayIdx} — какой день какого «Своего плана» сейчас активен, чтобы
   // при завершении тренировки продвинуть указатель именно у этого плана.
   const [customPlanCtx, setCustomPlanCtx] = useState(null)
+  // id своего шаблона (не библиотечного и не разового повтора из истории),
+  // из которого запущена текущая тренировка — чтобы при принятии прогрессии
+  // веса «вживую» обновить вес и в самом шаблоне, не только в кэше.
+  const [templateCtx, setTemplateCtx] = useState(null)
 
   const today = new Date().toISOString().split('T')[0]
   const entry = state.entries.find(e => e.date === today) || { date: today, foods: [], workouts: [] }
@@ -474,7 +478,7 @@ export default function useWorkout({ state, dispatch, aiCall }) {
     const day = plan?.days?.[dayIdx]
     if (!day) return
     setWk({ name: day.name || plan.name, exercises: buildExercisesFromTemplate({ exercises: day.exercises || [] }, transferWeights) })
-    setPlanDayIdx(null); resetTimer()
+    setPlanDayIdx(null); setTemplateCtx(null); resetTimer()
     if (mode === 'builder') { setRunning(false); setView('builder') } else { setRunning(true); setView('active') }
     if (mode !== 'builder') { markLastUsedSource('customPlan', plan.id); setCustomPlanCtx({ planId: plan.id, dayIdx }) }
     else setCustomPlanCtx(null)
@@ -506,7 +510,7 @@ export default function useWorkout({ state, dispatch, aiCall }) {
   // Сбросить привязку конструктора к любому плану — используется, когда
   // пользователь начинает совершенно новую тренировку с нуля, чтобы старая
   // метка плана не продвинула чужой план по завершению.
-  const clearPlanContext = () => { setPlanDayIdx(null); setCustomPlanCtx(null) }
+  const clearPlanContext = () => { setPlanDayIdx(null); setCustomPlanCtx(null); setTemplateCtx(null) }
 
   const buildExercisesFromTemplate = (tpl, transferWeights) => (tpl.exercises || []).map(ex => {
     const saved = suggestWeightFor(ex.name)
@@ -515,6 +519,9 @@ export default function useWorkout({ state, dispatch, aiCall }) {
   const applyTemplateLoad = (tpl, mode, transferWeights, sourceKind = 'template', sourceId = tpl.id) => {
     setWk({ name: tpl.name, exercises: buildExercisesFromTemplate(tpl, transferWeights) })
     setPlanDayIdx(null); setCustomPlanCtx(null); resetTimer()
+    // «Свой» шаблон можно потом обновить весом при принятии прогрессии —
+    // библиотечная программа и разовый повтор из истории не редактируются.
+    setTemplateCtx(mode !== 'builder' && sourceKind === 'template' ? { templateId: sourceId } : null)
     if (mode === 'builder') { setRunning(false); setView('builder') } else { setRunning(true); setView('active') }
     // Только реальный старт тренировки (не открытие в конструкторе для правки
     // и не разовый запуск программы из библиотеки) обновляет метку последнего
@@ -557,6 +564,54 @@ export default function useWorkout({ state, dispatch, aiCall }) {
     const set = ex.sets[sI]
     if (!set.done) { setRestInfo({ exercise: ex.name, setInfo: `${sI + 1} подход из ${ex.sets.length}`, duration: ex.restSec || getDefaultRestSec(ex.muscle) }); setShowRestTimer(true) }
     setWk(w => { const exs = [...w.exercises]; exs[eI] = { ...exs[eI], sets: exs[eI].sets.map((s, i) => i === sI ? { ...s, done: !s.done } : s) }; return { ...w, exercises: exs } })
+  }
+  // Принять предложение «пора поднять вес», показанное прямо во время
+  // тренировки сразу после закрытия всех подходов на потолке диапазона (см.
+  // evaluateProgression в WorkoutScreen). Фиксирует новый вес в кэше
+  // прогрессии и, если тренировка запущена из «Своего плана» или «Своего
+  // шаблона», обновляет вес и там — чтобы в следующий раз он подставился
+  // сам, без повторного подтверждения.
+  const acceptLiveProgression = (eI) => {
+    const ex = wk.exercises[eI]
+    if (!ex) return
+    const { suggestedWeight } = evaluateProgression(ex.sets, ex.targetReps)
+    if (!suggestedWeight) return
+    applyLiveWeightBump(ex.name, suggestedWeight)
+    setWk(w => { const exs = [...w.exercises]; exs[eI] = { ...exs[eI], progressionResolved: true }; return { ...w, exercises: exs } })
+    if (customPlanCtx) {
+      const list = getCustomPlans()
+      const idx = list.findIndex(p => p.id === customPlanCtx.planId)
+      if (idx !== -1) {
+        const plan = list[idx]
+        const days = (plan.days || []).map((day, dI) => dI !== customPlanCtx.dayIdx ? day : {
+          ...day,
+          exercises: (day.exercises || []).map(dex => dex.name === ex.name
+            ? { ...dex, sets: (dex.sets || []).map(s => ({ ...s, weight: String(suggestedWeight) })) }
+            : dex),
+        })
+        const next = [...list]; next[idx] = { ...plan, days }
+        saveCustomPlansList(next); setCustomPlans(next); syncPlanInBackground()
+      }
+    }
+    if (templateCtx) {
+      const list = getTemplates()
+      const idx = list.findIndex(t => t.id === templateCtx.templateId)
+      if (idx !== -1) {
+        const tpl = list[idx]
+        const next = [...list]
+        next[idx] = { ...tpl, exercises: (tpl.exercises || []).map(tex => tex.name === ex.name
+          ? { ...tex, sets: (tex.sets || []).map(s => ({ ...s, weight: String(suggestedWeight) })) }
+          : tex) }
+        saveTemplatesList(next); setTemplates(next); syncPlanInBackground()
+      }
+    }
+    syncProgressInBackground()
+  }
+  // Скрыть предложение без принятия — пользователь либо поставит свой вес
+  // вручную (поле веса как и раньше редактируется свободно), либо оставит
+  // как есть.
+  const dismissLiveProgression = (eI) => {
+    setWk(w => { const exs = [...w.exercises]; exs[eI] = { ...exs[eI], progressionResolved: true }; return { ...w, exercises: exs } })
   }
   const completeWorkout = () => { setRunning(false); setShowComplete(true) }
   const saveWorkout = (feedback) => {
@@ -664,7 +719,7 @@ export default function useWorkout({ state, dispatch, aiCall }) {
   })
   const applyPlanLoad = (day, dayIdx, mode, transferWeights) => {
     setWk({ name: day.name + ' (AI)', exercises: buildExercisesFromPlanDay(day, transferWeights) })
-    setPlanDayIdx(dayIdx); setCustomPlanCtx(null); resetTimer()
+    setPlanDayIdx(dayIdx); setCustomPlanCtx(null); setTemplateCtx(null); resetTimer()
     if (mode === 'builder') { setRunning(false); setView('builder') } else { setRunning(true); setView('active') }
     if (mode !== 'builder') markLastUsedSource('plan', null)
   }
@@ -688,7 +743,7 @@ export default function useWorkout({ state, dispatch, aiCall }) {
     histMode, setHistMode, templates, tplSaved, pickerFor, setPickerFor, pendingLoad, setPendingLoad,
     allWorkouts, workoutsByDate, workoutPlace, filteredEx, addEx, toggleEx, updateRest, updateSet, removeSet,
     moveExercise, reorderExercises, updateComment, addSet, removeEx, replaceEx, applyProgression, saveToPlan,
-    saveAsTemplate, deleteTemplate, startFromTemplate, repeatWorkout, toggleSet, completeWorkout, saveWorkout,
+    saveAsTemplate, deleteTemplate, startFromTemplate, repeatWorkout, toggleSet, acceptLiveProgression, dismissLiveProgression, completeWorkout, saveWorkout,
     removeWorkout, saveWorkoutAnalysis, startFromPlan, resolveWeightTransfer,
     editingWorkout, startEditWorkout, cancelEditWorkout, saveEditedWorkout,
     editingTemplateId, startEditTemplate, cancelEditTemplate, saveEditedTemplate,

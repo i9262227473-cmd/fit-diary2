@@ -3,6 +3,7 @@ import { Check, ChevronLeft, ChevronRight, ClipboardList, Dumbbell, Edit2, Libra
 import { EFF_LABEL, EXERCISE_DB as FULL_EXERCISE_DB, findAlternatives, findExerciseByName } from '../../data/exerciseDatabase'
 import { getExerciseMedia } from '../../data/exerciseMedia'
 import useWorkout, { getAiPlanProgress, nextDayIndexWithExercises } from '../../hooks/useWorkout'
+import { evaluateProgression } from '../../pages/progressTracking'
 import useDragReorder from '../../hooks/useDragReorder'
 import { formatLongTime as fmtTimeLong, getDefaultRestSeconds as getDefaultRestSec } from '../../utils/workoutUi'
 import SwipeToDelete from '../common/SwipeToDelete'
@@ -60,7 +61,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
     histMode, setHistMode, templates, tplSaved, pickerFor, setPickerFor, pendingLoad, setPendingLoad,
     allWorkouts, workoutsByDate, workoutPlace, filteredEx, addEx, toggleEx, updateRest, updateSet, removeSet,
     updateComment, addSet, removeEx, replaceEx, applyProgression, saveToPlan,
-    saveAsTemplate, deleteTemplate, startFromTemplate, repeatWorkout, toggleSet, completeWorkout, saveWorkout,
+    saveAsTemplate, deleteTemplate, startFromTemplate, repeatWorkout, toggleSet, acceptLiveProgression, dismissLiveProgression, completeWorkout, saveWorkout,
     removeWorkout, saveWorkoutAnalysis, startFromPlan, resolveWeightTransfer,
     pendingDraft, resumeDraft, discardDraft,
     reorderExercises, editingWorkout, startEditWorkout, cancelEditWorkout, saveEditedWorkout,
@@ -334,6 +335,14 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
 
   const renderActiveExerciseCard = (ex, eI, { draggable = false } = {}) => {
     const media = getExerciseMedia(ex.name)
+    // Живое предложение поднять вес — считаем прямо по текущим подходам
+    // упражнения, без ожидания сохранения всей тренировки. Как только все
+    // подходы отмечены выполненными на верхней границе диапазона повторов —
+    // показываем баннер сразу в карточке. progressionResolved выставляется
+    // при принятии/отклонении, чтобы баннер не всплывал повторно после
+    // ответа пользователя (даже если он потом снова снимет галочку).
+    const liveProgression = !ex.progressionResolved ? evaluateProgression(ex.sets, ex.targetReps) : null
+    const liveSuggestedWeight = liveProgression?.readyToProgress ? liveProgression.suggestedWeight : null
     return (
       <div key={ex.uid || eI} ref={draggable ? dragReorder.setItemRef(ex.uid) : undefined} style={draggable ? dragReorder.getItemStyle(ex.uid) : undefined} className={styles.activeExerciseCard}>
         <div className={styles.activeExerciseHeader}>
@@ -393,6 +402,13 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
             ))}
           </div>
           <button className={styles.activeAddSet} onClick={() => addSet(eI)}><Plus size={19} /> Добавить подход</button>
+          {liveSuggestedWeight && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--accent-dim)', border: '1px solid var(--accent-dim)', borderRadius: 10, padding: '10px 12px', margin: '0 0 12px' }}>
+              <span style={{ fontSize: 12, color: '#6fcaa0', flex: 1 }}>Вы закрыли все повторы — пора поднять вес до <b>{liveSuggestedWeight} кг</b></span>
+              <button onClick={() => dismissLiveProgression(eI)} style={{ padding: '6px 10px', borderRadius: 8, background: 'transparent', border: '1px solid #3a3a3a', color: '#9ca3af', cursor: 'pointer', fontSize: 12, fontWeight: 600, flexShrink: 0 }}>Не сейчас</button>
+              <button onClick={() => acceptLiveProgression(eI)} style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--accent)', border: 'none', color: '#000', cursor: 'pointer', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>Поднять</button>
+            </div>
+          )}
           <div className={styles.activeComment}>
             <label htmlFor={`exercise-comment-${ex.uid || eI}`}><Edit2 size={16} /> Комментарий к упражнению</label>
             <input
