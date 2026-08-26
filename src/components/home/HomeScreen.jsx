@@ -244,7 +244,7 @@ export default function HomeScreen({ state, dispatch, goTo, onFoodAction, aiCall
         <button className={`${styles.featureCard} ${styles.workoutFeature}`} onClick={() => goTo('workout')}>
           <span className={styles.featureHeader}><small>Тренировка</small><ChevronRight size={18} /></span>
           <span className={styles.workoutIllustration} aria-hidden="true">
-            <span className={styles.dumbbell3d}><span className={styles.dumbbellBar} /><span className={`${styles.dumbbellPlate} ${styles.plateOuterLeft}`} /><span className={`${styles.dumbbellPlate} ${styles.plateInnerLeft}`} /><span className={`${styles.dumbbellPlate} ${styles.plateInnerRight}`} /><span className={`${styles.dumbbellPlate} ${styles.plateOuterRight}`} /></span>
+            <img className={styles.workoutIllustrationIcon} src="/assets/ui-icons-v3/workout.png" width="52" height="52" alt="" draggable="false" />
           </span>
           <span className={styles.featureCopy}><strong>{currentWorkout?.name || 'Открыть план'}</strong><em>{workoutExerciseCount > 0 ? `${workoutExerciseCount} упражнений${currentWorkout?.duration ? ` · ${currentWorkout.duration} мин` : ''}` : 'План на сегодня'}</em></span>
         </button>

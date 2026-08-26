@@ -117,7 +117,7 @@ export default function WorkoutPlansScreen({ plans, templates, aiCall, onBack, o
               <SwipeToDelete onDelete={() => onDeletePlan(plan.id)} confirmText="Удалить этот план?" radius={0}>
                 <div style={{ display: 'flex', alignItems: 'center', background: '#1a1a1a' }}>
                   <button onClick={() => setExpandedId(isOpen ? null : plan.id)} style={{ flex: 1, minWidth: 0, textAlign: 'left', padding: '14px 16px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{plan.name}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, color: '#f5f5f5' }}>{plan.name}</div>
                     <div style={{ fontSize: 12, color: '#6b7280', fontFamily: 'var(--mono)' }}>{dayList.length} {dayList.length === 1 ? 'день' : 'дней'}</div>
                   </button>
                   <button onClick={() => startBuilder(plan)} aria-label="Изменить план" style={{ width: 36, height: 36, borderRadius: 10, background: 'transparent', border: 'none', color: 'var(--accent)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 10, flexShrink: 0 }}>
@@ -130,7 +130,7 @@ export default function WorkoutPlansScreen({ plans, templates, aiCall, onBack, o
                   {dayList.map((day, dayIdx) => (
                     <div key={dayIdx} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: dayIdx < dayList.length - 1 ? '1px solid #222' : 'none' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{day.name}</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2, color: '#f5f5f5' }}>{day.name}</div>
                         <div style={{ fontSize: 11, color: '#6b7280' }}>{(day.exercises || []).length} упр.</div>
                       </div>
                       <button onClick={() => onStartDay(plan, dayIdx, 'active')} style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 10, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, textTransform: 'uppercase', flexShrink: 0 }}>

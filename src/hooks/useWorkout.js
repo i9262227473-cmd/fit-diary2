@@ -482,7 +482,13 @@ export default function useWorkout({ state, dispatch, aiCall }) {
   const startFromCustomPlanDay = (plan, dayIdx, mode = 'active') => {
     const day = plan?.days?.[dayIdx]
     if (!day) return
-    if ((day.exercises || []).some(ex => suggestWeightFor(ex.name)?.weight)) { setPendingLoad({ type: 'customPlanDay', plan, dayIdx, mode }); return }
+    // Раньше тут ошибочно проверяли "есть ли вес по этому упражнению в
+    // истории" (suggestWeightFor) — это отдельный, не связанный кэш, из-за
+    // чего свои же веса, сохранённые прямо в плане (при составлении из
+    // своих тренировок), терялись, если этот кэш ещё пуст. Правильная
+    // проверка — есть ли вес в самом плане.
+    const hasOwnWeights = (day.exercises || []).some(ex => (ex.sets || []).some(s => Number(s.weight) > 0))
+    if (hasOwnWeights) { setPendingLoad({ type: 'customPlanDay', plan, dayIdx, mode }); return }
     applyCustomPlanDayLoad(plan, dayIdx, mode, false)
   }
   const advanceCustomPlanProgress = (planId, completedDayIdx) => {

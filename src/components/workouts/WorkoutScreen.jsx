@@ -252,6 +252,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
   const exTouchStartRef = React.useRef(null)
   const exCardWidthRef = React.useRef(320)
   const exSwipeLockRef = React.useRef(false)
+  const exGestureAxisRef = React.useRef(null)
   const [exDragX, setExDragX] = React.useState(0)
   const [exDragTransition, setExDragTransition] = React.useState(false)
   const exSlideStyle = { transform: `translateX(${exDragX}px)`, transition: exDragTransition ? 'transform .26s cubic-bezier(.22,.8,.24,1)' : 'none' }
@@ -284,6 +285,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
     const t = event.touches?.[0]
     if (!t) return
     exTouchStartRef.current = { x: t.clientX, y: t.clientY }
+    exGestureAxisRef.current = null
     exCardWidthRef.current = exCardRef.current?.offsetWidth || exCardWidthRef.current
     setExDragTransition(false)
   }
@@ -292,16 +294,31 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
     const t = event.touches?.[0]
     if (!t) return
     const dx = t.clientX - exTouchStartRef.current.x
+    const dy = t.clientY - exTouchStartRef.current.y
+    // Небольшая "мёртвая зона": не решаем, куда идёт жест, пока палец не
+    // сдвинулся заметно — иначе дрожание пальца в начале свайпа сразу
+    // дёргает карточку. Определившись один раз (горизонталь/вертикаль),
+    // держимся этого решения до конца жеста.
+    if (exGestureAxisRef.current === null) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return
+      exGestureAxisRef.current = Math.abs(dx) > Math.abs(dy) * 1.2 ? 'x' : 'y'
+    }
+    // Жест вертикальный — отдаём его нативному скроллу страницы, карточку
+    // не трогаем вообще (раньше двигали её всегда, отсюда «болтание» по
+    // диагонали при обычном скролле списка подходов).
+    if (exGestureAxisRef.current !== 'x') return
     const width = exCardWidthRef.current || 320
     setExDragX(Math.max(-width, Math.min(width, dx)))
   }
   const onExTouchEnd = (event) => {
-    if (!exTouchStartRef.current || exSwipeLockRef.current) { exTouchStartRef.current = null; return }
+    if (!exTouchStartRef.current || exSwipeLockRef.current) { exTouchStartRef.current = null; exGestureAxisRef.current = null; return }
     const t = event.changedTouches?.[0]
     const startX = exTouchStartRef.current.x
     const startY = exTouchStartRef.current.y
+    const wasHorizontal = exGestureAxisRef.current === 'x'
     exTouchStartRef.current = null
-    if (!t) { setExDragTransition(true); setExDragX(0); return }
+    exGestureAxisRef.current = null
+    if (!t || !wasHorizontal) { setExDragTransition(true); setExDragX(0); return }
     const dx = t.clientX - startX
     const dy = t.clientY - startY
     const width = exCardWidthRef.current || 320
@@ -311,6 +328,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
   }
   const onExTouchCancel = () => {
     exTouchStartRef.current = null
+    exGestureAxisRef.current = null
     if (!exSwipeLockRef.current) { setExDragTransition(true); setExDragX(0) }
   }
 
