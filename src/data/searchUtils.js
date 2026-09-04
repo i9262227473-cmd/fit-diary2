@@ -28,12 +28,13 @@ function foodTokens(value) {
 }
 
 function foodDbItems() {
-  return FOOD_DB.map(([name, cal, prot, fat, carbs]) => ({
+  return FOOD_DB.map(([name, cal, prot, fat, carbs, portionGrams]) => ({
     name,
     cal100: cal,
     prot100: prot,
     fat100: fat,
     carbs100: carbs,
+    ...(portionGrams ? { portionGrams } : {}),
   }))
 }
 
@@ -49,8 +50,9 @@ export function searchFoodSmart(query) {
   const fromDb = FOOD_DB
     .filter(([name]) => name.toLowerCase().includes(lq))
     .slice(0, 15)
-    .map(([name, cal, prot, fat, carbs]) => ({
-      name, cal100: cal, prot100: prot, fat100: fat, carbs100: carbs
+    .map(([name, cal, prot, fat, carbs, portionGrams]) => ({
+      name, cal100: cal, prot100: prot, fat100: fat, carbs100: carbs,
+      ...(portionGrams ? { portionGrams } : {}),
     }))
 
   // 3. Дедупликация через sameMacros (с допуском ±1.5)

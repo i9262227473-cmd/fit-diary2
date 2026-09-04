@@ -61,7 +61,11 @@ export default function FoodSearchPanel({
                   {food.name}
                   {food.isUserCache && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9, padding: '2px 6px', background: 'var(--accent-dim)', color: 'var(--accent)', borderRadius: 4, fontWeight: 600 }}><Sparkles size={9} /> AI</span>}
                 </div>
-                <div style={{ fontSize: 12, color: '#6b7280', fontFamily: 'var(--mono)' }}>{food.cal100} ккал/100г</div>
+                <div style={{ fontSize: 12, color: '#6b7280', fontFamily: 'var(--mono)' }}>
+                  {food.portionGrams
+                    ? `${Math.round((food.cal100 || 0) * food.portionGrams / 100)} ккал / порция (${food.portionGrams} г)`
+                    : `${food.cal100} ккал/100г`}
+                </div>
               </div>
               <ChevronRight size={16} color="#4b5563" />
             </button>

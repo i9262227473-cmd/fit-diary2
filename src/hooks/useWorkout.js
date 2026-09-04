@@ -356,7 +356,18 @@ export default function useWorkout({ state, dispatch, aiCall }) {
     return { ...w, exercises: reordered }
   })
   const updateComment = (eI, val) => setWk(w => { const exs = [...w.exercises]; exs[eI] = { ...exs[eI], comment: val }; return { ...w, exercises: exs } })
-  const addSet = eI => setWk(w => { const exs = [...w.exercises]; const prev = exs[eI].sets[exs[eI].sets.length - 1]; exs[eI] = { ...exs[eI], sets: [...exs[eI].sets, { ...prev, id: uid(), done: false }] }; return { ...w, exercises: exs } })
+  // Новый подход наследует вес последнего подхода — но если для этого
+  // упражнения только что приняли живое предложение поднять вес
+  // (progressionAcceptedWeight, см. acceptLiveProgression), новый подход
+  // сразу стартует с повышенного веса, а не со старого рабочего.
+  const addSet = eI => setWk(w => {
+    const ex = w.exercises[eI]
+    const prev = ex.sets[ex.sets.length - 1]
+    const weight = ex.progressionAcceptedWeight ? String(ex.progressionAcceptedWeight) : prev.weight
+    const exs = [...w.exercises]
+    exs[eI] = { ...ex, sets: [...ex.sets, { ...prev, weight, id: uid(), done: false }] }
+    return { ...w, exercises: exs }
+  })
   const removeEx = eI => setWk(w => ({ ...w, exercises: w.exercises.filter((_, i) => i !== eI) }))
   const replaceEx = (eI, newExercise) => setWk(w => { const exs = [...w.exercises]; exs[eI] = { ...exs[eI], exerciseId: newExercise.id, name: newExercise.name, muscle: newExercise.muscle, type: newExercise.type }; return { ...w, exercises: exs } })
   const applyProgression = (eI) => setWk(w => {
@@ -574,10 +585,21 @@ export default function useWorkout({ state, dispatch, aiCall }) {
   const acceptLiveProgression = (eI) => {
     const ex = wk.exercises[eI]
     if (!ex) return
-    const { suggestedWeight } = evaluateProgression(ex.sets, ex.targetReps)
+    const { suggestedWeight, workWeight } = evaluateProgression(ex.sets, ex.targetReps)
     if (!suggestedWeight) return
     applyLiveWeightBump(ex.name, suggestedWeight)
-    setWk(w => { const exs = [...w.exercises]; exs[eI] = { ...exs[eI], progressionResolved: true }; return { ...w, exercises: exs } })
+    // При записи нового веса обратно в план/шаблон поднимаем только те
+    // подходы, что реально были на рабочем весе (совпадают с workWeight —
+    // максимальным весом среди подходов, по которому и считали прогрессию).
+    // Более лёгкие подходы (например разминочный, поставленный вручную)
+    // не трогаем — иначе разминка сама подтянулась бы к новому рабочему весу.
+    const bumpSet = s => Number(s.weight) === workWeight ? { ...s, weight: String(suggestedWeight) } : s
+    // progressionAcceptedWeight — держим отдельно от веса уже выполненных
+    // подходов (их не трогаем, иначе история тренировки исказится: подход
+    // реально был сделан со старым весом). Используется для видимого
+    // подтверждения в карточке и как стартовый вес для новых подходов,
+    // добавленных после принятия (см. addSet).
+    setWk(w => { const exs = [...w.exercises]; exs[eI] = { ...exs[eI], progressionResolved: true, progressionAcceptedWeight: suggestedWeight }; return { ...w, exercises: exs } })
     if (customPlanCtx) {
       const list = getCustomPlans()
       const idx = list.findIndex(p => p.id === customPlanCtx.planId)
@@ -586,7 +608,7 @@ export default function useWorkout({ state, dispatch, aiCall }) {
         const days = (plan.days || []).map((day, dI) => dI !== customPlanCtx.dayIdx ? day : {
           ...day,
           exercises: (day.exercises || []).map(dex => dex.name === ex.name
-            ? { ...dex, sets: (dex.sets || []).map(s => ({ ...s, weight: String(suggestedWeight) })) }
+            ? { ...dex, sets: (dex.sets || []).map(bumpSet) }
             : dex),
         })
         const next = [...list]; next[idx] = { ...plan, days }
@@ -600,7 +622,7 @@ export default function useWorkout({ state, dispatch, aiCall }) {
         const tpl = list[idx]
         const next = [...list]
         next[idx] = { ...tpl, exercises: (tpl.exercises || []).map(tex => tex.name === ex.name
-          ? { ...tex, sets: (tex.sets || []).map(s => ({ ...s, weight: String(suggestedWeight) })) }
+          ? { ...tex, sets: (tex.sets || []).map(bumpSet) }
           : tex) }
         saveTemplatesList(next); setTemplates(next); syncPlanInBackground()
       }

@@ -30,6 +30,40 @@ export default function DashboardPage() {
   useReminders()
 
   useEffect(() => { applyTheme(theme) }, [theme])
+
+  // Не давать экрану гаснуть, пока приложение открыто и активно (а не только
+  // во время тренировки — раньше wake lock жил только внутри WorkoutScreen
+  // и не спасал, например, при вводе еды через AI-поиск). Держим лок на
+  // весь сеанс работы с приложением, переподхватывая его при возврате из
+  // фона (Screen Wake Lock снимается системой сама при сворачивании).
+  useEffect(() => {
+    if (!('wakeLock' in navigator)) return undefined
+
+    let wakeLock = null
+    let cancelled = false
+
+    const requestLock = async () => {
+      try {
+        wakeLock = await navigator.wakeLock.request('screen')
+        wakeLock.addEventListener('release', () => { wakeLock = null })
+      } catch {
+        // Отказ (нет разрешения/не в фокусе) — не критично, просто нет лока.
+      }
+    }
+    requestLock()
+
+    const onVisibilityChange = () => {
+      if (!cancelled && document.visibilityState === 'visible' && !wakeLock) requestLock()
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+
+    return () => {
+      cancelled = true
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      wakeLock?.release().catch(() => {})
+      wakeLock = null
+    }
+  }, [])
   const openFood = (intent = 'log') => {
     setFoodIntent({ type: intent, id: Date.now() })
     setTab('food')

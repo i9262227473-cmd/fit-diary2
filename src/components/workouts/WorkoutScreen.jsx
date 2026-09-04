@@ -1,5 +1,6 @@
 import React from 'react'
 import { Check, ChevronLeft, ChevronRight, ClipboardList, Dumbbell, Edit2, Library, Play, Plus } from 'lucide-react'
+import { useStore } from '../../store'
 import { EFF_LABEL, EXERCISE_DB as FULL_EXERCISE_DB, findAlternatives, findExerciseByName } from '../../data/exerciseDatabase'
 import { getExerciseMedia } from '../../data/exerciseMedia'
 import useWorkout, { getAiPlanProgress, nextDayIndexWithExercises } from '../../hooks/useWorkout'
@@ -54,6 +55,16 @@ function formatWorkoutDate(value) {
 }
 
 export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onActiveChange }) {
+  const askConfirm = useStore(s => s.askConfirm)
+  // Кнопка внизу активной тренировки называлась просто «Завершить» — легко
+  // спутать с завершением текущего упражнения, хотя на деле это конец всей
+  // тренировки. Явное название кнопки + подтверждение, чтобы случайный тап
+  // не обрывал сессию.
+  const handleFinishWorkout = async () => {
+    if (await askConfirm('Завершить тренировку? Все упражнения будут отмечены как выполненные на сегодня.', { confirmLabel: 'Завершить', cancelLabel: 'Продолжить' })) {
+      completeWorkout()
+    }
+  }
   const {
     view, setView, wk, setWk, exSearch, setExSearch, running, setRunning, timer, resetTimer,
     showRestTimer, setShowRestTimer, restInfo, showComplete, swapFor, setSwapFor,
@@ -458,6 +469,10 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
     return () => onActiveChange?.(false)
   }, [view, onActiveChange])
 
+  // Screen Wake Lock теперь держится на уровне всего приложения
+  // (DashboardPage.jsx) — раньше жил только здесь и не спасал вне активной
+  // тренировки (например, при вводе еды через AI-поиск).
+
   if (view === 'list') {
     return (
       <div className={styles.historyScreen}>
@@ -797,7 +812,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
           <button className={styles.activePause} onClick={() => setRunning(r => !r)}>
             {running ? 'Пауза' : 'Старт'}
           </button>
-          <button className={styles.activeFinish} onClick={completeWorkout}>Завершить</button>
+          <button className={styles.activeFinish} onClick={handleFinishWorkout}>Завершить тренировку</button>
         </div>
       </div>
     )
@@ -830,7 +845,7 @@ export default function WorkoutScreen({ state, dispatch, aiCall, PlanScreen, onA
             <div key={tpl.id} style={{ background: '#1a1a1a', borderRadius: 18, overflow: 'hidden', border: '1px solid #2e2e2e' }}>
               <SwipeToDelete onDelete={() => deleteTemplate(tpl.id)} confirmText="Удалить эту тренировку?" radius={0}>
                 <div style={{ padding: '14px 16px', background: '#1a1a1a' }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{tpl.name}</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, color: '#f5f5f5' }}>{tpl.name}</div>
                   <div style={{ fontSize: 12, color: '#6b7280', fontFamily: 'var(--mono)' }}>{(tpl.exercises || []).length} упр.{muscles.length ? ' · ' + muscles.join(', ') : ''}</div>
                 </div>
               </SwipeToDelete>

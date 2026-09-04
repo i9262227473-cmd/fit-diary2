@@ -282,7 +282,7 @@ export default function FoodScreen({ state, dispatch, aiCall, intent, onSaveGoal
         query={query} onQueryChange={handleSearch} scanLoading={scanLoading}
         onOpenBarcodeScanner={() => setShowBarcodeScanner(true)} onPhotoSelected={handleScan}
         results={results} selectedFood={selectedFood}
-        onSelectFood={selected => { setSelectedFood(selected); setResults([]) }}
+        onSelectFood={selected => { setSelectedFood(selected); setResults([]); setGrams(selected.portionGrams ? String(selected.portionGrams) : '100') }}
         onChangeSelectedFood={setSelectedFood} grams={grams} onChangeGrams={setGrams}
         onClearSelection={() => { setSelectedFood(null); setQuery('') }} onAddFood={addFoodItem}
         manual={manual} onManualChange={setManual} onAddManual={addManual}

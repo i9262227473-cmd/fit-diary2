@@ -18,6 +18,18 @@ export default function AiFoodSearch({
 }) {
   const canRecognize = Boolean(text.trim()) && !loading
 
+  // После распознавания блок результатов появляется ниже кнопки «Распознать» — на маленьких экранах
+  // он оказывался за пределами экрана, и пользователь не понимал, что что-то
+  // появилось, пока не прокручивал вручную. Автоскроллим к ним сами,
+  // как только они реально появились (не при каждом рендере, а именно при
+  // переходе loading true→false с готовыми results).
+  const resultsRef = React.useRef(null)
+  React.useEffect(() => {
+    if (results !== null && !loading) {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [results, loading])
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div
@@ -127,6 +139,7 @@ export default function AiFoodSearch({
 
       {results !== null && !loading && (
         <div
+          ref={resultsRef}
           style={{
             background: '#1a1a1a',
             borderRadius: 16,
@@ -162,7 +175,7 @@ export default function AiFoodSearch({
                   }}
                 >
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 500 }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: '#fff' }}>
                       {item.food.name}
                     </div>
 

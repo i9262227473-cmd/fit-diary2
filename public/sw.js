@@ -16,7 +16,7 @@
 // с APP_BUILD в src/appVersion.js — старые кэши с других версий удаляются
 // автоматически при активации новой, иначе пользователь мог бы залипнуть
 // на старой собранной версии даже после успешного деплоя.
-const CACHE_VERSION = 'fitdiary-2026.08.19.05'
+const CACHE_VERSION = 'fitdiary-2026.09.03.04'
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`
 const SHELL_URL = '/index.html'
 

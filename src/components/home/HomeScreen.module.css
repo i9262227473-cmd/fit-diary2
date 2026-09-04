@@ -55,8 +55,8 @@
 .foodBerry { top: 6px; left: 20px; width: 8px; height: 8px; border-radius: 50%; background: radial-gradient(circle at 32% 25%, #ffb0a6, #df493b 45%, #722117); box-shadow: 0 1px 2px rgba(0,0,0,.35); }
 .foodBowl > b { position: absolute; z-index: 3; top: 2px; left: 12px; width: 14px; height: 3px; border-radius: 50%; background: rgba(255,255,255,.36); transform: rotate(-12deg); }
 
-.foodActionsBackdrop { position: fixed; z-index: 800; inset: 0; display: flex; align-items: flex-end; justify-content: center; background: rgba(0,0,0,.58); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); }
-.foodActionsSheet { width: 100%; max-width: 480px; padding: 8px 16px calc(18px + env(safe-area-inset-bottom, 0px)); border: 1px solid var(--border); border-bottom: 0; border-radius: 26px 26px 0 0; background: var(--bg); box-shadow: 0 -20px 50px rgba(0,0,0,.3); animation: sheetFloatIn .26s cubic-bezier(.2,.75,.2,1) both; }
+.foodActionsBackdrop { position: fixed; z-index: 800; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.58); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); }
+.foodActionsSheet { width: 100%; max-width: 480px; max-height: calc(100dvh - 36px); overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 8px 16px calc(18px + env(safe-area-inset-bottom, 0px)); border: 1px solid var(--border); border-bottom: 0; border-radius: 26px 26px 0 0; background: var(--bg); box-shadow: 0 -20px 50px rgba(0,0,0,.3); animation: sheetFloatIn .26s cubic-bezier(.2,.75,.2,1) both; }
 .sheetHandle { width: 38px; height: 4px; margin: 0 auto 15px; border-radius: 99px; background: var(--surface3); }
 .foodActionsHeading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
 .foodActionsHeading span { color: var(--accent); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
