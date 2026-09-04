@@ -1,0 +1,43 @@
+.scanner { position: fixed; z-index: 1200; inset: 0; display: flex; flex-direction: column; color: #f7f9fc; background: #02060b; }
+.header { position: relative; z-index: 3; display: grid; grid-template-columns: 42px 1fr 42px; align-items: center; gap: 10px; padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 11px; border-bottom: 1px solid rgba(255,255,255,.08); background: rgba(5,11,18,.92); backdrop-filter: blur(18px); }
+.header button { display: grid; place-items: center; width: 40px; height: 40px; color: #c9d3df; border: 1px solid rgba(255,255,255,.1); border-radius: 12px; background: rgba(255,255,255,.055); }
+.header div { min-width: 0; text-align: center; }
+.header strong, .header span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.header strong { font-size: 16px; font-weight: 800; }
+.header span { margin-top: 2px; color: #8190a2; font-size: 11px; font-weight: 650; }
+.camera { position: relative; flex: 1; min-height: 0; overflow: hidden; background: #000; }
+.camera video { width: 100%; height: 100%; object-fit: cover; }
+.captureCanvas { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.shade { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 44% 18% at 50% 45%, transparent 95%, rgba(0,0,0,.58) 100%); }
+.frame { position: absolute; top: 45%; left: 50%; width: min(82vw, 420px); height: 142px; transform: translate(-50%,-50%); border: 1px solid rgba(255,255,255,.32); border-radius: 18px; box-shadow: 0 0 0 999px rgba(1,5,10,.28); }
+.frame i { position: absolute; width: 29px; height: 29px; border-color: var(--accent); border-style: solid; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 55%, transparent)); }
+.frame i:nth-child(1) { top: -2px; left: -2px; border-width: 3px 0 0 3px; border-radius: 17px 0 0; }
+.frame i:nth-child(2) { top: -2px; right: -2px; border-width: 3px 3px 0 0; border-radius: 0 17px 0 0; }
+.frame i:nth-child(3) { bottom: -2px; left: -2px; border-width: 0 0 3px 3px; border-radius: 0 0 0 17px; }
+.frame i:nth-child(4) { right: -2px; bottom: -2px; border-width: 0 3px 3px 0; border-radius: 0 0 17px; }
+.frame > svg { position: absolute; top: 50%; left: 50%; padding: 8px; box-sizing: content-box; transform: translate(-50%,-50%); color: var(--accent); border-radius: 50%; background: rgba(0,0,0,.48); animation: focusPulse .7s ease both; }
+.focusing { border-color: color-mix(in srgb, var(--accent) 70%, white); }
+.cameraControls { position: absolute; right: 14px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); left: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+/* Камера для штрихкода выбирается автоматически в BarcodeScanner.jsx.
+   Пользователю больше не показываем список физических камер телефона. */
+.cameraSelect { display: none; }
+.cameraSelect select { min-width: 0; max-width: 260px; color: #d9e2ec; border: 0; outline: 0; background: transparent; font-size: 12px; }
+.cameraSelect option { color: #111; }
+.controlRow { display: flex; gap: 8px; }
+.controlRow button { display: flex; align-items: center; gap: 6px; min-height: 39px; padding: 0 13px; color: #dbe4ee; border: 1px solid rgba(255,255,255,.11); border-radius: 13px; background: rgba(5,11,18,.78); backdrop-filter: blur(14px); font-size: 12px; font-weight: 700; }
+.controlRow .activeControl { color: #071008; border-color: var(--accent); background: var(--accent); }
+.zoomControl { display: grid; grid-template-columns: 18px minmax(130px,240px) 35px; align-items: center; gap: 9px; padding: 8px 12px; color: #dbe4ee; border: 1px solid rgba(255,255,255,.11); border-radius: 13px; background: rgba(5,11,18,.78); backdrop-filter: blur(14px); }
+.zoomControl input { width: 100%; accent-color: var(--accent); }
+.zoomControl span { color: #fff; font-family: var(--mono); font-size: 11px; text-align: right; }
+.manual { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; padding: 30px 24px calc(30px + env(safe-area-inset-bottom, 0px)); text-align: center; }
+.manual > svg { color: var(--accent); }
+.manual h2 { margin-top: 15px; font-size: 22px; }
+.manual p { max-width: 310px; margin-top: 7px; color: #7f8d9e; font-size: 13px; line-height: 1.45; }
+.manual input { width: min(100%, 310px); height: 52px; margin-top: 20px; padding: 0 15px; color: #f5f8fb; border: 1px solid #263443; border-radius: 14px; outline: 0; background: #0d1721; font-family: var(--mono); font-size: 18px; text-align: center; letter-spacing: .06em; }
+.manual button { width: min(100%, 310px); margin-top: 11px; padding: 14px; color: var(--accent-contrast); border-radius: 14px; background: var(--accent); font-size: 14px; font-weight: 800; }
+.manual button:disabled { opacity: .4; }
+.manual .secondary { color: #9dacbc; border: 1px solid #263443; background: transparent; }
+.error { color: #f58a8a !important; }
+@keyframes focusPulse { from { opacity: 0; transform: translate(-50%,-50%) scale(1.35); } to { opacity: 1; transform: translate(-50%,-50%) scale(1); } }
+@media (max-height: 620px) { .frame { top: 41%; height: 112px; } .cameraControls { bottom: 10px; gap: 6px; } }
+@media (prefers-reduced-motion: reduce) { .frame > svg { animation: none; } }

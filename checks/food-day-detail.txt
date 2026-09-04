@@ -1,0 +1,1 @@
+FoodDayDetail extracted and connected. This file only triggers the protected test build.

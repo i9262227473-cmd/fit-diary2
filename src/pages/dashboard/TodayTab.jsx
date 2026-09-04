@@ -158,7 +158,7 @@ function FullScreenPanel({ children }) {
 }
 
 export default function TodayTab({ selectedDate }) {
-  const { profile, getEntry, saveEntry, aiCall } = useStore()
+  const { profile, getEntry, saveEntry, aiCall, getValidToken } = useStore()
   const [showFoodPanel, setShowFoodPanel] = useState(false)
   const [showWorkoutPanel, setShowWorkoutPanel] = useState(false)
   const [workoutMode, setWorkoutMode] = useState(null)
@@ -224,8 +224,10 @@ export default function TodayTab({ selectedDate }) {
     setScanLoading(true)
     try {
       const b64=await compressImage(file)
-      const res=await fetch(`${API_URL}/ai-vision`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({b64})})
+      const token = await getValidToken()
+      const res=await fetch(`${API_URL}/ai-vision`,{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify({b64})})
       const d=await res.json()
+      if(!res.ok){alert(res.status===429?'Дневной лимит ИИ-запросов исчерпан. Попробуйте завтра.':(d.error||'Не удалось прочитать этикетку'));return}
       if(d.name){setSelectedFood({name:d.name,cal100:d.calories,prot100:d.protein,fat100:d.fat,carbs100:d.carbs});setQuery(d.name);setManualMode(false)}
     } catch{alert('Не удалось прочитать этикетку')} finally{setScanLoading(false)}
   }

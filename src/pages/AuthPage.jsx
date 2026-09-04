@@ -53,6 +53,51 @@ export default function AuthPage() {
 
       {/* Форма */}
       <div className={styles.form}>
+        {/*
+          Decoy-поля (RuStore/TWA): невидимая "приманка" для эвристики сохранения
+          пароля Chrome в TWA-обёртке. Должны идти в DOM раньше настоящих полей
+          логина/пароля. См. claude/rustore-roadmap.md — реальный кейс отказа
+          модерации RuStore из-за диалога "Сохранить пароль?" в TWA.
+          Гарантии нет — это обход эвристики Chrome, не официальный API. Требует
+          проверки на собранном TWA перед отправкой на модерацию.
+        */}
+        <input
+          type="text"
+          name="fake-username"
+          autoComplete="username"
+          tabIndex={-1}
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            width: '1px',
+            height: '1px',
+            padding: 0,
+            margin: '-1px',
+            overflow: 'hidden',
+            clip: 'rect(0,0,0,0)',
+            whiteSpace: 'nowrap',
+            border: 0,
+          }}
+        />
+        <input
+          type="password"
+          name="fake-password"
+          autoComplete="new-password"
+          tabIndex={-1}
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            width: '1px',
+            height: '1px',
+            padding: 0,
+            margin: '-1px',
+            overflow: 'hidden',
+            clip: 'rect(0,0,0,0)',
+            whiteSpace: 'nowrap',
+            border: 0,
+          }}
+        />
+
         {/* Переключатель */}
         <div className={styles.tabs}>
           <button
@@ -86,6 +131,8 @@ export default function AuthPage() {
             placeholder="email@example.com"
             value={email}
             onChange={e => setEmail(e.target.value)}
+            autoComplete="off"
+            data-form-type="other"
           />
         </div>
 
@@ -98,6 +145,8 @@ export default function AuthPage() {
             value={password}
             onChange={e => setPassword(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+            autoComplete="off"
+            data-form-type="other"
           />
         </div>
 

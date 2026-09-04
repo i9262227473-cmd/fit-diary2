@@ -1,6 +1,9 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Activity, Award, Check, Dumbbell, HeartPulse, Medal, Pill, Scale, ShieldCheck, Sprout, Target, UsersRound } from 'lucide-react'
 import { useStore } from '../store'
+import { calculateNutritionGoals } from '../utils/nutritionGoals'
+import FeatureIcon from '../components/common/FeatureIcon'
 import styles from './OnboardingPage.module.css'
 
 const STEPS = [
@@ -16,9 +19,9 @@ const STEPS = [
     subtitle: 'Это поможет настроить приложение под ваши нужды',
     type: 'single',
     options: [
-      { value: 'athlete', emoji: '🏋️', label: 'Спортсмен', desc: 'Слежу за питанием и тренировками для себя' },
-      { value: 'trainer', emoji: '👨‍🏫', label: 'Тренер', desc: 'Веду клиентов и отслеживаю их прогресс' },
-      { value: 'both', emoji: '🏆', label: 'Тренер и спортсмен', desc: 'Тренируюсь сам и веду клиентов' },
+      { value: 'athlete', Icon: Dumbbell, label: 'Спортсмен', desc: 'Слежу за питанием и тренировками для себя' },
+      { value: 'trainer', Icon: UsersRound, label: 'Тренер', desc: 'Веду клиентов и отслеживаю их прогресс' },
+      { value: 'both', Icon: Award, label: 'Тренер и спортсмен', desc: 'Тренируюсь сам и веду клиентов' },
     ]
   },
   {
@@ -27,10 +30,10 @@ const STEPS = [
     subtitle: 'Это влияет на строгость оценки ИИ',
     type: 'single',
     options: [
-      { value: 'beginner', emoji: '🌱', label: 'Новичок', desc: 'Только начинаю заниматься спортом' },
-      { value: 'amateur', emoji: '💪', label: 'Любитель', desc: 'Регулярно тренируюсь 1-2 года' },
-      { value: 'advanced', emoji: '🔥', label: 'Продвинутый', desc: 'Серьёзно занимаюсь 3+ лет' },
-      { value: 'professional', emoji: '🥇', label: 'Профессионал', desc: 'Выступаю на соревнованиях' },
+      { value: 'beginner', Icon: Sprout, label: 'Новичок', desc: 'Только начинаю заниматься спортом' },
+      { value: 'amateur', Icon: Dumbbell, label: 'Любитель', desc: 'Регулярно тренируюсь 1-2 года' },
+      { value: 'advanced', Icon: Activity, label: 'Продвинутый', desc: 'Серьёзно занимаюсь 3+ лет' },
+      { value: 'professional', Icon: Medal, label: 'Профессионал', desc: 'Выступаю на соревнованиях' },
     ]
   },
   {
@@ -39,12 +42,12 @@ const STEPS = [
     subtitle: 'Можно выбрать несколько',
     type: 'multi',
     options: [
-      { value: 'weight_loss', emoji: '⚖️', label: 'Похудение', desc: 'Снизить вес и процент жира' },
-      { value: 'muscle_gain', emoji: '💪', label: 'Набор массы', desc: 'Увеличить мышечную массу' },
-      { value: 'maintenance', emoji: '🎯', label: 'Поддержание', desc: 'Сохранить текущую форму' },
-      { value: 'endurance', emoji: '🏃', label: 'Выносливость', desc: 'Улучшить кардио и выносливость' },
-      { value: 'strength', emoji: '🏋️', label: 'Сила', desc: 'Увеличить силовые показатели' },
-      { value: 'health', emoji: '❤️', label: 'Здоровье', desc: 'Общее улучшение самочувствия' },
+      { value: 'weight_loss', Icon: Scale, label: 'Похудение', desc: 'Снизить вес и процент жира' },
+      { value: 'muscle_gain', Icon: Dumbbell, label: 'Набор массы', desc: 'Увеличить мышечную массу' },
+      { value: 'maintenance', Icon: Target, label: 'Поддержание', desc: 'Сохранить текущую форму' },
+      { value: 'endurance', Icon: Activity, label: 'Выносливость', desc: 'Улучшить кардио и выносливость' },
+      { value: 'strength', Icon: Dumbbell, label: 'Сила', desc: 'Увеличить силовые показатели' },
+      { value: 'health', Icon: HeartPulse, label: 'Здоровье', desc: 'Общее улучшение самочувствия' },
     ]
   },
   {
@@ -168,25 +171,21 @@ export default function OnboardingPage() {
     setLoading(true)
     try {
       const w = +answers.weight, h = +answers.height, a = +answers.age
-      const bmr = answers.gender === 'male'
-        ? 10 * w + 6.25 * h - 5 * a + 5
-        : 10 * w + 6.25 * h - 5 * a - 161
-      const activityFactors = {
-        sedentary: 1.2, light: 1.375, moderate: 1.55,
-        active: 1.725, very_active: 1.9
-      }
-      const tdee = Math.round(bmr * (activityFactors[answers.activity] || 1.55))
-      const proteinGoal = Math.round(w * (answers.level === 'professional' ? 2.2 : 1.8))
-      const fatGoal = Math.round(tdee * 0.25 / 9)
-      const carbGoal = Math.round((tdee - proteinGoal * 4 - fatGoal * 9) / 4)
+      // Раньше калорийность считалась без учёта выбранной цели (goals) —
+      // «похудение» и «набор массы» давали одну и ту же цифру. Теперь
+      // формула (см. utils/nutritionGoals.js) учитывает цель.
+      const computed = calculateNutritionGoals({
+        weight: w, height: h, age: a, gender: answers.gender,
+        activity: answers.activity, level: answers.level, goals: answers.goals,
+      })
       const bmi = calcBMI(w, h)
 
       await saveProfile({
         ...answers,
-        calorieGoal: tdee,
-        proteinGoal,
-        fatGoal,
-        carbGoal,
+        calorieGoal: computed?.calorieGoal,
+        proteinGoal: computed?.proteinGoal,
+        fatGoal: computed?.fatGoal,
+        carbGoal: computed?.carbGoal,
         bmi,
         completedAt: new Date().toISOString(),
       })
@@ -237,7 +236,7 @@ export default function OnboardingPage() {
                 className={`${styles.option} ${answers[currentStep.id] === opt.value ? styles.optionActive : ''}`}
                 onClick={() => setAnswers(a => ({ ...a, [currentStep.id]: opt.value }))}
               >
-                <span className={styles.optionEmoji}>{opt.emoji}</span>
+                <FeatureIcon Icon={opt.Icon} className={styles.optionIcon} />
                 <div className={styles.optionText}>
                   <div className={styles.optionLabel}>{opt.label}</div>
                   <div className={styles.optionDesc}>{opt.desc}</div>
@@ -259,7 +258,7 @@ export default function OnboardingPage() {
                   className={`${styles.option} ${selected ? styles.optionActive : ''}`}
                   onClick={() => toggleMulti(currentStep.id, opt.value)}
                 >
-                  <span className={styles.optionEmoji}>{opt.emoji}</span>
+                  <FeatureIcon Icon={opt.Icon} className={styles.optionIcon} />
                   <div className={styles.optionText}>
                     <div className={styles.optionLabel}>{opt.label}</div>
                     <div className={styles.optionDesc}>{opt.desc}</div>
@@ -278,7 +277,7 @@ export default function OnboardingPage() {
               className={`${styles.option} ${answers.hasLimitations === false ? styles.optionActive : ''}`}
               onClick={() => setAnswers(a => ({ ...a, hasLimitations: false, limitationsText: '' }))}
             >
-              <span className={styles.optionEmoji}>✅</span>
+              <FeatureIcon Icon={Check} className={styles.optionIcon} />
               <div className={styles.optionText}>
                 <div className={styles.optionLabel}>Нет ограничений</div>
                 <div className={styles.optionDesc}>Всё в порядке со здоровьем</div>
@@ -290,7 +289,7 @@ export default function OnboardingPage() {
               className={`${styles.option} ${answers.hasLimitations === true ? styles.optionActive : ''}`}
               onClick={() => setAnswers(a => ({ ...a, hasLimitations: true }))}
             >
-              <span className={styles.optionEmoji}>⚕️</span>
+              <FeatureIcon Icon={ShieldCheck} className={styles.optionIcon} />
               <div className={styles.optionText}>
                 <div className={styles.optionLabel}>Есть ограничения</div>
                 <div className={styles.optionDesc}>Укажу диагноз или противопоказания</div>
@@ -323,7 +322,7 @@ export default function OnboardingPage() {
               className={`${styles.option} ${answers.hasMeds === false ? styles.optionActive : ''}`}
               onClick={() => setAnswers(a => ({ ...a, hasMeds: false, medsText: '' }))}
             >
-              <span className={styles.optionEmoji}>✅</span>
+              <FeatureIcon Icon={Check} className={styles.optionIcon} />
               <div className={styles.optionText}>
                 <div className={styles.optionLabel}>Не принимаю препараты</div>
                 <div className={styles.optionDesc}>Ничего не принимаю постоянно</div>
@@ -334,7 +333,7 @@ export default function OnboardingPage() {
               className={`${styles.option} ${answers.hasMeds === true ? styles.optionActive : ''}`}
               onClick={() => setAnswers(a => ({ ...a, hasMeds: true }))}
             >
-              <span className={styles.optionEmoji}>💊</span>
+              <FeatureIcon Icon={Pill} className={styles.optionIcon} />
               <div className={styles.optionText}>
                 <div className={styles.optionLabel}>Есть постоянные препараты</div>
                 <div className={styles.optionDesc}>Укажу названия</div>

@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "ru.sudbase.fitdiary",
+      "sha256_cert_fingerprints": [
+        "3F:A5:89:21:AB:45:0A:90:A0:E7:3C:A9:BF:1F:9B:6D:37:34:46:C5:4F:23:68:6E:81:E5:9A:4A:3B:26:01:C7"
+      ]
+    }
+  }
+]
